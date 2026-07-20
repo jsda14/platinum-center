@@ -31,9 +31,45 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 ## Stack tecnológico
 
 ### Frontend
-- Vite + React + Redux + Ant Design
+- **Vite + React + TypeScript** — base del proyecto
+- **Pydantic** — validación estricta en el backend (equivalente a Zod)
+- **Redux Toolkit** — estado global
+- **Ant Design** — componentes UI
+- **React Router DOM** — navegación
+- **Zod** — validación estricta de schemas y formularios
+- **CSS Modules + BEM estricto** — estilos encapsulados por componente
+- **Arquitectura hexagonal** — domain / application / infrastructure / ui
 - Deploy: Vercel
 - Ramas: `main` (prod) / `develop` (staging para cliente)
+
+### Arquitectura hexagonal — estructura `src/`
+```
+src/
+├── domain/           # Entidades, tipos TS, Zod schemas — sin dependencias externas
+│   ├── member/
+│   ├── payment/
+│   └── plan/
+├── application/      # Casos de uso — orquestan el dominio
+│   ├── member/
+│   └── payment/
+├── infrastructure/   # Implementaciones externas
+│   ├── supabase/     # client.ts + repositories
+│   ├── api/          # llamadas a Railway
+│   └── store/        # Redux slices
+└── ui/               # React
+    ├── components/   # Componentes reutilizables (cada uno con .module.css)
+    ├── pages/
+    ├── layouts/
+    └── hooks/
+```
+
+### Convención BEM en CSS Modules
+```css
+/* ComponentName.module.css */
+.component-name { }
+.component-name__element { }
+.component-name__element--modifier { }
+```
 
 ### Backend cloud
 - FastAPI (Python) en Railway
@@ -42,6 +78,7 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 ### Base de datos
 - Supabase (PostgreSQL + Auth + Realtime + Webhooks + pg_cron)
 - Dos proyectos: `platinum-center-test` y `platinum-center-prod`
+- API keys nuevas: `sb_publishable_...` (frontend) y `sb_secret_...` (backend)
 
 ### Backend local (PC del gym)
 - FastAPI (Python) corriendo en el PC del gimnasio
@@ -67,9 +104,53 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 | Staging | `develop` | Preview automático Vercel | `platinum-center-test` |
 | Producción | `main` | Dominio propio | `platinum-center-prod` |
 
+## Variables de entorno
+
+### Frontend (`frontend/.env.local`)
+```
+VITE_SUPABASE_URL=https://kgxtipwpzdljdoluclrs.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+VITE_API_URL=http://localhost:8000
+```
+
+### Backend cloud (`backend-cloud/.env`)
+```
+SUPABASE_URL=https://kgxtipwpzdljdoluclrs.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+GYM_TUNNEL_URL=
+BOLD_WEBHOOK_SECRET=
+BREVO_API_KEY=
+```
+
 ## Agentes de desarrollo
 - **Claude** — arquitecto: diseño, decisiones, revisión, specs
 - **Gemini / Antigravity CLI** — ejecutor: implementación siguiendo specs
 
 > ⚠️ Antigravity debe consultar `specs/progress.md` antes de iniciar cualquier tarea.
 > ⚠️ Todo cambio de decisión técnica debe quedar registrado en `specs/decisions.md`.
+> ⚠️ Todo código nuevo debe respetar la arquitectura hexagonal y las convenciones BEM + CSS Modules.
+
+---
+
+## Arquitectura hexagonal — backend-cloud `src/`
+
+```
+src/
+├── domain/           # Dataclasses, tipos, Pydantic schemas — sin dependencias externas
+│   ├── member/
+│   ├── payment/
+│   └── plan/
+├── application/      # Casos de uso — orquestan el dominio
+│   ├── member/
+│   └── payment/
+├── infrastructure/   # Implementaciones externas
+│   ├── supabase/     # client.py + repositories
+│   ├── bold/         # webhook handler
+│   └── brevo/        # email service
+└── api/              # FastAPI routers — punto de entrada HTTP
+    ├── routes/       # members.py, payments.py, health.py
+    └── dependencies.py
+```
+
+> `main.py` solo inicializa FastAPI y registra los routers — sin lógica de negocio.
+> Validación con **Pydantic** en `domain/` — equivalente a Zod en el frontend.
