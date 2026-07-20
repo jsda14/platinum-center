@@ -7,14 +7,14 @@
 ---
 
 ## Estado general
-**Fase actual:** 1 — Setup + Auth + Roles
+**Fase actual:** 2 — Portal del miembro
 **Inicio del proyecto:** 2026-07
 **Última actualización:** 2026-07
 
 ---
 
 ## Fase 1 — Setup + Auth + Roles
-**Estado: 🟡 En progreso**
+**Estado: ✅ Completada**
 
 ### Infraestructura
 - [x] Correo del proyecto creado (`gym.platinum.center@gmail.com`)
@@ -30,7 +30,7 @@
 - [x] `.gitignore` completo (pnpm, Python venv, env files)
 - [x] Estructura hexagonal creada en backend-cloud y frontend
 - [x] Variables de entorno configuradas (`.env.local` frontend, `.env` backend)
-- [ ] Proyecto Railway TEST creado y conectado al repo
+- [x] Proyecto Railway TEST creado y conectado al repo
 
 ### Base de datos (Supabase TEST)
 - [x] Tablas creadas: `profiles`, `members`, `plans`, `payments`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
@@ -43,9 +43,9 @@
 ### Backend cloud (`backend-cloud/`)
 - [x] FastAPI inicializado con estructura base
 - [x] Health check endpoint `GET /health`
-- [ ] Estructura hexagonal completa
-- [ ] Conexión a Supabase funcionando
-- [ ] Deploy en Railway TEST
+- [x] Estructura hexagonal completa
+- [x] Conexión a Supabase funcionando
+- [x] Deploy en Railway TEST
 
 ### Frontend (`frontend/`)
 - [x] Vite + React + TypeScript inicializado
@@ -54,12 +54,12 @@
 - [x] Layouts base: AdminLayout, MemberLayout, AuthLayout
 - [x] Página de Login funcional con Supabase Auth
 - [x] Redirección por rol: `super_admin` → /admin, `receptionist` → /reception, `member` → /portal
-- [ ] Deploy en Vercel (branch `develop`)
+- [x] Deploy en Vercel (branch `develop`)
 
 ---
 
 ## Fase 2 — Portal del miembro
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso**
 
 - [ ] Vista de estado de membresía (colores: verde=active, amarillo=próximo a vencer, rojo=expired)
 - [ ] Contador de días restantes para plan `15_days` (días usados / 15)
@@ -128,4 +128,6 @@
 ---
 
 ## Notas y bloqueos activos
+- Frontend: https://platinum-center.vercel.app
+- Backend: https://platinum-center-production.up.railway.app
 - PowerShell en Windows requiere `New-Item` en lugar de `mkdir -p` para crear múltiples carpetas
