@@ -17,21 +17,20 @@
 **Estado: 🟡 En progreso**
 
 ### Infraestructura
-- [x] Correo del proyecto creado (`platinumcenter.app@gmail.com`)
+- [x] Correo del proyecto creado (`gym.platinum.center@gmail.com`)
 - [x] Repos creados en GitHub (`platinum-center` / `platinum-center-local`)
 - [x] Estructura de carpetas inicial (`specs/`, `frontend/`, `backend-cloud/`)
 - [x] Specs completas escritas y revisadas
-- [ ] Initial commit en `main`
-- [ ] Rama `develop` creada
-- [ ] Proyecto Supabase TEST creado
+- [x] Initial commit en `main`
+- [x] Rama `develop` creada
+- [x] Proyecto Supabase TEST creado (`platinum-center-test`, región sa-east-1)
+- [x] Frontend inicializado (Vite + React + TS + Redux + Ant Design + Zod + Oxlint, pnpm)
+- [x] Backend-cloud inicializado (FastAPI + Pydantic + uvicorn)
+- [x] Health check endpoint `GET /health` funcionando
+- [x] `.gitignore` completo (pnpm, Python venv, env files)
+- [ ] Estructura hexagonal creada en backend-cloud y frontend
 - [ ] Variables de entorno configuradas (`.env.local` frontend, `.env` backend)
 - [ ] Proyecto Railway TEST creado y conectado al repo
-
-### Backend cloud (`backend-cloud/`)
-- [ ] FastAPI inicializado con estructura base
-- [ ] Conexión a Supabase funcionando
-- [ ] Health check endpoint `GET /health`
-- [ ] Deploy en Railway TEST
 
 ### Base de datos (Supabase TEST)
 - [ ] Tablas creadas: `profiles`, `members`, `payments`, `plans`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
@@ -40,11 +39,17 @@
 - [ ] pg_cron: job `check-expired-members`
 - [ ] pg_cron: job `check-expired-day-passes`
 
+### Backend cloud (`backend-cloud/`)
+- [x] FastAPI inicializado con estructura base
+- [x] Health check endpoint `GET /health`
+- [ ] Estructura hexagonal completa
+- [ ] Conexión a Supabase funcionando
+- [ ] Deploy en Railway TEST
+
 ### Frontend (`frontend/`)
-- [ ] Vite + React inicializado
-- [ ] Redux configurado
-- [ ] Ant Design instalado y tema base configurado
-- [ ] React Router configurado
+- [x] Vite + React + TypeScript inicializado
+- [x] Redux, Ant Design, Zod, React Router instalados
+- [ ] Estructura hexagonal completa
 - [ ] Layouts base: AdminLayout, MemberLayout, AuthLayout
 - [ ] Página de Login funcional con Supabase Auth
 - [ ] Redirección por rol: `super_admin` → /admin, `receptionist` → /reception, `member` → /portal
@@ -122,4 +127,4 @@
 ---
 
 ## Notas y bloqueos activos
-_(registrar aquí cualquier impedimento o decisión pendiente)_
+- PowerShell en Windows requiere `New-Item` en lugar de `mkdir -p` para crear múltiples carpetas
