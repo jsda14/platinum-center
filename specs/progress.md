@@ -38,6 +38,7 @@
 - [x] Políticas RLS por rol configuradas
 - [x] pg_cron: job `check-expired-members`
 - [x] pg_cron: job `check-expired-day-passes`
+- [x] Trigger de autenticación (`on_auth_user_created` -> `handle_new_user()`)
 
 ### Backend cloud (`backend-cloud/`)
 - [x] FastAPI inicializado con estructura base
