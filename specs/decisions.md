@@ -167,3 +167,11 @@ backend-cloud/src/
 ```
 
 **Validación backend:** Pydantic (incluido en FastAPI) — equivalente a Zod en el frontend.
+
+---
+
+## [2026-07] Principios de diseño de software (SOLID + SoC)
+**Decisión:** Adopción obligatoria de principios SOLID (SRP, OCP, LSP, ISP, DIP) y Separación de Responsabilidades (SoC) como estándares de diseño en la arquitectura hexagonal tanto en frontend como en backend-cloud.
+**Razón:** Mantenibilidad y desacoplamiento. Las reglas de negocio permanecen aisladas de los detalles de infraestructura (Supabase, FastAPI, React, Bold, Brevo). Permite realizar pruebas unitarias desacopladas y cambiar proveedores externos sin modificar la lógica del dominio o los casos de uso.
+**Impacto:** Define la responsabilidad estricta de cada carpeta (`domain/`, `application/`, `infrastructure/`, `ui/` / `api/`). Prohíbe consultas directas a Supabase o lógica de fechas/membresías dentro de componentes UI o routers FastAPI.
+

@@ -1,0 +1,114 @@
+.member-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-dark);
+  color: var(--color-text-primary);
+  padding-bottom: 72px;
+}
+
+.member-layout__header {
+  height: 64px;
+  background-color: var(--color-dark-elevated);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.member-layout__brand {
+  display: flex;
+  align-items: center;
+}
+
+.member-layout__logo {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+  letter-spacing: 1px;
+}
+
+.member-layout__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.member-layout__user-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.member-layout__logout-button {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-layout__logout-button:hover {
+  color: var(--color-primary);
+  background-color: var(--color-dark-surface);
+}
+
+.member-layout__content {
+  flex: 1;
+  padding: var(--space-4);
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.member-layout__tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: var(--color-dark-elevated);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 100;
+}
+
+.member-layout__tab {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.member-layout__tab-icon {
+  font-size: var(--font-size-xl);
+}
+
+.member-layout__tab-label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.member-layout__tab--active {
+  color: var(--color-primary);
+}
