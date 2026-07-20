@@ -6,8 +6,44 @@
 ---
 
 ## [2026-07] Stack frontend
-**Decisión:** Vite + React + Redux + Ant Design
-**Razón:** Stack conocido por el desarrollador. Ant Design provee componentes de gestión listos (tablas, formularios, dashboards) ideales para el panel admin.
+**Decisión:** Vite + React + TypeScript + Redux + Ant Design
+**Razón:** Stack conocido por el desarrollador. TypeScript garantiza tipado estricto y detección temprana de errores. Ant Design provee componentes de gestión listos (tablas, formularios, dashboards) ideales para el panel admin.
+
+---
+
+## [2026-07] Validación de datos — frontend
+**Decisión:** Zod para validación estricta de schemas y formularios
+**Razón:** Integra nativamente con TypeScript generando tipos inferidos. Valida tanto en formularios (UI) como en los datos que llegan de Supabase/API antes de usarlos en el dominio.
+
+---
+
+## [2026-07] Arquitectura frontend
+**Decisión:** Arquitectura hexagonal (domain / application / infrastructure / ui)
+**Razón:** Separa las reglas de negocio de los detalles de implementación. Facilita testing, mantenibilidad y futuros cambios de proveedor (ej: cambiar Supabase por otra BD sin tocar el dominio).
+
+```
+src/
+├── domain/         # Entidades, tipos, Zod schemas — sin dependencias externas
+├── application/    # Casos de uso — orquestan el dominio
+├── infrastructure/ # Supabase, Redux, API calls — implementaciones externas
+└── ui/             # Componentes React, páginas, layouts, hooks
+```
+
+---
+
+## [2026-07] Estilos — frontend
+**Decisión:** BEM estricto + CSS Modules
+**Razón:** BEM garantiza nomenclatura predecible y sin colisiones. CSS Modules encapsula los estilos por componente, eliminando efectos secundarios globales. Cada componente tiene su propio `.module.css`.
+
+Convención BEM en CSS Modules:
+```css
+/* MemberCard.module.css */
+.member-card { }
+.member-card__title { }
+.member-card__status { }
+.member-card__status--active { }
+.member-card__status--expired { }
+```
 
 ---
 
@@ -103,3 +139,31 @@
 **Razón:** Por qué — problema que resuelve, alternativas descartadas
 **Impacto:** Qué archivos o fases afecta
 ```
+
+---
+
+## [2026-07] Gestor de paquetes frontend
+**Decisión:** pnpm en lugar de npm
+**Razón:** Más rápido, usa almacén central compartido sin duplicar dependencias, y es estricto con dependencias fantasma — solo accedes a lo que declaras explícitamente. Mayor seguridad por diseño.
+
+---
+
+## [2026-07] Linter frontend
+**Decisión:** Oxlint
+**Razón:** Escrito en Rust, entre 50-100x más rápido que ESLint. Es el estándar emergente para proyectos nuevos.
+
+---
+
+## [2026-07] Arquitectura backend-cloud
+**Decisión:** Arquitectura hexagonal (domain / application / infrastructure / api)
+**Razón:** Misma separación de responsabilidades que el frontend. Las reglas de negocio en `domain/` no dependen de FastAPI, Supabase ni ningún proveedor externo — son intercambiables sin tocar el dominio.
+
+```
+backend-cloud/src/
+├── domain/         # Dataclasses, tipos, Pydantic schemas — sin dependencias externas
+├── application/    # Casos de uso — orquestan el dominio
+├── infrastructure/ # Supabase, Bold, Brevo — implementaciones externas
+└── api/            # FastAPI routers — punto de entrada HTTP
+```
+
+**Validación backend:** Pydantic (incluido en FastAPI) — equivalente a Zod en el frontend.
