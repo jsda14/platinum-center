@@ -33,8 +33,8 @@
 - [ ] Proyecto Railway TEST creado y conectado al repo
 
 ### Base de datos (Supabase TEST)
-- [ ] Tablas creadas: `profiles`, `members`, `payments`, `plans`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
-- [ ] RLS habilitado en todas las tablas
+- [x] Tablas creadas: `profiles`, `members`, `plans`, `payments`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
+- [x] RLS habilitado en todas las tablas
 - [ ] Políticas RLS por rol configuradas
 - [ ] pg_cron: job `check-expired-members`
 - [ ] pg_cron: job `check-expired-day-passes`
