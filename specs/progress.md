@@ -51,7 +51,7 @@
 - [x] Vite + React + TypeScript inicializado
 - [x] Redux, Ant Design, Zod, React Router instalados
 - [x] Estructura hexagonal completa
-- [ ] Layouts base: AdminLayout, MemberLayout, AuthLayout
+- [x] Layouts base: AdminLayout, MemberLayout, AuthLayout
 - [x] Página de Login funcional con Supabase Auth
 - [x] Redirección por rol: `super_admin` → /admin, `receptionist` → /reception, `member` → /portal
 - [ ] Deploy en Vercel (branch `develop`)

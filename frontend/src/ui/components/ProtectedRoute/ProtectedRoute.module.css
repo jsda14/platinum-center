@@ -1,0 +1,9 @@
+.protected-route__loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-dark);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}

@@ -1,0 +1,101 @@
+.admin-layout {
+  min-height: 100vh;
+  background-color: var(--color-dark);
+}
+
+.admin-layout__sider {
+  background-color: var(--color-dark-elevated) !important;
+  border-right: 1px solid var(--color-border);
+}
+
+.admin-layout__logo-container {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-layout__logo {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+  margin: 0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-layout__menu {
+  background-color: transparent !important;
+  border-right: none !important;
+  margin-top: var(--space-4);
+}
+
+.admin-layout__main {
+  background-color: var(--color-dark);
+}
+
+.admin-layout__header {
+  background-color: var(--color-dark-elevated) !important;
+  padding: 0 var(--space-5) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  height: 64px;
+}
+
+.admin-layout__trigger {
+  color: var(--color-text-primary) !important;
+  font-size: var(--font-size-lg);
+}
+
+.admin-layout__user {
+  display: flex;
+  align-items: center;
+}
+
+.admin-layout__user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.admin-layout__user-info:hover {
+  background-color: var(--color-dark-surface);
+}
+
+.admin-layout__avatar {
+  background-color: var(--color-primary) !important;
+}
+
+.admin-layout__user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-layout__user-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.admin-layout__user-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.admin-layout__content {
+  padding: var(--space-6);
+  background-color: var(--color-dark);
+  min-height: calc(100vh - 64px);
+  color: var(--color-text-primary);
+}
