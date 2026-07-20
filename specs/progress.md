@@ -36,8 +36,8 @@
 - [x] Tablas creadas: `profiles`, `members`, `plans`, `payments`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
 - [x] RLS habilitado en todas las tablas
 - [x] Políticas RLS por rol configuradas
-- [ ] pg_cron: job `check-expired-members`
-- [ ] pg_cron: job `check-expired-day-passes`
+- [x] pg_cron: job `check-expired-members`
+- [x] pg_cron: job `check-expired-day-passes`
 
 ### Backend cloud (`backend-cloud/`)
 - [x] FastAPI inicializado con estructura base
