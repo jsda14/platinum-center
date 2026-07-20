@@ -35,7 +35,7 @@
 ### Base de datos (Supabase TEST)
 - [x] Tablas creadas: `profiles`, `members`, `plans`, `payments`, `member_day_passes`, `access_logs`, `suggestions`, `gym_config`
 - [x] RLS habilitado en todas las tablas
-- [ ] Políticas RLS por rol configuradas
+- [x] Políticas RLS por rol configuradas
 - [ ] pg_cron: job `check-expired-members`
 - [ ] pg_cron: job `check-expired-day-passes`
 
