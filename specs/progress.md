@@ -28,8 +28,8 @@
 - [x] Backend-cloud inicializado (FastAPI + Pydantic + uvicorn)
 - [x] Health check endpoint `GET /health` funcionando
 - [x] `.gitignore` completo (pnpm, Python venv, env files)
-- [ ] Estructura hexagonal creada en backend-cloud y frontend
-- [ ] Variables de entorno configuradas (`.env.local` frontend, `.env` backend)
+- [x] Estructura hexagonal creada en backend-cloud y frontend
+- [x] Variables de entorno configuradas (`.env.local` frontend, `.env` backend)
 - [ ] Proyecto Railway TEST creado y conectado al repo
 
 ### Base de datos (Supabase TEST)
