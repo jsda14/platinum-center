@@ -18,7 +18,6 @@ export function App() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
       </Route>
-
       {/* Admin routes */}
       <Route
         path="/admin/*"
