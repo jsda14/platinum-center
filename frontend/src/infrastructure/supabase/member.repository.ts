@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Member, MemberDayPass } from '../../domain/member/member.types';
+import type { Member, MemberDayPass, Payment } from '../../domain/member/member.types';
 
 export const memberRepository = {
   async getMemberByProfileId(profileId: string): Promise<Member> {
@@ -32,5 +32,18 @@ export const memberRepository = {
       throw new Error(error.message);
     }
     return data as MemberDayPass | null;
+  },
+
+  async getPaymentsByMemberId(memberId: string): Promise<Payment[]> {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('member_id', memberId)
+      .order('payment_date', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    return (data || []) as Payment[];
   }
 };

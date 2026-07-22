@@ -63,7 +63,7 @@
 
 - [x] Vista de estado de membresía (colores: verde=active, amarillo=próximo a vencer, rojo=expired)
 - [x] Contador de días restantes para plan `15_days` (días usados / 15)
-- [ ] Historial de pagos
+- [x] Historial de pagos
 - [ ] Formulario de sugerencias
 - [ ] Integración Bold (pago de renovación)
 - [ ] Notificaciones in-app (Supabase Realtime)
