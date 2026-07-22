@@ -66,7 +66,7 @@
 - [x] Historial de pagos
 - [x] Formulario de sugerencias
 - [ ] Integración Bold (pago de renovación)
-- [ ] Notificaciones in-app (Supabase Realtime)
+- [x] Notificaciones in-app (Supabase Realtime)
 - [ ] Email de bienvenida (Brevo)
 - [ ] Email de vencimiento próximo — 3 días antes (Brevo)
 - [ ] Email de confirmación de pago (Brevo)

@@ -79,3 +79,14 @@ body {
     box-shadow: 0 0 30px rgba(196, 30, 58, 0.6);
   }
 }
+
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -30px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

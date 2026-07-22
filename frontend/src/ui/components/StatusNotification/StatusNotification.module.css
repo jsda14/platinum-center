@@ -1,0 +1,64 @@
+.status-notification {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2 * var(--space-4));
+  max-width: 400px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  z-index: 1000;
+  animation: slideDown var(--transition-normal) ease forwards;
+}
+
+.status-notification--active {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-status-active);
+  color: var(--color-status-active);
+}
+
+.status-notification--expired {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-status-expired);
+  color: var(--color-status-expired);
+}
+
+.status-notification--suspended {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-status-warning);
+  color: var(--color-status-warning);
+}
+
+.status-notification__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.status-notification__message {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+.status-notification__close-button {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.status-notification__close-button:hover {
+  color: var(--color-text-primary);
+}
