@@ -7,6 +7,8 @@ import { AdminLayout } from './ui/layouts/AdminLayout/AdminLayout';
 import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
 import { Login } from './ui/pages/Login/Login';
 
+import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
+
 export function App() {
   useAuthSession();
 
@@ -54,7 +56,7 @@ export function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<div>Mi Membresía</div>} />
+        <Route index element={<MemberPortal />} />
         <Route path="payments" element={<div>Mis Pagos</div>} />
         <Route path="suggestions" element={<div>Mis Sugerencias</div>} />
       </Route>
