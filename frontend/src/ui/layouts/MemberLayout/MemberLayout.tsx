@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   IdcardOutlined,
@@ -10,11 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/st
 import { logout } from '../../../infrastructure/store/authSlice';
 import styles from './MemberLayout.module.css';
 
-interface MemberLayoutProps {
-  children?: ReactNode;
-}
-
-export function MemberLayout({ children }: MemberLayoutProps) {
+export function MemberLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -66,7 +61,7 @@ export function MemberLayout({ children }: MemberLayoutProps) {
       </header>
 
       <main className={styles['member-layout__content']}>
-        {children || <Outlet />}
+        <Outlet />
       </main>
 
       <nav className={styles['member-layout__tabbar']} role="navigation">
