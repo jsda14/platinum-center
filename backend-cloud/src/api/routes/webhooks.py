@@ -38,6 +38,12 @@ async def member_status_webhook(
         except Exception:
             pass
             
+    print(f"[WEBHOOK] status_val: {status_val}")
+    print(f"[WEBHOOK] days_remaining: {days_remaining}")
+    print(f"[WEBHOOK] end_date_str: {end_date_str}")
+    print(f"[WEBHOOK] profile_id: {profile_id}")
+    print(f"[WEBHOOK] Condición email: {status_val == 'active' and 0 < days_remaining <= 3}")
+
     if status_val == "active" and 0 < days_remaining <= 3:
         # Fetch profile info
         profile_res = supabase_client.table("profiles").select("*").eq("id", profile_id).execute()
