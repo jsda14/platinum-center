@@ -16,6 +16,8 @@ export function useAuthSession() {
             dispatch(setUser({ user: session.user, profile: null }));
           }
         });
+      } else {
+        dispatch(setUser({ user: null, profile: null }));
       }
     });
 

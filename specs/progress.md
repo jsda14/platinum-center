@@ -61,8 +61,8 @@
 ## Fase 2 — Portal del miembro
 **Estado: 🟡 En progreso**
 
-- [ ] Vista de estado de membresía (colores: verde=active, amarillo=próximo a vencer, rojo=expired)
-- [ ] Contador de días restantes para plan `15_days` (días usados / 15)
+- [x] Vista de estado de membresía (colores: verde=active, amarillo=próximo a vencer, rojo=expired)
+- [x] Contador de días restantes para plan `15_days` (días usados / 15)
 - [ ] Historial de pagos
 - [ ] Formulario de sugerencias
 - [ ] Integración Bold (pago de renovación)
