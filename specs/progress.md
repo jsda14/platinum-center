@@ -67,9 +67,9 @@
 - [x] Formulario de sugerencias
 - [ ] Integración Bold (pago de renovación)
 - [x] Notificaciones in-app (Supabase Realtime)
-- [ ] Email de bienvenida (Brevo)
-- [ ] Email de vencimiento próximo — 3 días antes (Brevo)
-- [ ] Email de confirmación de pago (Brevo)
+- [x] Email de bienvenida (Brevo)
+- [x] Email de vencimiento próximo — 3 días antes (Brevo)
+- [x] Email de confirmación de pago (Brevo)
 
 ---
 
