@@ -12,6 +12,7 @@
   --color-status-active: #22C55E;
   --color-status-warning: #F59E0B;
   --color-status-expired: #EF4444;
+  --color-status-read: #3B82F6;
 
   /* TIPOGRAFÍA */
   --font-primary: 'Inter', sans-serif;
