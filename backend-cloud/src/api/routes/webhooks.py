@@ -55,12 +55,16 @@ async def member_status_webhook(
         full_name = profile.get("full_name") or "Miembro"
         
         if email:
-            send_expiration_warning_email(
-                to_email=email,
-                full_name=full_name,
-                days_remaining=days_remaining,
-                end_date=end_date_str[:10] if end_date_str else "N/A"
-            )
+            try:
+                result = send_expiration_warning_email(
+                    to_email=email,
+                    full_name=full_name,
+                    days_remaining=days_remaining,
+                    end_date=end_date_str[:10] if end_date_str else "N/A"
+                )
+                print(f"[BREVO] Email enviado exitosamente: {result}")
+            except Exception as e:
+                print(f"[BREVO] Error al enviar email: {str(e)}")
             return {"status": "email_sent"}
             
     return {"status": "ok", "message": "Procesado sin envío de email"}
