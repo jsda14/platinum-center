@@ -9,6 +9,8 @@ import { Login } from './ui/pages/Login/Login';
 
 import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
 
+import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
+
 export function App() {
   useAuthSession();
 
@@ -57,7 +59,7 @@ export function App() {
         }
       >
         <Route index element={<MemberPortal />} />
-        <Route path="payments" element={<div>Mis Pagos</div>} />
+        <Route path="payments" element={<MemberPayments />} />
         <Route path="suggestions" element={<div>Mis Sugerencias</div>} />
       </Route>
 
