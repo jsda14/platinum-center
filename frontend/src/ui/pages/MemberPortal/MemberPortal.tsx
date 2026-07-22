@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import { getMemberStatus, type MemberStatusResult } from '../../../application/member/getMemberStatus.usecase';
+import { useMemberStatusRealtime } from '../../../ui/hooks/useMemberStatusRealtime';
+import { StatusNotification } from '../../../ui/components/StatusNotification/StatusNotification';
 import styles from './MemberPortal.module.css';
 
 export function MemberPortal() {
@@ -8,6 +10,7 @@ export function MemberPortal() {
  const [data, setData] = useState<MemberStatusResult | null>(null);
  const [isLoading, setIsLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
+ const [toastStatus, setToastStatus] = useState<string | null>(null);
 
  useEffect(() => {
   if (!profile) return;
@@ -25,6 +28,22 @@ export function MemberPortal() {
     setIsLoading(false);
    });
  }, [profile]);
+
+ const handleStatusChange = useCallback((newStatus: string) => {
+  setData((prevData) => {
+   if (!prevData?.member) return prevData;
+   return {
+    ...prevData,
+    member: {
+     ...prevData.member,
+     status: newStatus as any,
+    },
+   };
+  });
+  setToastStatus(newStatus);
+ }, []);
+
+ useMemberStatusRealtime(data?.member?.id, handleStatusChange);
 
  if (isLoading) {
   return (
@@ -145,7 +164,14 @@ export function MemberPortal() {
       </div>
      )}
     </div>
-   </section>
-  </div>
+    </section>
+
+    {toastStatus && (
+      <StatusNotification
+        status={toastStatus}
+        onClose={() => setToastStatus(null)}
+      />
+    )}
+   </div>
  );
 }
