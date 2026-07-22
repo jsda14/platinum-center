@@ -130,4 +130,7 @@
 ## Notas y bloqueos activos
 - Frontend: https://platinum-center.vercel.app
 - Backend: https://platinum-center-production.up.railway.app
+- Webhook Supabase configurado: `members` UPDATE → Railway `/webhooks/member-status`
+- `SUPABASE_WEBHOOK_SECRET` configurado en Railway
+- Email bloqueado temporalmente por Gmail rate limit en pruebas — no es bug, es comportamiento normal en envíos masivos de prueba (shared IP reputation)
 - PowerShell en Windows requiere `New-Item` en lugar de `mkdir -p` para crear múltiples carpetas
