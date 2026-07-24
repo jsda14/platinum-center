@@ -58,13 +58,10 @@ async def bold_payment_webhook(
     #             detail="No autorizado: Falta firma x-bold-signature"
     #         )
     #         
-    #     # Convertir cuerpo a Base64 para el cálculo del HMAC
-    #     body_base64 = base64.b64encode(body_bytes).decode('utf-8')
-    #     
     #     # Calcular HMAC-SHA256
     #     computed_sig = hmac.new(
     #         key=secret.encode('utf-8'),
-    #         msg=body_base64.encode('utf-8'),
+    #         msg=body_bytes,
     #         digestmod=hashlib.sha256
     #     ).hexdigest()
     #     
