@@ -7,7 +7,40 @@ from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
 
+from pydantic import BaseModel
+
+class PaymentIntentCreate(BaseModel):
+    order_id: str
+    member_id: str
+    plan_slug: str
+    amount: float
+
 router = APIRouter(tags=["bold"])
+
+@router.post("/bold/create-payment-intent")
+def create_payment_intent(data: PaymentIntentCreate):
+    """
+    Registra una intención de pago en la base de datos para conciliación posterior en el webhook
+    """
+    try:
+        res = supabase_client.table("payment_intents").insert({
+            "order_id": data.order_id,
+            "member_id": data.member_id,
+            "plan_slug": data.plan_slug,
+            "amount": data.amount
+        }).execute()
+        
+        if not res.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo registrar la intención de pago en la base de datos"
+            )
+        return {"status": "ok", "data": res.data[0]}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en base de datos: {str(e)}"
+        )
 
 @router.get("/bold/integrity-signature")
 def get_integrity_signature(order_id: str, amount: int, currency: str = "COP"):
@@ -94,22 +127,39 @@ async def bold_payment_webhook(
     if not isinstance(metadata, dict):
         metadata = {}
         
-    # Buscar datos del miembro y plan en metadatos del pago
-    member_id = metadata.get("member_id")
-    plan_slug = metadata.get("plan")
+    # Buscar en la tabla payment_intents usando data.metadata.reference como order_id
+    order_id = metadata.get("reference")
+    member_id = None
+    plan_slug = None
+    intent_amount = None
     
-    # Buscar en metadatos del nivel superior del payload por si acaso
-    if not member_id or not plan_slug:
-        root_metadata = payload.get("metadata", {})
-        if isinstance(root_metadata, str):
-            try:
-                root_metadata = json.loads(root_metadata)
-            except Exception:
-                pass
-        if isinstance(root_metadata, dict):
-            member_id = member_id or root_metadata.get("member_id")
-            plan_slug = plan_slug or root_metadata.get("plan")
+    if order_id:
+        try:
+            intent_res = supabase_client.table("payment_intents").select("*").eq("order_id", order_id).execute()
+            if intent_res.data:
+                intent_data = intent_res.data[0]
+                member_id = intent_data.get("member_id")
+                plan_slug = intent_data.get("plan_slug")
+                intent_amount = float(intent_data.get("amount", 0.0))
+                print(f"[BOLD WEBHOOK] Intención de pago encontrada: member_id={member_id}, plan_slug={plan_slug}, amount={intent_amount}")
+        except Exception as e:
+            print(f"[BOLD WEBHOOK] Error al consultar payment_intents: {str(e)}")
             
+    # Fallback por si acaso
+    if not member_id or not plan_slug:
+        member_id = metadata.get("member_id")
+        plan_slug = metadata.get("plan")
+        if not member_id or not plan_slug:
+            root_metadata = payload.get("metadata", {})
+            if isinstance(root_metadata, str):
+                try:
+                    root_metadata = json.loads(root_metadata)
+                except Exception:
+                    pass
+            if isinstance(root_metadata, dict):
+                member_id = member_id or root_metadata.get("member_id")
+                plan_slug = plan_slug or root_metadata.get("plan")
+                
     # Identificadores de transacción
     tx_id = data.get("payment_id") or payload.get("subject")
     amount_total = data.get("amount", {}).get("total", 0)
@@ -120,6 +170,10 @@ async def bold_payment_webhook(
         amount_cop = float(amount_total) / 100.0
     else:
         amount_cop = float(amount_total)
+        
+    # Si se encontró en la intención de pago, priorizar ese monto
+    if intent_amount:
+        amount_cop = intent_amount
     
     # Validar idempotencia para evitar procesar el mismo webhook dos veces
     if tx_id:
