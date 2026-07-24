@@ -64,8 +64,30 @@ export function MemberRenewal() {
       // 2. Plan price in COP pesos (e.g. 60000)
       const amountInPesos = Math.round(plan.price);
 
-      // 3. Request signature from the backend
+      if (!memberId) {
+        throw new Error('No se pudo encontrar el ID del miembro para registrar el pago');
+      }
+
+      // 3. Register payment intent in backend-cloud
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const intentResponse = await fetch(`${apiUrl}/bold/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          order_id: newOrderId,
+          member_id: memberId,
+          plan_slug: plan.slug,
+          amount: amountInPesos
+        })
+      });
+
+      if (!intentResponse.ok) {
+        throw new Error('No se pudo registrar la intención de pago en el servidor');
+      }
+
+      // 4. Request signature from the backend
       const response = await fetch(
         `${apiUrl}/bold/integrity-signature?order_id=${newOrderId}&amount=${amountInPesos}&currency=COP`
       );
@@ -260,6 +282,7 @@ export function MemberRenewal() {
                   integritySignature={signature}
                   planName={selectedPlan.name}
                   metadata={{
+                    reference: orderId,
                     member_id: memberId,
                     plan: selectedPlan.slug,
                   }}
