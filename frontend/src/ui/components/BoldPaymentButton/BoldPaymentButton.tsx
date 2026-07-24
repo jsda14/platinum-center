@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CreditCardOutlined, LockOutlined } from '@ant-design/icons';
 import styles from './BoldPaymentButton.module.css';
 
 declare global {
@@ -112,15 +113,35 @@ export function BoldPaymentButton({
   }
 
   return (
-    <button
-      type="button"
-      className={styles['bold-payment-button__action']}
-      onClick={handlePayClick}
-      disabled={!checkout}
-      aria-label={`Pagar ahora renovación membresía ${planName}`}
-    >
-      {checkout ? 'Pagar ahora' : 'Cargando pasarela...'}
-    </button>
+    <div className={styles['bold-payment-button']}>
+      {/* Hide native Bold elements if any render in the DOM */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .bold-checkout-button, [data-bold-button], .bold-payment-btn {
+          display: none !important;
+          visibility: hidden !important;
+        }
+      `}} />
+
+      <button
+        type="button"
+        className={styles['bold-payment-button__action']}
+        onClick={handlePayClick}
+        disabled={!checkout}
+        aria-label={`Pagar con Bold la renovación de membresía ${planName}`}
+      >
+        <span className={styles['bold-payment-button__content-left']}>
+          <CreditCardOutlined className={styles['bold-payment-button__icon']} />
+          <LockOutlined className={styles['bold-payment-button__security-icon']} />
+          <span className={styles['bold-payment-button__text']}>
+            {checkout ? 'Pagar con Bold' : 'Cargando pasarela...'}
+          </span>
+        </span>
+        <span className={styles['bold-payment-button__logo']}>
+          <span className={styles['bold-payment-button__logo-bold']}>bold</span>
+          <span className={styles['bold-payment-button__logo-dot']}>.</span>
+        </span>
+      </button>
+    </div>
   );
 }
 
