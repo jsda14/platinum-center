@@ -1,11 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './BoldPaymentButton.module.css';
+
+declare global {
+  interface Window {
+    BoldCheckout: any;
+  }
+}
 
 interface BoldPaymentButtonProps {
   orderId: string;
-  amount: number; // in cents
+  amount: number;
   apiKey: string;
   integritySignature: string;
+  planName: string;
   metadata?: Record<string, string>;
 }
 
@@ -14,51 +21,106 @@ export function BoldPaymentButton({
   amount,
   apiKey,
   integritySignature,
+  planName,
   metadata,
 }: BoldPaymentButtonProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [checkout, setCheckout] = useState<any>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    // Check if the script is already added in the document
+    const existingScript = document.querySelector(
+      'script[src="https://checkout.bold.co/library/boldPaymentButton.js"]'
+    );
 
-    // Clear previous button content to avoid duplicates on re-render
-    container.innerHTML = '';
+    const handleScriptLoad = () => {
+      setIsScriptLoaded(true);
+    };
 
-    // Create the Bold payment script tag
-    const script = document.createElement('script');
-    script.src = 'https://checkout.bold.co/library/boldPaymentButton.js';
-    script.async = true;
+    const handleScriptError = () => {
+      setLoadError(true);
+    };
 
-    // Set standard and required data attributes
-    script.setAttribute('data-bold-button', 'true');
-    script.setAttribute('data-order-id', orderId);
-    script.setAttribute('data-currency', 'COP');
-    script.setAttribute('data-amount', amount.toString());
-    script.setAttribute('data-api-key', apiKey);
-    script.setAttribute('data-integrity-signature', integritySignature);
-
-    // If metadata is provided, serialize and set it as data-metadata
-    if (metadata) {
-      script.setAttribute('data-metadata', JSON.stringify(metadata));
+    if (existingScript) {
+      if (window.BoldCheckout) {
+        setIsScriptLoaded(true);
+      } else {
+        existingScript.addEventListener('load', handleScriptLoad);
+        existingScript.addEventListener('error', handleScriptError);
+      }
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.bold.co/library/boldPaymentButton.js';
+      script.async = true;
+      script.addEventListener('load', handleScriptLoad);
+      script.addEventListener('error', handleScriptError);
+      document.head.appendChild(script);
     }
 
-    // Append script to container to trigger rendering by Bold
-    container.appendChild(script);
-
     return () => {
-      if (container) {
-        container.innerHTML = '';
+      const script = document.querySelector(
+        'script[src="https://checkout.bold.co/library/boldPaymentButton.js"]'
+      );
+      if (script) {
+        script.removeEventListener('load', handleScriptLoad);
+        script.removeEventListener('error', handleScriptError);
       }
     };
-  }, [orderId, amount, apiKey, integritySignature, metadata]);
+  }, []);
+
+  useEffect(() => {
+    if (!isScriptLoaded || !window.BoldCheckout) return;
+
+    try {
+      // Configure BoldCheckout instance
+      const checkoutConfig: any = {
+        orderId,
+        currency: 'COP',
+        amount: amount.toString(),
+        apiKey,
+        integritySignature,
+        description: `Renovación membresía ${planName}`,
+      };
+
+      if (metadata) {
+        checkoutConfig.metadata = metadata;
+        checkoutConfig.customData = metadata;
+      }
+
+      const instance = new window.BoldCheckout(checkoutConfig);
+      setCheckout(instance);
+    } catch (err) {
+      console.error('Error al inicializar BoldCheckout:', err);
+    }
+  }, [isScriptLoaded, orderId, amount, apiKey, integritySignature, planName, metadata]);
+
+  const handlePayClick = () => {
+    if (checkout) {
+      checkout.open();
+    } else {
+      console.error('El objeto checkout no está listo aún');
+    }
+  };
+
+  if (loadError) {
+    return (
+      <div className={styles['bold-payment-button__error']}>
+        Error al cargar la pasarela de pagos.
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className={styles['bold-payment-button']}
-      aria-label="Contenedor del botón de pago de Bold"
-    />
+    <button
+      type="button"
+      className={styles['bold-payment-button__action']}
+      onClick={handlePayClick}
+      disabled={!checkout}
+      aria-label={`Pagar ahora renovación membresía ${planName}`}
+    >
+      {checkout ? 'Pagar ahora' : 'Cargando pasarela...'}
+    </button>
   );
 }
 
