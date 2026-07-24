@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useAppSelector } from '@/infrastructure/store/store';
-import { getActivePlans } from '@/application/member/getActivePlans.usecase';
-import { memberRepository } from '@/infrastructure/supabase/member.repository';
-import type { Plan } from '@/domain/member/member.types';
-import { BoldPaymentButton } from '@/ui/components/BoldPaymentButton/BoldPaymentButton';
+import { useAppSelector } from '../../../infrastructure/store/store';
+import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
+import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
+import type { Plan } from '../../../domain/member/member.types';
+import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymentButton';
 import { CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import styles from './MemberRenewal.module.css';
 
@@ -32,9 +32,9 @@ export function MemberRenewal() {
         const activePlans = await getActivePlans();
         setPlans(activePlans);
 
-        // Fetch current member details to get the member ID
-        const memberInfo = await memberRepository.getMemberByProfileId(profile.id);
-        setMemberId(memberInfo.id);
+        // Fetch current member details via the application use case to get the member ID
+        const statusResult = await getMemberStatus(profile.id);
+        setMemberId(statusResult.member.id);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al cargar los planes disponibles';
         setError(msg);
@@ -61,13 +61,13 @@ export function MemberRenewal() {
       
       setOrderId(newOrderId);
 
-      // 2. Convert plan price to cents (integer)
-      const amountInCents = Math.round(plan.price * 100);
+      // 2. Plan price in COP pesos (e.g. 60000)
+      const amountInPesos = Math.round(plan.price);
 
       // 3. Request signature from the backend
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(
-        `${apiUrl}/bold/integrity-signature?order_id=${newOrderId}&amount=${amountInCents}&currency=COP`
+        `${apiUrl}/bold/integrity-signature?order_id=${newOrderId}&amount=${amountInPesos}&currency=COP`
       );
 
       if (!response.ok) {
@@ -255,7 +255,7 @@ export function MemberRenewal() {
               <div className={styles['member-renewal__payment-button-wrapper']}>
                 <BoldPaymentButton
                   orderId={orderId}
-                  amount={Math.round(selectedPlan.price * 100)}
+                  amount={Math.round(selectedPlan.price)}
                   apiKey={import.meta.env.VITE_BOLD_API_KEY}
                   integritySignature={signature}
                   metadata={{
