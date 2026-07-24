@@ -13,6 +13,8 @@ import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
 
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
 
+import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
+
 export function App() {
   useAuthSession();
 
@@ -63,6 +65,7 @@ export function App() {
         <Route index element={<MemberPortal />} />
         <Route path="payments" element={<MemberPayments />} />
         <Route path="suggestions" element={<MemberSuggestions />} />
+        <Route path="renewal" element={<MemberRenewal />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
