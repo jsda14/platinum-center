@@ -65,7 +65,10 @@
 - [x] Contador de días restantes para plan `15_days` (días usados / 15)
 - [x] Historial de pagos
 - [x] Formulario de sugerencias
-- [ ] Integración Bold (pago de renovación)
+- [x] Integración Bold (pago de renovación) — flujo completo funcionando
+- [ ] Página de resultado de pago (éxito/rechazo/pendiente) tras Bold
+- [ ] Email de confirmación al gym (Sevastián) cuando se recibe un pago
+- [ ] Migrar emails de Brevo a Supabase Edge Functions (problema de entregabilidad con Railway)
 - [x] Notificaciones in-app (Supabase Realtime)
 - [x] Email de bienvenida (Brevo)
 - [x] Email de vencimiento próximo — 3 días antes (Brevo)
@@ -82,6 +85,7 @@
 - [ ] Dashboard métricas: ingresos del mes, miembros active, vencimientos próximos
 - [ ] Vista receptionist (permisos limitados)
 - [ ] Configuración del gym (nombre, logo, horarios)
+- [ ] Lógica de renovación anticipada: si miembro activo paga, sumar días desde fecha_fin actual
 
 ---
 
@@ -134,3 +138,7 @@
 - `SUPABASE_WEBHOOK_SECRET` configurado en Railway
 - Email bloqueado temporalmente por Gmail rate limit en pruebas — no es bug, es comportamiento normal en envíos masivos de prueba (shared IP reputation)
 - PowerShell en Windows requiere `New-Item` en lugar de `mkdir -p` para crear múltiples carpetas
+- Bold integration complete: payment_intents table used for webhook reconciliation
+- Bold metadata.reference = orderId → lookup in payment_intents → member_id + plan
+- Bold webhook signature validation temporarily disabled (commented out) — restore before production
+- Emails pendientes de migrar a Edge Functions por problema de entregabilidad con IPs de Railway
