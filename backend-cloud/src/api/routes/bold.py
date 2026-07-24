@@ -48,7 +48,7 @@ async def bold_payment_webhook(
     body_bytes = await request.body()
     
     print(f"[BOLD WEBHOOK] Headers recibidos: {dict(request.headers)}")
-    print(f"[BOLD WEBHOOK] Body: {body_bytes[:200]}")
+    print(f"[BOLD WEBHOOK] Body completo: {body_bytes.decode('utf-8')}")
     
     # Validar firma si el secreto del webhook está configurado
     # if secret:
