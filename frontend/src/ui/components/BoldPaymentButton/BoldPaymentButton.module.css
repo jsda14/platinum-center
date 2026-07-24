@@ -1,0 +1,17 @@
+.bold-payment-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3) 0;
+  margin-top: var(--space-4);
+  min-height: 50px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .bold-payment-button {
+    padding: var(--space-2) 0;
+    margin-top: var(--space-3);
+  }
+}
