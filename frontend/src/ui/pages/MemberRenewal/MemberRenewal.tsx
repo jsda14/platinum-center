@@ -258,6 +258,7 @@ export function MemberRenewal() {
                   amount={Math.round(selectedPlan.price)}
                   apiKey={import.meta.env.VITE_BOLD_API_KEY}
                   integritySignature={signature}
+                  planName={selectedPlan.name}
                   metadata={{
                     member_id: memberId,
                     plan: selectedPlan.slug,
