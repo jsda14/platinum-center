@@ -21,6 +21,19 @@
 
 .login__brand {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login__logo-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-glow-primary);
+  margin-bottom: var(--space-3);
 }
 
 .login__logo {
