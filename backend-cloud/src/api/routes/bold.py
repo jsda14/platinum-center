@@ -195,7 +195,8 @@ async def bold_payment_webhook(
         amount_cop = intent_amount
     
     # Validar idempotencia para evitar procesar el mismo webhook dos veces
-    if tx_id:
+    # Solo verificar idempotencia si el tx_id es un valor real y no "XXXX" de pruebas
+    if tx_id and tx_id != "XXXX":
         payment_check = supabase_client.table("payments").select("id").eq("transaction_id", tx_id).execute()
         if payment_check.data:
             return {"status": "ok", "message": "Pago ya registrado anteriormente"}
