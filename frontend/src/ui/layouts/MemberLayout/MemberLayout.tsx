@@ -8,6 +8,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
 import styles from './MemberLayout.module.css';
+import platinumLogo from '../../../assets/platinum-center-logo.png';
 
 export function MemberLayout() {
   const navigate = useNavigate();
@@ -47,7 +48,12 @@ export function MemberLayout() {
     <div className={styles['member-layout']}>
       <header className={styles['member-layout__header']}>
         <div className={styles['member-layout__brand']}>
-          <span className={styles['member-layout__logo']}>PLATINUM CENTER</span>
+          <img 
+            src={platinumLogo} 
+            alt="Platinum Center Logo" 
+            className={styles['member-layout__logo-image']}
+          />
+          <span className={styles['member-layout__logo-text']}>PLATINUM CENTER</span>
         </div>
         <div className={styles['member-layout__user']}>
           <span className={styles['member-layout__user-name']}>

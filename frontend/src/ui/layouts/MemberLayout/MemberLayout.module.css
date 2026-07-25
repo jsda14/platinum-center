@@ -23,11 +23,20 @@
 .member-layout__brand {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
 }
 
-.member-layout__logo {
+.member-layout__logo-image {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.member-layout__logo-text {
   font-family: var(--font-display);
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   color: var(--color-primary);
   letter-spacing: 1px;
 }

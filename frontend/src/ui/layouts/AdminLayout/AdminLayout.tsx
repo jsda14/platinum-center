@@ -13,6 +13,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
 import styles from './AdminLayout.module.css';
+import platinumLogo from '../../../assets/platinum-center-logo.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -78,9 +79,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         theme="dark"
       >
         <div className={styles['admin-layout__logo-container']}>
-          <h1 className={styles['admin-layout__logo']}>
-            {collapsed ? 'PC' : 'PLATINUM CENTER'}
-          </h1>
+          <img 
+            src={platinumLogo} 
+            alt="Platinum Center Logo" 
+            className={styles['admin-layout__logo-image']}
+          />
+          {!collapsed && (
+            <span className={styles['admin-layout__logo-text']}>
+              PLATINUM CENTER
+            </span>
+          )}
         </div>
         <Menu
           theme="dark"
