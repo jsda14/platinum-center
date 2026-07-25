@@ -240,7 +240,7 @@ async def bold_payment_webhook(
             "amount": amount_cop,
             "method": "bold",
             "plan": plan_slug,
-            "transaction_id": tx_id,
+            "transaction_id": tx_id if tx_id and tx_id != "XXXX" else None,
             "status": "confirmed",
             "plan_start_date": start_date.isoformat(),
             "plan_end_date": end_date.isoformat(),
@@ -324,7 +324,7 @@ async def bold_payment_webhook(
             "amount": amount_cop,
             "method": "bold",
             "plan": plan_slug,
-            "transaction_id": tx_id,
+            "transaction_id": tx_id if tx_id and tx_id != "XXXX" else None,
             "status": "failed",
             "payment_date": datetime.now().isoformat()
         }
