@@ -32,6 +32,11 @@ export function MemberLayout() {
       icon: <CreditCardOutlined />,
     },
     {
+      path: '/portal/renewal',
+      label: 'Renovar',
+      icon: <CreditCardOutlined />,
+    },
+    {
       path: '/portal/suggestions',
       label: 'Sugerencias',
       icon: <CommentOutlined />,
