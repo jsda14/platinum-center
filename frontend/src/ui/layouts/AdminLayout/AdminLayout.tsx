@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Button, Avatar } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -16,6 +16,13 @@ import styles from './AdminLayout.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
 const { Header, Sider, Content } = Layout;
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
 
 interface AdminLayoutProps {
   children?: ReactNode;
@@ -60,15 +67,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     },
   ];
 
-  const userMenuItems = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Cerrar sesión',
-      onClick: handleLogout,
-    },
-  ];
-
   return (
     <Layout className={styles['admin-layout']}>
       <Sider
@@ -108,23 +106,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             aria-label="Alternar navegación"
           />
           <div className={styles['admin-layout__user']}>
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div className={styles['admin-layout__user-info']}>
-                <Avatar
-                  src={profile?.avatar_url || undefined}
-                  icon={!profile?.avatar_url && <UserOutlined />}
-                  className={styles['admin-layout__avatar']}
-                />
-                <div className={styles['admin-layout__user-details']}>
-                  <span className={styles['admin-layout__user-name']}>
-                    {profile?.full_name || 'Usuario Admin'}
-                  </span>
-                  <span className={styles['admin-layout__user-role']}>
-                    {profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'}
-                  </span>
-                </div>
-              </div>
-            </Dropdown>
+            <Avatar
+              className={styles['admin-layout__user-avatar']}
+              shape="circle"
+            >
+              {getInitials(profile?.full_name || 'Usuario Admin')}
+            </Avatar>
+            <span className={styles['admin-layout__user-name']}>
+              {profile?.full_name || 'Usuario Admin'}
+            </span>
+            <span className={styles['admin-layout__user-role']}>
+              ({profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'})
+            </span>
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              className={styles['admin-layout__logout-btn']}
+              aria-label="Cerrar sesión"
+            />
           </div>
         </Header>
         <Content className={styles['admin-layout__content']}>

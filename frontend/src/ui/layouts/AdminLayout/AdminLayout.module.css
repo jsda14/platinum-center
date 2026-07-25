@@ -66,29 +66,16 @@
 .admin-layout__user {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
 }
 
-.admin-layout__user-info {
+.admin-layout__user-avatar {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  cursor: pointer;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  transition: background-color var(--transition-fast);
-}
-
-.admin-layout__user-info:hover {
-  background-color: var(--color-dark-surface);
-}
-
-.admin-layout__avatar {
-  background-color: var(--color-primary) !important;
-}
-
-.admin-layout__user-details {
-  display: flex;
-  flex-direction: column;
+  justify-content: center;
 }
 
 .admin-layout__user-name {
@@ -96,6 +83,10 @@
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 .admin-layout__user-role {
@@ -103,9 +94,58 @@
   color: var(--color-text-secondary);
 }
 
+.admin-layout__logout-btn {
+  color: var(--color-text-secondary) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  transition: color var(--transition-fast) !important;
+  border-left: 1px solid var(--color-border) !important;
+  padding-left: var(--space-3) !important;
+  border-radius: 0 !important;
+  height: 24px !important;
+}
+
+.admin-layout__logout-btn:hover {
+  color: var(--color-primary) !important;
+}
+
 .admin-layout__content {
   padding: var(--space-6);
   background-color: var(--color-dark);
   min-height: calc(100vh - 64px);
   color: var(--color-text-primary);
+}
+
+/* Responsive adjustments for header user profile */
+@media (max-width: 768px) {
+  .admin-layout__header {
+    padding: 0 var(--space-3) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-layout__user-role {
+    display: none;
+  }
+  
+  .admin-layout__user-name {
+    max-width: 120px;
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-layout__user {
+    gap: var(--space-2);
+  }
+  
+  .admin-layout__user-name {
+    max-width: 70px;
+  }
+
+  .admin-layout__logout-btn {
+    padding-left: var(--space-2) !important;
+  }
 }

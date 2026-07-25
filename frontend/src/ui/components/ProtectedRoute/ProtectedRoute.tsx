@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import type { UserRole } from '../../../domain/member/member.types';
+import { LoadingScreen } from '../LoadingScreen/LoadingScreen';
 import styles from './ProtectedRoute.module.css';
 
 interface ProtectedRouteProps {
@@ -13,11 +14,7 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
   const { user, profile, loading } = useAppSelector((state) => state.auth);
 
   if (loading) {
-    return (
-      <div className={styles['protected-route__loading']} role="status">
-        Cargando...
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user) {
