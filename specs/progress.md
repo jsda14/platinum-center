@@ -146,4 +146,3 @@
 - Emails funcionando vía Supabase Edge Functions (Deno + Brevo)
 - Bold test mode: transaction_id "XXXX" guardado como null
 - URL staging Sevastián: https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app
-- Primera entrega lista: Fases 1 + 2 → cobrar $400.000 COP
