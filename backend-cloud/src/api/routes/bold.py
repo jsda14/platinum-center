@@ -6,6 +6,25 @@ import json
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
+import httpx
+
+async def invoke_send_notification(payload: dict):
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key = os.getenv("SUPABASE_SECRET_KEY")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{supabase_url}/functions/v1/send-notification",
+                headers={
+                    "Authorization": f"Bearer {service_key}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=10.0
+            )
+            print(f"[EDGE FUNCTION] Response: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"[EDGE FUNCTION] Error: {str(e)}")
 
 from pydantic import BaseModel
 
@@ -260,30 +279,24 @@ async def bold_payment_webhook(
                 
                 if member_email:
                     # Enviar correo al miembro
-                    supabase_client.functions.invoke(
-                        'send-notification',
-                        invoke_options={'body': {
-                            'type': 'PAYMENT_CONFIRMED',
-                            'member_email': member_email,
-                            'member_name': member_name,
-                            'plan': plan_slug,
-                            'amount': amount_cop,
-                            'end_date': end_date.isoformat()
-                        }}
-                    )
+                    await invoke_send_notification({
+                        'type': 'PAYMENT_CONFIRMED',
+                        'member_email': member_email,
+                        'member_name': member_name,
+                        'plan': plan_slug,
+                        'amount': amount_cop,
+                        'end_date': end_date.isoformat()
+                    })
                     
                     # Enviar correo al admin
-                    supabase_client.functions.invoke(
-                        'send-notification',
-                        invoke_options={'body': {
-                            'type': 'PAYMENT_CONFIRMED_ADMIN',
-                            'member_email': member_email,
-                            'member_name': member_name,
-                            'plan': plan_slug,
-                            'amount': amount_cop,
-                            'end_date': end_date.isoformat()
-                        }}
-                    )
+                    await invoke_send_notification({
+                        'type': 'PAYMENT_CONFIRMED_ADMIN',
+                        'member_email': member_email,
+                        'member_name': member_name,
+                        'plan': plan_slug,
+                        'amount': amount_cop,
+                        'end_date': end_date.isoformat()
+                    })
                     print("[SUPABASE FUNCTIONS] Notificaciones de pago enviadas con éxito")
         except Exception as fn_err:
             print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones: {str(fn_err)}")
@@ -324,14 +337,11 @@ async def bold_payment_webhook(
                     member_name = profile_data.get("full_name") or "Miembro"
                     
                     if member_email:
-                        supabase_client.functions.invoke(
-                            'send-notification',
-                            invoke_options={'body': {
-                                'type': 'PAYMENT_REJECTED',
-                                'member_email': member_email,
-                                'member_name': member_name
-                            }}
-                        )
+                        await invoke_send_notification({
+                            'type': 'PAYMENT_REJECTED',
+                            'member_email': member_email,
+                            'member_name': member_name
+                        })
                         print("[SUPABASE FUNCTIONS] Notificación de pago rechazado enviada al miembro")
             except Exception as fn_err:
                 print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones para pago rechazado: {str(fn_err)}")

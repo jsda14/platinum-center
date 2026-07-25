@@ -2,6 +2,25 @@ import os
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
 from datetime import datetime, date
+import httpx
+
+async def invoke_send_notification(payload: dict):
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key = os.getenv("SUPABASE_SECRET_KEY")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{supabase_url}/functions/v1/send-notification",
+                headers={
+                    "Authorization": f"Bearer {service_key}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=10.0
+            )
+            print(f"[EDGE FUNCTION] Response: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"[EDGE FUNCTION] Error: {str(e)}")
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -55,16 +74,13 @@ async def member_status_webhook(
         
         if email:
             try:
-                supabase_client.functions.invoke(
-                    'send-notification',
-                    invoke_options={'body': {
-                        'type': 'EXPIRATION_WARNING',
-                        'member_email': email,
-                        'member_name': full_name,
-                        'days_remaining': days_remaining,
-                        'end_date': end_date_str
-                    }}
-                )
+                await invoke_send_notification({
+                    'type': 'EXPIRATION_WARNING',
+                    'member_email': email,
+                    'member_name': full_name,
+                    'days_remaining': days_remaining,
+                    'end_date': end_date_str
+                })
                 print("[SUPABASE FUNCTIONS] Email de advertencia de vencimiento enviado exitosamente")
             except Exception as e:
                 print(f"[SUPABASE FUNCTIONS] Error al enviar email de vencimiento: {str(e)}")
