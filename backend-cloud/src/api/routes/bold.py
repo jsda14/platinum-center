@@ -270,14 +270,17 @@ async def bold_payment_webhook(
             supabase_client.table("member_day_passes").insert(day_pass_data).execute()
             
         # 4. Invocar la Edge Function de Supabase para enviar notificaciones de confirmación de pago
+        print(f"[NOTIFY] Buscando perfil para member_id: {member_id}")
         try:
             profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", member_id).execute()
+            print(f"[NOTIFY] Perfil encontrado: {profile_res.data}")
             if profile_res.data:
                 profile_data = profile_res.data[0]
                 member_email = profile_data.get("email")
                 member_name = profile_data.get("full_name") or "Miembro"
                 
                 if member_email:
+                    print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED...")
                     # Enviar correo al miembro
                     await invoke_send_notification({
                         'type': 'PAYMENT_CONFIRMED',
@@ -287,7 +290,9 @@ async def bold_payment_webhook(
                         'amount': amount_cop,
                         'end_date': end_date.isoformat()
                     })
+                    print(f"[NOTIFY] Edge Function invocada (miembro)")
                     
+                    print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED_ADMIN...")
                     # Enviar correo al admin
                     await invoke_send_notification({
                         'type': 'PAYMENT_CONFIRMED_ADMIN',
@@ -297,9 +302,9 @@ async def bold_payment_webhook(
                         'amount': amount_cop,
                         'end_date': end_date.isoformat()
                     })
-                    print("[SUPABASE FUNCTIONS] Notificaciones de pago enviadas con éxito")
+                    print(f"[NOTIFY] Edge Function invocada (admin)")
         except Exception as fn_err:
-            print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones: {str(fn_err)}")
+            print(f"[NOTIFY] Error: {str(fn_err)}")
             
         return {"status": "ok", "message": "Venta aprobada procesada exitosamente"}
         
