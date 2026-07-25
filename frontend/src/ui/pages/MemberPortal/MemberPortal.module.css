@@ -1,0 +1,237 @@
+.member-portal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+.member-portal__loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.member-portal__error {
+  padding: var(--space-4);
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-status-expired);
+  border-radius: var(--radius-md);
+  color: var(--color-status-expired);
+  text-align: center;
+}
+
+.member-portal__error-message {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.member-portal__empty {
+  padding: var(--space-6);
+  background-color: var(--color-dark-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member-portal__empty h2 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-status-warning);
+}
+
+.member-portal__empty p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.member-portal__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-portal__welcome {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.member-portal__subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.member-portal__card {
+  background-color: var(--color-dark-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.member-portal__status-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-portal__badge {
+  align-self: flex-start;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.5px;
+}
+
+.member-portal__badge--active {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: var(--color-status-active);
+  border: 1px solid var(--color-status-active);
+}
+
+.member-portal__badge--warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-status-warning);
+  border: 1px solid var(--color-status-warning);
+}
+
+.member-portal__badge--expired {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-status-expired);
+  border: 1px solid var(--color-status-expired);
+}
+
+.member-portal__plan-name {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.member-portal__divider {
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.member-portal__info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.member-portal__info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-portal__info-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.member-portal__info-value {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.member-portal__metrics {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-portal__countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) 0;
+}
+
+.member-portal__countdown-number {
+  font-family: var(--font-display);
+  font-size: var(--font-size-4xl);
+  color: var(--color-accent);
+  line-height: 1;
+  text-shadow: var(--shadow-glow-accent);
+}
+
+.member-portal__countdown-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-top: var(--space-2);
+}
+
+.member-portal__daypass {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member-portal__daypass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.member-portal__daypass-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.member-portal__daypass-counter {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.member-portal__daypass-counter strong {
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+}
+
+.member-portal__progress {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.member-portal__progress::-webkit-progress-bar {
+  background-color: var(--color-dark-surface);
+}
+
+.member-portal__progress::-webkit-progress-value {
+  background-color: var(--color-primary);
+}
+
+.member-portal__progress::-moz-progress-bar {
+  background-color: var(--color-primary);
+}
+
+.member-portal__daypass-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}

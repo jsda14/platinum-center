@@ -1,0 +1,186 @@
+/* Contenedor principal */
+.payment-result {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh; /* Centrado vertical en el layout del portal */
+  padding: var(--space-4);
+  background-color: transparent;
+}
+
+/* Tarjeta principal con animación fadeInUp al cargar */
+.payment-result__card {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-5);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-elevated);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform var(--transition-normal);
+}
+
+.payment-result__card:hover {
+  transform: translateY(-4px);
+}
+
+/* Modificadores de tarjeta por estado (bordes o sombras sutiles) */
+.payment-result__card--approved {
+  border-color: rgba(34, 197, 94, 0.3);
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
+}
+
+.payment-result__card--rejected {
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15);
+}
+
+.payment-result__card--pending {
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15);
+}
+
+/* Contenedor del ícono */
+.payment-result__icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-5);
+  font-size: 2.5rem;
+}
+
+/* Modificadores de ícono según estado */
+.payment-result__icon-container--approved {
+  color: var(--color-status-active);
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.payment-result__icon-container--rejected {
+  color: var(--color-status-expired);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.payment-result__icon-container--pending {
+  color: var(--color-status-warning);
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.payment-result__icon {
+  display: flex;
+}
+
+/* Título */
+.payment-result__title {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+/* Mensaje principal */
+.payment-result__message {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-5);
+  line-height: 1.6;
+}
+
+/* Detalles de transacción */
+.payment-result__details {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-6);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.payment-result__details-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.payment-result__details-value {
+  font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  word-break: break-all;
+}
+
+/* Botón de acción principal */
+.payment-result__action {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  width: 100%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.payment-result__action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.payment-result__action:active {
+  transform: translateY(0);
+}
+
+/* Modificadores de botón */
+.payment-result__action--approved {
+  background-color: var(--color-status-active);
+  border-color: var(--color-status-active);
+}
+
+.payment-result__action--approved:hover {
+  background-color: #1ea34d; /* Un verde un poco más oscuro para hover */
+  border-color: #1ea34d;
+}
+
+.payment-result__action--rejected {
+  background-color: var(--color-status-expired);
+  border-color: var(--color-status-expired);
+}
+
+.payment-result__action--rejected:hover {
+  background-color: #dc3545; /* Un rojo un poco más oscuro para hover */
+  border-color: #dc3545;
+}
+
+.payment-result__action--pending {
+  background-color: var(--color-status-warning);
+  border-color: var(--color-status-warning);
+  color: #1a1a1a; /* Contraste en fondo amarillo */
+}
+
+.payment-result__action--pending:hover {
+  background-color: #d97706; /* Un amarillo/naranja un poco más oscuro para hover */
+  border-color: #d97706;
+}
+
+/* Soporte responsive (mobile first, pero aplicamos retoques para pantallas de escritorio si hace falta) */
+@media (min-width: 576px) {
+  .payment-result__card {
+    padding: var(--space-7) var(--space-6);
+  }
+}

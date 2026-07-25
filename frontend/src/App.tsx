@@ -7,6 +7,15 @@ import { AdminLayout } from './ui/layouts/AdminLayout/AdminLayout';
 import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
 import { Login } from './ui/pages/Login/Login';
 
+import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
+
+import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
+
+import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
+
+import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
+import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
+
 export function App() {
   useAuthSession();
 
@@ -54,9 +63,11 @@ export function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<div>Mi Membresía</div>} />
-        <Route path="payments" element={<div>Mis Pagos</div>} />
-        <Route path="suggestions" element={<div>Mis Sugerencias</div>} />
+        <Route index element={<MemberPortal />} />
+        <Route path="payments" element={<MemberPayments />} />
+        <Route path="suggestions" element={<MemberSuggestions />} />
+        <Route path="renewal" element={<MemberRenewal />} />
+        <Route path="payment-result" element={<PaymentResult />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
