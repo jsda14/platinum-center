@@ -7,7 +7,7 @@
 ---
 
 ## Estado general
-**Fase actual:** 2 — Portal del miembro
+**Fase actual:** 3 — Panel admin + recepcionista
 **Inicio del proyecto:** 2026-07
 **Última actualización:** 2026-07
 
@@ -59,25 +59,26 @@
 ---
 
 ## Fase 2 — Portal del miembro
-**Estado: 🟡 En progreso**
+**Estado: ✅ Completada**
 
 - [x] Vista de estado de membresía (colores: verde=active, amarillo=próximo a vencer, rojo=expired)
 - [x] Contador de días restantes para plan `15_days` (días usados / 15)
 - [x] Historial de pagos
 - [x] Formulario de sugerencias
-- [x] Integración Bold (pago de renovación) — flujo completo funcionando
-- [ ] Página de resultado de pago (éxito/rechazo/pendiente) tras Bold
-- [ ] Email de confirmación al gym (Sevastián) cuando se recibe un pago
-- [ ] Migrar emails de Brevo a Supabase Edge Functions (problema de entregabilidad con Railway)
+- [x] Integración Bold — flujo completo end-to-end
+- [x] Página de resultado de pago (éxito/rechazo/pendiente)
+- [x] Email confirmación al miembro (Edge Function + Brevo)
+- [x] Email confirmación al admin cuando llega un pago
+- [x] Migración emails a Supabase Edge Functions
+- [x] Tab de Renovar en MemberLayout
 - [x] Notificaciones in-app (Supabase Realtime)
 - [x] Email de bienvenida (Brevo)
 - [x] Email de vencimiento próximo — 3 días antes (Brevo)
-- [x] Email de confirmación de pago (Brevo)
 
 ---
 
 ## Fase 3 — Panel admin + recepcionista
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso**
 
 - [ ] CRUD de miembros
 - [ ] Registro de pagos manuales (cash / nequi / daviplata)
@@ -141,4 +142,8 @@
 - Bold integration complete: payment_intents table used for webhook reconciliation
 - Bold metadata.reference = orderId → lookup in payment_intents → member_id + plan
 - Bold webhook signature validation temporarily disabled (commented out) — restore before production
-- Emails pendientes de migrar a Edge Functions por problema de entregabilidad con IPs de Railway
+- Edge Function send-notification desplegada en Supabase
+- Emails funcionando vía Supabase Edge Functions (Deno + Brevo)
+- Bold test mode: transaction_id "XXXX" guardado como null
+- URL staging Sevastián: https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app
+- Primera entrega lista: Fases 1 + 2 → cobrar $400.000 COP
