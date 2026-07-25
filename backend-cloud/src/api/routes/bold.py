@@ -273,37 +273,42 @@ async def bold_payment_webhook(
         # 4. Invocar la Edge Function de Supabase para enviar notificaciones de confirmación de pago
         print(f"[NOTIFY] Buscando perfil para member_id: {member_id}")
         try:
-            profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", member_id).execute()
-            print(f"[NOTIFY] Perfil encontrado: {profile_res.data}")
-            if profile_res.data:
-                profile_data = profile_res.data[0]
-                member_email = profile_data.get("email")
-                member_name = profile_data.get("full_name") or "Miembro"
-                
-                if member_email:
-                    print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED...")
-                    # Enviar correo al miembro
-                    await invoke_send_notification({
-                        'type': 'PAYMENT_CONFIRMED',
-                        'member_email': member_email,
-                        'member_name': member_name,
-                        'plan': plan_slug,
-                        'amount': amount_cop,
-                        'end_date': end_date.isoformat()
-                    })
-                    print(f"[NOTIFY] Edge Function invocada (miembro)")
-                    
-                    print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED_ADMIN...")
-                    # Enviar correo al admin
-                    await invoke_send_notification({
-                        'type': 'PAYMENT_CONFIRMED_ADMIN',
-                        'member_email': member_email,
-                        'member_name': member_name,
-                        'plan': plan_slug,
-                        'amount': amount_cop,
-                        'end_date': end_date.isoformat()
-                    })
-                    print(f"[NOTIFY] Edge Function invocada (admin)")
+            # Buscar en la tabla members para obtener el profile_id
+            member_res = supabase_client.table("members").select("profile_id").eq("id", member_id).execute()
+            if member_res.data:
+                profile_id = member_res.data[0].get("profile_id")
+                if profile_id:
+                    profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", profile_id).execute()
+                    print(f"[NOTIFY] Perfil encontrado: {profile_res.data}")
+                    if profile_res.data:
+                        profile_data = profile_res.data[0]
+                        member_email = profile_data.get("email")
+                        member_name = profile_data.get("full_name") or "Miembro"
+                        
+                        if member_email:
+                            print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED...")
+                            # Enviar correo al miembro
+                            await invoke_send_notification({
+                                'type': 'PAYMENT_CONFIRMED',
+                                'member_email': member_email,
+                                'member_name': member_name,
+                                'plan': plan_slug,
+                                'amount': amount_cop,
+                                'end_date': end_date.isoformat()
+                            })
+                            print(f"[NOTIFY] Edge Function invocada (miembro)")
+                            
+                            print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED_ADMIN...")
+                            # Enviar correo al admin
+                            await invoke_send_notification({
+                                'type': 'PAYMENT_CONFIRMED_ADMIN',
+                                'member_email': member_email,
+                                'member_name': member_name,
+                                'plan': plan_slug,
+                                'amount': amount_cop,
+                                'end_date': end_date.isoformat()
+                            })
+                            print(f"[NOTIFY] Edge Function invocada (admin)")
         except Exception as fn_err:
             print(f"[NOTIFY] Error: {str(fn_err)}")
             
@@ -336,19 +341,24 @@ async def bold_payment_webhook(
         # Invocar la Edge Function de Supabase para enviar notificación de pago rechazado
         if member_id:
             try:
-                profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", member_id).execute()
-                if profile_res.data:
-                    profile_data = profile_res.data[0]
-                    member_email = profile_data.get("email")
-                    member_name = profile_data.get("full_name") or "Miembro"
-                    
-                    if member_email:
-                        await invoke_send_notification({
-                            'type': 'PAYMENT_REJECTED',
-                            'member_email': member_email,
-                            'member_name': member_name
-                        })
-                        print("[SUPABASE FUNCTIONS] Notificación de pago rechazado enviada al miembro")
+                # Buscar en la tabla members para obtener el profile_id
+                member_res = supabase_client.table("members").select("profile_id").eq("id", member_id).execute()
+                if member_res.data:
+                    profile_id = member_res.data[0].get("profile_id")
+                    if profile_id:
+                        profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", profile_id).execute()
+                        if profile_res.data:
+                            profile_data = profile_res.data[0]
+                            member_email = profile_data.get("email")
+                            member_name = profile_data.get("full_name") or "Miembro"
+                            
+                            if member_email:
+                                await invoke_send_notification({
+                                    'type': 'PAYMENT_REJECTED',
+                                    'member_email': member_email,
+                                    'member_name': member_name
+                                })
+                                print("[SUPABASE FUNCTIONS] Notificación de pago rechazado enviada al miembro")
             except Exception as fn_err:
                 print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones para pago rechazado: {str(fn_err)}")
         
