@@ -300,13 +300,28 @@ async def bold_payment_webhook(
                             
                             print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED_ADMIN...")
                             # Enviar correo al admin
+                            try:
+                                admins_res = supabase_client.table("profiles")\
+                                    .select("email", "full_name")\
+                                    .in_("role", ["super_admin", "receptionist"])\
+                                    .execute()
+                                admin_emails = [
+                                    {"email": a.get("email"), "name": a.get("full_name") or "Admin"}
+                                    for a in admins_res.data
+                                    if a.get("email")
+                                ]
+                            except Exception as db_err:
+                                print(f"[NOTIFY] Error query admins: {str(db_err)}")
+                                admin_emails = []
+
                             await invoke_send_notification({
                                 'type': 'PAYMENT_CONFIRMED_ADMIN',
                                 'member_email': member_email,
                                 'member_name': member_name,
                                 'plan': plan_slug,
                                 'amount': amount_cop,
-                                'end_date': end_date.isoformat()
+                                'end_date': end_date.isoformat(),
+                                'admin_emails': admin_emails
                             })
                             print(f"[NOTIFY] Edge Function invocada (admin)")
         except Exception as fn_err:
