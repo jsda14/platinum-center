@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { Modal, Button } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
-import { loginWithEmail, loginWithGoogle } from '../../../infrastructure/store/authSlice';
+import { loginWithEmail } from '../../../infrastructure/store/authSlice';
 import styles from './Login.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
@@ -17,6 +19,9 @@ export function Login() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { loading, error: authError } = useAppSelector((state) => state.auth);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -62,8 +67,8 @@ export function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    await dispatch(loginWithGoogle());
+  const handleGoogleLogin = () => {
+    setIsGoogleModalOpen(true);
   };
 
   return (
@@ -112,18 +117,28 @@ export function Login() {
               <label htmlFor="password" className={styles.login__label}>
                 Contraseña
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className={`${styles.login__input} ${
-                  errors.password ? styles['login__input--error'] : ''
-                }`}
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-              />
+              <div className={styles['login__password-container']}>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`${styles.login__input} ${
+                    errors.password ? styles['login__input--error'] : ''
+                  }`}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className={styles['login__password-toggle']}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                </button>
+              </div>
               {errors.password && (
                 <span className={styles['login__error-message']}>{errors.password}</span>
               )}
@@ -176,6 +191,34 @@ export function Login() {
           </button>
         </div>
       </div>
+
+      <Modal
+        title={
+          <div className={styles['login-modal__title']}>
+            Próximamente
+          </div>
+        }
+        open={isGoogleModalOpen}
+        onOk={() => setIsGoogleModalOpen(false)}
+        onCancel={() => setIsGoogleModalOpen(false)}
+        footer={[
+          <Button
+            key="ok"
+            type="primary"
+            onClick={() => setIsGoogleModalOpen(false)}
+            className={styles['login-modal__button']}
+          >
+            Entendido
+          </Button>
+        ]}
+        className={styles['login-modal']}
+        centered
+        width={360}
+      >
+        <p className={styles['login-modal__message']}>
+          El inicio de sesión con Google estará disponible muy pronto.
+        </p>
+      </Modal>
     </div>
   );
 };
