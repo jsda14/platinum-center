@@ -14,6 +14,7 @@ interface BoldPaymentButtonProps {
   apiKey: string;
   integritySignature: string;
   planName: string;
+  redirectionUrl?: string;
   metadata?: Record<string, string>;
 }
 
@@ -23,6 +24,7 @@ export function BoldPaymentButton({
   apiKey,
   integritySignature,
   planName,
+  redirectionUrl,
   metadata,
 }: BoldPaymentButtonProps) {
   const [checkout, setCheckout] = useState<any>(null);
@@ -84,6 +86,10 @@ export function BoldPaymentButton({
         description: `Renovación membresía ${planName}`,
       };
 
+      if (redirectionUrl) {
+        checkoutConfig.redirectionUrl = redirectionUrl;
+      }
+
       if (metadata) {
         checkoutConfig.metadata = metadata;
         checkoutConfig.customData = metadata;
@@ -94,7 +100,7 @@ export function BoldPaymentButton({
     } catch (err) {
       console.error('Error al inicializar BoldCheckout:', err);
     }
-  }, [isScriptLoaded, orderId, amount, apiKey, integritySignature, planName, metadata]);
+  }, [isScriptLoaded, orderId, amount, apiKey, integritySignature, planName, redirectionUrl, metadata]);
 
   const handlePayClick = () => {
     if (checkout) {

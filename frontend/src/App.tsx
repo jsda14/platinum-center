@@ -14,6 +14,7 @@ import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
 
 import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
+import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
 
 export function App() {
   useAuthSession();
@@ -66,6 +67,7 @@ export function App() {
         <Route path="payments" element={<MemberPayments />} />
         <Route path="suggestions" element={<MemberSuggestions />} />
         <Route path="renewal" element={<MemberRenewal />} />
+        <Route path="payment-result" element={<PaymentResult />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
