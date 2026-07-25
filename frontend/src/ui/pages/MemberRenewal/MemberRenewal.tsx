@@ -158,6 +158,10 @@ export function MemberRenewal() {
     }
   };
 
+  const redirectionUrl = import.meta.env.VITE_APP_URL 
+    ? `${import.meta.env.VITE_APP_URL}/portal/payment-result`
+    : 'https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/payment-result';
+
   if (isLoading) {
     return (
       <div className={styles['member-renewal__loading']} role="status" aria-live="polite">
@@ -281,6 +285,7 @@ export function MemberRenewal() {
                   apiKey={import.meta.env.VITE_BOLD_API_KEY}
                   integritySignature={signature}
                   planName={selectedPlan.name}
+                  redirectionUrl={redirectionUrl}
                   metadata={{
                     reference: orderId,
                     member_id: memberId,
