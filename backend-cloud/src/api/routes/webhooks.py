@@ -1,7 +1,6 @@
 import os
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
-from src.infrastructure.brevo.email_service import send_expiration_warning_email
 from datetime import datetime, date
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -56,15 +55,19 @@ async def member_status_webhook(
         
         if email:
             try:
-                result = send_expiration_warning_email(
-                    to_email=email,
-                    full_name=full_name,
-                    days_remaining=days_remaining,
-                    end_date=end_date_str[:10] if end_date_str else "N/A"
+                supabase_client.functions.invoke(
+                    'send-notification',
+                    invoke_options={'body': {
+                        'type': 'EXPIRATION_WARNING',
+                        'member_email': email,
+                        'member_name': full_name,
+                        'days_remaining': days_remaining,
+                        'end_date': end_date_str
+                    }}
                 )
-                print(f"[BREVO] Email enviado exitosamente: {result}")
+                print("[SUPABASE FUNCTIONS] Email de advertencia de vencimiento enviado exitosamente")
             except Exception as e:
-                print(f"[BREVO] Error al enviar email: {str(e)}")
+                print(f"[SUPABASE FUNCTIONS] Error al enviar email de vencimiento: {str(e)}")
             return {"status": "email_sent"}
             
     return {"status": "ok", "message": "Procesado sin envío de email"}

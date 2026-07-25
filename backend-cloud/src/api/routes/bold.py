@@ -250,6 +250,44 @@ async def bold_payment_webhook(
             }
             supabase_client.table("member_day_passes").insert(day_pass_data).execute()
             
+        # 4. Invocar la Edge Function de Supabase para enviar notificaciones de confirmación de pago
+        try:
+            profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", member_id).execute()
+            if profile_res.data:
+                profile_data = profile_res.data[0]
+                member_email = profile_data.get("email")
+                member_name = profile_data.get("full_name") or "Miembro"
+                
+                if member_email:
+                    # Enviar correo al miembro
+                    supabase_client.functions.invoke(
+                        'send-notification',
+                        invoke_options={'body': {
+                            'type': 'PAYMENT_CONFIRMED',
+                            'member_email': member_email,
+                            'member_name': member_name,
+                            'plan': plan_slug,
+                            'amount': amount_cop,
+                            'end_date': end_date.isoformat()
+                        }}
+                    )
+                    
+                    # Enviar correo al admin
+                    supabase_client.functions.invoke(
+                        'send-notification',
+                        invoke_options={'body': {
+                            'type': 'PAYMENT_CONFIRMED_ADMIN',
+                            'member_email': member_email,
+                            'member_name': member_name,
+                            'plan': plan_slug,
+                            'amount': amount_cop,
+                            'end_date': end_date.isoformat()
+                        }}
+                    )
+                    print("[SUPABASE FUNCTIONS] Notificaciones de pago enviadas con éxito")
+        except Exception as fn_err:
+            print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones: {str(fn_err)}")
+            
         return {"status": "ok", "message": "Venta aprobada procesada exitosamente"}
         
     elif event_type == "SALE_REJECTED":
@@ -275,6 +313,28 @@ async def bold_payment_webhook(
             payment_data["member_id"] = member_id
             
         supabase_client.table("payments").insert(payment_data).execute()
+        
+        # Invocar la Edge Function de Supabase para enviar notificación de pago rechazado
+        if member_id:
+            try:
+                profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", member_id).execute()
+                if profile_res.data:
+                    profile_data = profile_res.data[0]
+                    member_email = profile_data.get("email")
+                    member_name = profile_data.get("full_name") or "Miembro"
+                    
+                    if member_email:
+                        supabase_client.functions.invoke(
+                            'send-notification',
+                            invoke_options={'body': {
+                                'type': 'PAYMENT_REJECTED',
+                                'member_email': member_email,
+                                'member_name': member_name
+                            }}
+                        )
+                        print("[SUPABASE FUNCTIONS] Notificación de pago rechazado enviada al miembro")
+            except Exception as fn_err:
+                print(f"[SUPABASE FUNCTIONS] Error al invocar Edge Function de notificaciones para pago rechazado: {str(fn_err)}")
         
         return {"status": "ok", "message": "Venta rechazada registrada exitosamente"}
         
