@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { loginWithEmail, loginWithGoogle } from '../../../infrastructure/store/authSlice';
 import styles from './Login.module.css';
+import platinumLogo from '../../../assets/platinum-center-logo.png';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'El correo electrónico es requerido').email('Correo electrónico inválido'),
@@ -69,6 +70,11 @@ export function Login() {
     <div className={styles.login}>
       <div className={styles.login__container}>
         <div className={styles.login__brand}>
+          <img 
+            src={platinumLogo} 
+            alt="Platinum Center Logo" 
+            className={styles['login__logo-image']}
+          />
           <h1 className={styles.login__logo}>PLATINUM CENTER</h1>
           <p className={styles.login__subtitle}>Gestión integral de membresías y acceso</p>
         </div>
