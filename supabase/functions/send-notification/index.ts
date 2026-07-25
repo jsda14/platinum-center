@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, member_email, member_name, plan, amount, end_date, days_remaining } = await req.json();
+    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails } = await req.json();
 
     if (!BREVO_API_KEY) {
       throw new Error("Missing BREVO_API_KEY environment variable");
@@ -164,12 +164,14 @@ Deno.serve(async (req) => {
           name: "Gym Platinum Center",
           email: "gym.platinum.center@gmail.com"
         },
-        to: [
-          {
-            email: toEmail,
-            name: toName
-          }
-        ],
+        to: type === 'PAYMENT_CONFIRMED_ADMIN'
+          ? (admin_emails && admin_emails.length > 0 ? admin_emails : [{ email: "jsda14@gmail.com", name: "Admin" }])
+          : [
+              {
+                email: toEmail,
+                name: toName
+              }
+            ],
         subject: subject,
         htmlContent: htmlContent
       })
