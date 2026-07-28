@@ -191,9 +191,74 @@ async def create_member(
             print(f"[ADMIN] Error al enviar email de bienvenida: {str(e)}")
 
         return member_data
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al registrar miembro en el servidor: {str(e)}"
+        )
+
+class ReactivateChipRequest(BaseModel):
+    member_id: str
+
+@router.post("/admin/reactivate-chip")
+async def reactivate_chip(
+    data: ReactivateChipRequest,
+    authorization: Optional[str] = Header(None)
+):
+    # Validar rol de super_admin o receptionist
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
+        
+    try:
+        # 1. Buscar card_no y zkteco_user_id en la tabla members
+        member_res = supabase_client.table("members").select("card_no, zkteco_user_id, profile_id").eq("id", data.member_id).execute()
+        if not member_res.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Miembro no encontrado"
+            )
+            
+        member_data = member_res.data[0]
+        card_no = member_data.get("card_no")
+        zkteco_user_id = member_data.get("zkteco_user_id")
+        profile_id = member_data.get("profile_id")
+        
+        if not card_no or not zkteco_user_id:
+            return {"status": "skipped", "message": "El miembro no tiene chip o PIN físico asignado."}
+            
+        # Buscar el nombre en profiles
+        profile_res = supabase_client.table("profiles").select("full_name").eq("id", profile_id).execute()
+        full_name = profile_res.data[0]["full_name"] if profile_res.data else "Miembro"
+        
+        # 2. Encolar comando en FastAPI local vía GYM_TUNNEL_URL
+        gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
+        if gym_tunnel_url:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                try:
+                    await client.post(
+                        f"{gym_tunnel_url}/api/device/reactivate-chip",
+                        json={
+                            "zkteco_user_id": zkteco_user_id,
+                            "card_no": card_no,
+                            "full_name": full_name
+                        },
+                        timeout=5.0
+                    )
+                except Exception as local_err:
+                    print(f"[ADMIN] Error al conectar con el PC del gimnasio: {str(local_err)}")
+                    return {"status": "offline", "message": f"PC del gym no disponible: {str(local_err)}"}
+                    
+        return {"status": "success", "message": "Comando de reactivación enviado al PC del gimnasio."}
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en la reactivación de chip: {str(e)}"
         )

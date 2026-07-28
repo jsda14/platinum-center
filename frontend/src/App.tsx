@@ -14,6 +14,7 @@ import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
 import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
 import { SetupProfile } from './ui/pages/SetupProfile/SetupProfile';
 import { MemberSettings } from './ui/pages/MemberSettings/MemberSettings';
+import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
 
 export function App() {
   useAuthSession();
@@ -38,7 +39,7 @@ export function App() {
       >
         <Route index element={<div>Dashboard Admin</div>} />
         <Route path="members" element={<AdminMembers />} />
-        <Route path="payments" element={<div>Gestión de Pagos</div>} />
+        <Route path="payments" element={<AdminPayments />} />
         <Route path="config" element={<div>Configuración del Gym</div>} />
       </Route>
 

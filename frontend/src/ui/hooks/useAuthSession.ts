@@ -13,13 +13,13 @@ export function useAuthSession() {
       if (session?.user) {
         dispatch(fetchProfile(session.user.id)).then((action) => {
           if (fetchProfile.fulfilled.match(action)) {
-            dispatch(setUser({ user: session.user, profile: action.payload }));
+            dispatch(setUser({ user: session.user, profile: action.payload, accessToken: session.access_token }));
           } else {
-            dispatch(setUser({ user: session.user, profile: null }));
+            dispatch(setUser({ user: session.user, profile: null, accessToken: session.access_token }));
           }
         });
       } else {
-        dispatch(setUser({ user: null, profile: null }));
+        dispatch(setUser({ user: null, profile: null, accessToken: null }));
       }
     });
 
@@ -38,16 +38,16 @@ export function useAuthSession() {
         if (session.user.id !== currentUser?.id) {
           dispatch(fetchProfile(session.user.id)).then((action) => {
             if (fetchProfile.fulfilled.match(action)) {
-              dispatch(setUser({ user: session.user, profile: action.payload }));
+              dispatch(setUser({ user: session.user, profile: action.payload, accessToken: session.access_token }));
             } else {
-              dispatch(setUser({ user: session.user, profile: null }));
+              dispatch(setUser({ user: session.user, profile: null, accessToken: session.access_token }));
             }
           });
         } else {
-          dispatch(setUser({ user: session.user, profile: currentProfile }));
+          dispatch(setUser({ user: session.user, profile: currentProfile, accessToken: session.access_token }));
         }
       } else {
-        dispatch(setUser({ user: null, profile: null }));
+        dispatch(setUser({ user: null, profile: null, accessToken: null }));
       }
     });
 
