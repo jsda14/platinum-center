@@ -1,0 +1,246 @@
+.admin-payments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+  padding: var(--space-4);
+  color: var(--color-text-primary);
+  min-height: 100%;
+}
+
+.admin-payments__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .admin-payments__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.admin-payments__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.admin-payments__btn-register {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--space-2) !important;
+  transition: background-color var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+.admin-payments__btn-register:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  transform: translateY(-1px);
+}
+
+.admin-payments__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  background-color: var(--color-dark-surface);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .admin-payments__filters {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.admin-payments__filter-select {
+  width: 100% !important;
+  height: 40px !important;
+}
+
+@media (min-width: 768px) {
+  .admin-payments__filter-select {
+    width: 220px !important;
+  }
+}
+
+.admin-payments__filter-select :global(.ant-select-selector) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-payments__filter-select :global(.ant-select-arrow) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-payments__table-wrapper {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+/* Modificaciones estéticas de la tabla de Ant Design en tema oscuro */
+.admin-payments__table-wrapper :global(.ant-table) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-table-thead > tr > th) {
+  background: var(--color-dark-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+}
+
+.admin-payments__table-wrapper :global(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-item-active) {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-primary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-item-active a) {
+  color: var(--color-text-primary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-item) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-item a) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-prev .ant-pagination-item-link),
+.admin-payments__table-wrapper :global(.ant-pagination-next .ant-pagination-item-link) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-payments__status-tag {
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  display: inline-block;
+  text-align: center;
+}
+
+.admin-payments__status-tag--confirmed {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid var(--color-status-active) !important;
+  color: var(--color-status-active) !important;
+}
+
+.admin-payments__status-tag--pending {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid var(--color-status-warning) !important;
+  color: var(--color-status-warning) !important;
+}
+
+.admin-payments__status-tag--failed {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid var(--color-status-expired) !important;
+  color: var(--color-status-expired) !important;
+}
+
+.admin-payments__loading-container,
+.admin-payments__error-container,
+.admin-payments__empty-container {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.admin-payments__loading-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-payments__error-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-status-expired);
+  margin: 0;
+}
+
+.admin-payments__error-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-payments__btn-retry {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-payments__btn-retry:hover {
+  background-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-payments__autocomplete-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-payments__autocomplete-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.admin-payments__autocomplete-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.admin-payments__success-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}

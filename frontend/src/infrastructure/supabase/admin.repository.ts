@@ -1,5 +1,13 @@
 import { supabase } from './client';
-import type { Member, Profile } from '../../domain/member/member.types';
+import type { Member, Profile, Payment } from '../../domain/member/member.types';
+
+export interface ManualPaymentData {
+  member_id: string;
+  plan: '1_day' | '15_days' | '1_month' | '1_year';
+  amount: number;
+  method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other';
+  notes?: string;
+}
 
 export interface MemberWithProfile extends Member {
   profiles: Pick<Profile, 'full_name' | 'email' | 'phone'> | null;
@@ -122,5 +130,148 @@ export const adminRepository = {
     if (error) {
       throw new Error(`Error al suspender miembro: ${error.message}`);
     }
+  },
+
+  async getMemberWithProfile(memberId: string): Promise<MemberWithProfile> {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*, profiles:profile_id(full_name, email, phone)')
+      .eq('id', memberId)
+      .single();
+
+    if (error) {
+      throw new Error(`Error al buscar miembro: ${error.message}`);
+    }
+
+    return data as MemberWithProfile;
+  },
+
+  async registerManualPayment(data: ManualPaymentData): Promise<Payment> {
+    // 1. Obtener la sesión activa para registrar quién lo hizo
+    const { data: sessionData } = await supabase.auth.getSession();
+    const adminUserId = sessionData.session?.user?.id;
+
+    // 2. Consultar la vigencia del plan en la tabla plans
+    const { data: planData, error: planError } = await supabase
+      .from('plans')
+      .select('duration_days')
+      .eq('slug', data.plan)
+      .single();
+
+    if (planError) {
+      throw new Error(`Error al buscar plan: ${planError.message}`);
+    }
+
+    const durationDays = planData.duration_days;
+
+    // 3. Consultar el estado actual del miembro
+    const { data: memberData, error: memberError } = await supabase
+      .from('members')
+      .select('status, end_date')
+      .eq('id', data.member_id)
+      .single();
+
+    if (memberError) {
+      throw new Error(`Error al buscar miembro: ${memberError.message}`);
+    }
+
+    // 4. Lógica de renovación anticipada
+    let startDate: string;
+    let endDate: string;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (memberData.status === 'active' && memberData.end_date && memberData.end_date > todayStr) {
+      startDate = memberData.end_date;
+    } else {
+      startDate = todayStr;
+    }
+
+    // Calcular endDate sumando los durationDays a startDate
+    const parts = startDate.split('-');
+    const start = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    start.setDate(start.getDate() + durationDays);
+
+    const year = start.getFullYear();
+    const month = String(start.getMonth() + 1).padStart(2, '0');
+    const day = String(start.getDate()).padStart(2, '0');
+    endDate = `${year}-${month}-${day}`;
+
+    // 5. Registrar el pago
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .insert({
+        member_id: data.member_id,
+        amount: data.amount,
+        method: data.method,
+        plan: data.plan,
+        status: 'confirmed',
+        registered_by: adminUserId || null,
+        plan_start_date: startDate,
+        plan_end_date: endDate
+      })
+      .select()
+      .single();
+
+    if (paymentError) {
+      throw new Error(`Error al registrar el pago: ${paymentError.message}`);
+    }
+
+    // 6. Actualizar el miembro
+    const { error: updateMemberError } = await supabase
+      .from('members')
+      .update({
+        status: 'active',
+        plan: data.plan,
+        start_date: startDate,
+        end_date: endDate,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', data.member_id);
+
+    if (updateMemberError) {
+      throw new Error(`Error al actualizar membresía: ${updateMemberError.message}`);
+    }
+
+    // 7. Si es un plan de 15 días, registrar el member_day_passes
+    if (data.plan === '15_days') {
+      const partsStart = startDate.split('-');
+      const startD = new Date(Number(partsStart[0]), Number(partsStart[1]) - 1, Number(partsStart[2]));
+      startD.setDate(startD.getDate() + 30); // valid_until es valid_from + 30 días
+      const y = startD.getFullYear();
+      const m = String(startD.getMonth() + 1).padStart(2, '0');
+      const d = String(startD.getDate()).padStart(2, '0');
+      const validUntil = `${y}-${m}-${d}`;
+
+      const { error: passError } = await supabase
+        .from('member_day_passes')
+        .insert({
+          member_id: data.member_id,
+          payment_id: payment.id,
+          days_total: 15,
+          days_used: 0,
+          valid_from: startDate,
+          valid_until: validUntil,
+          status: 'active'
+        });
+
+      if (passError) {
+        throw new Error(`Error al registrar pases: ${passError.message}`);
+      }
+    }
+
+    return payment as Payment;
+  },
+
+  async getPayments(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*, members(id, profiles:profile_id(full_name, email))')
+      .order('payment_date', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data || [];
   }
 };

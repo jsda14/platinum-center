@@ -87,13 +87,19 @@
 - [x] Página MemberSettings para editar perfil y contraseña
 - [x] Modales con maskClosable={false}
 - [x] LoadingScreen en operaciones asíncronas
-- [ ] Registro de pagos manuales (cash / nequi / daviplata)
-- [ ] Gestión de planes (precios, duración)
+- [x] Registro de pagos manuales (cash / nequi / daviplata)
+- [x] Reactivación automática del chip al registrar pago manual
+- [x] Lógica de renovación anticipada: sumar días desde fecha_fin actual
+- [ ] Página de detalle de miembro /admin/members/:id con:
+  - Información del miembro (nombre, email, teléfono, chip)
+  - Estado actual de membresía (plan activo, días restantes, vencimiento)
+  - Historial de pagos completo
+  - Historial de accesos (disponible tras Fase 4 ZKTeco)
+  - Botones de acción: registrar pago, editar info, suspender, asignar chip
+- [ ] Gestión de planes (precios, duración editables)
 - [ ] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
 - [ ] Vista receptionist (permisos limitados)
 - [ ] Configuración del gym (nombre, logo, horarios)
-- [ ] Lógica de renovación anticipada: sumar días desde fecha_fin actual
-- [ ] Reactivación automática del chip al registrar pago manual
 - [ ] Vista de miembros sin chip asignado (card_no = null)
 
 ---
@@ -157,4 +163,3 @@
 - Flujo completo de creación de miembro: admin crea → email bienvenida → SetupProfile → portal
 - Supabase auth.admin.generate_link usado para links de activación
 - maskClosable={false} aplicado a todos los modales del admin
-
