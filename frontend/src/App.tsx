@@ -12,6 +12,7 @@ import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
 import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
 import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
+import { SetupProfile } from './ui/pages/SetupProfile/SetupProfile';
 
 export function App() {
   useAuthSession();
@@ -23,6 +24,7 @@ export function App() {
       {/* Public / Auth routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
       {/* Admin routes */}
       <Route
