@@ -80,14 +80,19 @@
 ## Fase 3 — Panel admin + recepcionista
 **Estado: 🟡 En progreso**
 
-- [ ] CRUD de miembros
+- [x] CRUD de miembros (crear, editar, suspender)
+- [x] Asignación de chip RFID a miembro nuevo sin chip
+- [x] Email de bienvenida con link de activación al crear miembro
+- [x] Página SetupProfile para activación de cuenta primera vez
+- [x] Página MemberSettings para editar perfil y contraseña
+- [x] Modales con maskClosable={false}
+- [x] LoadingScreen en operaciones asíncronas
 - [ ] Registro de pagos manuales (cash / nequi / daviplata)
 - [ ] Gestión de planes (precios, duración)
-- [ ] Dashboard métricas: ingresos del mes, miembros active, vencimientos próximos
+- [ ] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
 - [ ] Vista receptionist (permisos limitados)
 - [ ] Configuración del gym (nombre, logo, horarios)
-- [ ] Lógica de renovación anticipada: si miembro activo paga, sumar días desde fecha_fin actual
-- [ ] Asignación de chip RFID a miembro nuevo sin chip
+- [ ] Lógica de renovación anticipada: sumar días desde fecha_fin actual
 - [ ] Reactivación automática del chip al registrar pago manual
 - [ ] Vista de miembros sin chip asignado (card_no = null)
 
@@ -149,3 +154,7 @@
 - Emails funcionando vía Supabase Edge Functions (Deno + Brevo)
 - Bold test mode: transaction_id "XXXX" guardado como null
 - URL staging Sevastián: https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app
+- Flujo completo de creación de miembro: admin crea → email bienvenida → SetupProfile → portal
+- Supabase auth.admin.generate_link usado para links de activación
+- maskClosable={false} aplicado a todos los modales del admin
+
