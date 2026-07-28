@@ -87,6 +87,9 @@
 - [ ] Vista receptionist (permisos limitados)
 - [ ] Configuración del gym (nombre, logo, horarios)
 - [ ] Lógica de renovación anticipada: si miembro activo paga, sumar días desde fecha_fin actual
+- [ ] Asignación de chip RFID a miembro nuevo sin chip
+- [ ] Reactivación automática del chip al registrar pago manual
+- [ ] Vista de miembros sin chip asignado (card_no = null)
 
 ---
 
