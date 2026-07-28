@@ -5,14 +5,11 @@ import { RoleRedirect } from './ui/components/RoleRedirect/RoleRedirect';
 import { AuthLayout } from './ui/layouts/AuthLayout/AuthLayout';
 import { AdminLayout } from './ui/layouts/AdminLayout/AdminLayout';
 import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
+import { AdminMembers } from './ui/pages/AdminMembers/AdminMembers';
 import { Login } from './ui/pages/Login/Login';
-
 import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
-
 import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
-
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
-
 import { MemberRenewal } from './ui/pages/MemberRenewal/MemberRenewal';
 import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
 
@@ -37,7 +34,7 @@ export function App() {
         }
       >
         <Route index element={<div>Dashboard Admin</div>} />
-        <Route path="members" element={<div>Gestión de Miembros</div>} />
+        <Route path="members" element={<AdminMembers />} />
         <Route path="payments" element={<div>Gestión de Pagos</div>} />
         <Route path="config" element={<div>Configuración del Gym</div>} />
       </Route>
