@@ -5,6 +5,7 @@ import { message } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { setUser, fetchProfile } from '../../../infrastructure/store/authSlice';
 import { supabase } from '../../../infrastructure/supabase/client';
+import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import styles from './MemberSettings.module.css';
 
 // Validation Schemas
@@ -48,6 +49,7 @@ export function MemberSettings() {
   // Loading states
   const [isSavingPersonal, setIsSavingPersonal] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Toggle show password states
   const [showCurrentPass, setShowCurrentPass] = useState(false);
@@ -85,6 +87,7 @@ export function MemberSettings() {
   const handlePersonalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPersonal(true);
+    setIsSubmitting(true);
     setPersonalErrors({});
 
     const validation = personalInfoSchema.safeParse(personalInfo);
@@ -96,6 +99,7 @@ export function MemberSettings() {
       });
       setPersonalErrors(fieldErrors);
       setIsSavingPersonal(false);
+      setIsSubmitting(false);
       return;
     }
 
@@ -127,12 +131,14 @@ export function MemberSettings() {
       message.error(msg);
     } finally {
       setIsSavingPersonal(false);
+      setIsSubmitting(false);
     }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPassword(true);
+    setIsSubmitting(true);
     setPasswordErrors({});
 
     const validation = changePasswordSchema.safeParse(passwordInfo);
@@ -144,6 +150,7 @@ export function MemberSettings() {
       });
       setPasswordErrors(fieldErrors);
       setIsSavingPassword(false);
+      setIsSubmitting(false);
       return;
     }
 
@@ -166,11 +173,13 @@ export function MemberSettings() {
       message.error(msg);
     } finally {
       setIsSavingPassword(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className={styles['member-settings']} role="main">
+      {isSubmitting && <LoadingScreen message="Guardando cambios..." />}
       <header className={styles['member-settings__header']}>
         <h1 className={styles['member-settings__title']}>Configuración</h1>
         <p className={styles['member-settings__subtitle']}>
