@@ -41,12 +41,36 @@ export function SetupProfile() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Pre-fill full name if profile has it already
+  // Fetch profile to pre-fill name and phone
   useEffect(() => {
-    if (profile?.full_name) {
-      setFormData((prev) => ({ ...prev, fullName: profile.full_name }));
-    }
-  }, [profile]);
+    const fetchProfileData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id || user?.id;
+        if (!currentUserId) return;
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, phone, email')
+          .eq('id', currentUserId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: data.full_name || '',
+            phone: data.phone || ''
+          }));
+        }
+      } catch (err) {
+        console.error('Error al cargar datos del perfil:', err);
+      }
+    };
+
+    fetchProfileData();
+  }, [user, profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

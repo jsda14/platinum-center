@@ -25,3 +25,5 @@ GRANT INSERT, UPDATE ON public.profiles TO service_role;
 GRANT INSERT ON public.members TO service_role;
 GRANT INSERT ON public.payments TO service_role;
 GRANT INSERT ON public.member_day_passes TO service_role;
+
+GRANT UPDATE ON public.profiles TO authenticated;
