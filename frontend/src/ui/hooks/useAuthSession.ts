@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, store } from '../../infrastructure/store/store';
 import { supabase } from '../../infrastructure/supabase/client';
 import { setUser, fetchProfile } from '../../infrastructure/store/authSlice';
 
 export function useAuthSession() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -23,7 +25,12 @@ export function useAuthSession() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/setup-profile');
+        return;
+      }
+
       if (session?.user) {
         const currentUser = store.getState().auth.user;
         const currentProfile = store.getState().auth.profile;
@@ -47,5 +54,5 @@ export function useAuthSession() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [dispatch]);
+  }, [dispatch, navigate]);
 }
