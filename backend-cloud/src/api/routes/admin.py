@@ -50,7 +50,7 @@ def get_current_user_role(authorization: Optional[str]) -> str:
         )
 
 @router.post("/admin/members/create")
-def create_member(
+async def create_member(
     data: CreateMemberRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -157,6 +157,39 @@ def create_member(
                 "status": "active"
             }).execute()
             
+        # Generar link de activación
+        try:
+            link_res = supabase_client.auth.admin.generate_link({
+                "type": "recovery",
+                "email": data.email
+            })
+            recovery_link = link_res.properties.action_link
+        except Exception as e:
+            print(f"[ADMIN] No se pudo generar link de activación: {str(e)}")
+            recovery_link = None
+
+        # Enviar email de bienvenida
+        import httpx
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{os.getenv('SUPABASE_URL')}/functions/v1/send-notification",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('SUPABASE_SECRET_KEY')}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "type": "WELCOME_NEW_MEMBER",
+                        "member_email": data.email,
+                        "member_name": data.fullName,
+                        "recovery_link": recovery_link,
+                        "plan": data.plan
+                    },
+                    timeout=10.0
+                )
+        except Exception as e:
+            print(f"[ADMIN] Error al enviar email de bienvenida: {str(e)}")
+
         return member_data
         
     except Exception as e:

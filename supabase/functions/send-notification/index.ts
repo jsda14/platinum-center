@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails } = await req.json();
+    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails, recovery_link } = await req.json();
 
     if (!BREVO_API_KEY) {
       throw new Error("Missing BREVO_API_KEY environment variable");
@@ -146,6 +146,42 @@ Deno.serve(async (req) => {
         <div style="text-align: center;">
           <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #EF4444; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">Reintentar pago</a>
         </div>
+        ${emailFooterHtml}
+      `;
+    } else if (type === 'WELCOME_NEW_MEMBER') {
+      subject = "¡Bienvenido a Platinum Center! Activa tu cuenta 🏋️";
+      
+      const planName = plan === '1_day' ? '1 Día'
+                     : plan === '15_days' ? '15 Días Consumibles'
+                     : plan === '1_month' ? '1 Mes'
+                     : plan === '1_year' ? '1 Año'
+                     : plan || 'Membresía';
+
+      const buttonHtml = recovery_link
+        ? `
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${recovery_link}" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Activar mi cuenta</a>
+          </div>
+        `
+        : `
+          <div style="background-color: #1A1A1A; border: 1px solid #C41E3A; border-radius: 6px; padding: 15px; margin: 24px 0; text-align: center;">
+            <p style="margin: 0; color: #EF4444; font-size: 14px; font-weight: 500;">Pídele a recepción tu contraseña temporal.</p>
+          </div>
+        `;
+
+      htmlContent = `
+        ${emailHeaderHtml}
+        <h2 style="color: #D4A017; font-size: 20px; margin-top: 0; text-transform: uppercase;">¡Bienvenido al Equipo, ${toName}!</h2>
+        <p style="font-size: 15px; color: #FFFFFF;">El equipo de Platinum Center registró tu membresía de forma exitosa. Haz click en el botón para crear tu contraseña y acceder a tu portal personal.</p>
+        
+        <div style="background-color: #1A1A1A; border: 1px solid #3A3A3A; border-left: 4px solid #C41E3A; padding: 15px; margin: 24px 0; border-radius: 6px;">
+          <h3 style="color: #C41E3A; margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Detalles del Plan Adquirido</h3>
+          <p style="margin: 6px 0; color: #FFFFFF; font-size: 14px;"><strong>Plan:</strong> ${planName}</p>
+        </div>
+
+        ${buttonHtml}
+
+        <p style="font-size: 14px; color: #A0A0A0; margin-top: 25px;">En tu portal personal podrás ver tu historial de pagos, el estado actual de tu membresía, sugerencias y mucho más.</p>
         ${emailFooterHtml}
       `;
     } else {
