@@ -24,6 +24,8 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 
+import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
+
 // Import use cases
 import { getMembers } from '../../../application/admin/getMembers.usecase';
 import { createMember } from '../../../application/admin/createMember.usecase';
@@ -56,6 +58,7 @@ export function AdminMembers() {
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [activePlans, setActivePlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Search & Filter states
@@ -120,6 +123,7 @@ export function AdminMembers() {
 
   // Submit handlers
   const handleCreateSubmit = async () => {
+    setIsSubmitting(true);
     try {
       const values = await createForm.validateFields();
       await createMember({
@@ -137,10 +141,13 @@ export function AdminMembers() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al registrar miembro';
       message.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEditSubmit = async () => {
+    setIsSubmitting(true);
     try {
       if (!editingMember) return;
       const values = await editForm.validateFields();
@@ -162,10 +169,13 @@ export function AdminMembers() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar miembro';
       message.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleChipSubmit = async () => {
+    setIsSubmitting(true);
     try {
       if (!chipMember) return;
       const values = await chipForm.validateFields();
@@ -181,6 +191,8 @@ export function AdminMembers() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al asignar chip';
       message.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -193,6 +205,7 @@ export function AdminMembers() {
       okType: 'danger',
       cancelText: 'Cancelar',
       onOk: async () => {
+        setIsSubmitting(true);
         try {
           await updateMember(record.id, { status: 'suspended' });
           message.success('Miembro suspendido exitosamente');
@@ -200,6 +213,8 @@ export function AdminMembers() {
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Error al suspender miembro';
           message.error(msg);
+        } finally {
+          setIsSubmitting(false);
         }
       }
     });
@@ -353,6 +368,7 @@ export function AdminMembers() {
         },
       }}
     >
+      {isSubmitting && <LoadingScreen message="Procesando..." />}
       <main className={styles['admin-members']} role="main">
         <header className={styles['admin-members__header']}>
           <h1 className={styles['admin-members__title']}>Gestión de Miembros</h1>
@@ -475,6 +491,7 @@ export function AdminMembers() {
           okText="Registrar"
           cancelText="Cancelar"
           destroyOnClose
+          maskClosable={false}
         >
           <Form
             form={createForm}
@@ -568,6 +585,7 @@ export function AdminMembers() {
           okText="Guardar Cambios"
           cancelText="Cancelar"
           destroyOnClose
+          maskClosable={false}
         >
           <Form
             form={editForm}
@@ -659,6 +677,7 @@ export function AdminMembers() {
           okText="Asignar"
           cancelText="Cancelar"
           destroyOnClose
+          maskClosable={false}
         >
           <Form
             form={chipForm}

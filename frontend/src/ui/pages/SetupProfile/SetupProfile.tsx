@@ -6,6 +6,7 @@ import { message } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { setUser, fetchProfile } from '../../../infrastructure/store/authSlice';
 import { supabase } from '../../../infrastructure/supabase/client';
+import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import styles from './SetupProfile.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
@@ -147,6 +148,7 @@ export function SetupProfile() {
 
   return (
     <main className={styles['setup-profile']} role="main">
+      {isSubmitting && <LoadingScreen message="Configurando tu perfil..." />}
       <div className={styles['setup-profile__container']}>
         <div className={styles['setup-profile__brand']}>
           <img 

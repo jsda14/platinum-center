@@ -4,6 +4,7 @@ import { getActivePlans } from '../../../application/member/getActivePlans.useca
 import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
 import type { Plan } from '../../../domain/member/member.types';
 import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymentButton';
+import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import styles from './MemberRenewal.module.css';
 
@@ -20,6 +21,7 @@ export function MemberRenewal() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [isGeneratingSignature, setIsGeneratingSignature] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,7 @@ export function MemberRenewal() {
     setOrderId(null);
     setSignature(null);
     setIsGeneratingSignature(true);
+    setIsSubmitting(true);
     setError(null);
 
     const isMobile = window.innerWidth < 1024;
@@ -118,6 +121,7 @@ export function MemberRenewal() {
       setError(msg);
     } finally {
       setIsGeneratingSignature(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -195,6 +199,7 @@ export function MemberRenewal() {
 
   return (
     <div className={styles['member-renewal']} role="main">
+      {isSubmitting && <LoadingScreen message="Iniciando transacción segura..." />}
       <header className={styles['member-renewal__header']}>
         <h1 className={styles['member-renewal__title']}>Renueva tu Membresía</h1>
         <p className={styles['member-renewal__subtitle']}>
