@@ -15,6 +15,8 @@ import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
 import { SetupProfile } from './ui/pages/SetupProfile/SetupProfile';
 import { MemberSettings } from './ui/pages/MemberSettings/MemberSettings';
 import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
+import { AdminMemberDetail } from './ui/pages/AdminMemberDetail/AdminMemberDetail';
+
 
 export function App() {
   useAuthSession();
@@ -39,6 +41,7 @@ export function App() {
       >
         <Route index element={<div>Dashboard Admin</div>} />
         <Route path="members" element={<AdminMembers />} />
+        <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="config" element={<div>Configuración del Gym</div>} />
       </Route>

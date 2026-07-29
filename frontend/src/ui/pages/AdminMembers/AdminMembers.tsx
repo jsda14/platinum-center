@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   Modal,
@@ -7,8 +8,6 @@ import {
   Input,
   Button,
   Tag,
-  Space,
-  Tooltip,
   message,
   Empty,
   InputNumber,
@@ -16,9 +15,6 @@ import {
   theme
 } from 'antd';
 import {
-  EditOutlined,
-  StopOutlined,
-  CreditCardOutlined,
   PlusOutlined,
   SearchOutlined,
   ReloadOutlined
@@ -29,7 +25,6 @@ import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 // Import use cases
 import { getMembers } from '../../../application/admin/getMembers.usecase';
 import { createMember } from '../../../application/admin/createMember.usecase';
-import { updateMember } from '../../../application/admin/updateMember.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 
 // Import types
@@ -54,6 +49,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function AdminMembers() {
+  const navigate = useNavigate();
+
   // Main data states
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [activePlans, setActivePlans] = useState<Plan[]>([]);
@@ -67,17 +64,9 @@ export function AdminMembers() {
 
   // Modals states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [isChipModalOpen, setIsChipModalOpen] = useState<boolean>(false);
-
-  // Selected records states
-  const [editingMember, setEditingMember] = useState<MemberWithProfile | null>(null);
-  const [chipMember, setChipMember] = useState<MemberWithProfile | null>(null);
 
   // Form hooks
   const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
-  const [chipForm] = Form.useForm();
 
   // Load members data
   const loadData = async () => {
@@ -146,106 +135,6 @@ export function AdminMembers() {
     }
   };
 
-  const handleEditSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      if (!editingMember) return;
-      const values = await editForm.validateFields();
-      await updateMember(editingMember.id, {
-        fullName: values.fullName,
-        email: values.email,
-        phone: values.phone,
-        status: values.status,
-        plan: values.plan,
-        end_date: values.end_date,
-        card_no: values.card_no,
-        zkteco_user_id: values.zkteco_user_id
-      });
-      message.success('Miembro actualizado exitosamente');
-      setIsEditModalOpen(false);
-      setEditingMember(null);
-      editForm.resetFields();
-      await loadData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al actualizar miembro';
-      message.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleChipSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      if (!chipMember) return;
-      const values = await chipForm.validateFields();
-      await updateMember(chipMember.id, {
-        card_no: values.card_no,
-        zkteco_user_id: values.zkteco_user_id
-      });
-      message.success('Chip y ID físico asignados exitosamente');
-      setIsChipModalOpen(false);
-      setChipMember(null);
-      chipForm.resetFields();
-      await loadData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al asignar chip';
-      message.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Quick suspension helper
-  const handleSuspend = (record: MemberWithProfile) => {
-    Modal.confirm({
-      title: '¿Suspender miembro?',
-      content: `¿Estás seguro de que deseas suspender al miembro ${record.profiles?.full_name || ''}? Su acceso físico al gimnasio será revocado inmediatamente.`,
-      okText: 'Sí, suspender',
-      okType: 'danger',
-      cancelText: 'Cancelar',
-      onOk: async () => {
-        setIsSubmitting(true);
-        try {
-          await updateMember(record.id, { status: 'suspended' });
-          message.success('Miembro suspendido exitosamente');
-          await loadData();
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : 'Error al suspender miembro';
-          message.error(msg);
-        } finally {
-          setIsSubmitting(false);
-        }
-      }
-    });
-  };
-
-  // Open edit modal setup
-  const openEditModal = (record: MemberWithProfile) => {
-    setEditingMember(record);
-    editForm.setFieldsValue({
-      fullName: record.profiles?.full_name,
-      email: record.profiles?.email,
-      phone: record.profiles?.phone,
-      status: record.status,
-      plan: record.plan,
-      end_date: record.end_date,
-      card_no: record.card_no,
-      zkteco_user_id: record.zkteco_user_id
-    });
-    setIsEditModalOpen(true);
-  };
-
-  // Open chip assignment setup
-  const openChipModal = (record: MemberWithProfile) => {
-    setChipMember(record);
-    chipForm.setFieldsValue({
-      card_no: record.card_no,
-      zkteco_user_id: record.zkteco_user_id
-    });
-    setIsChipModalOpen(true);
-  };
-
   // Filtering local list logic
   const filteredData = members.filter((item) => {
     const fullName = item.profiles?.full_name || '';
@@ -309,46 +198,6 @@ export function AdminMembers() {
         <Tag color="blue">{card}</Tag>
       ) : (
         <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>Sin chip</span>
-      ),
-    },
-    {
-      title: 'Acciones',
-      key: 'actions',
-      render: (_: unknown, record: MemberWithProfile) => (
-        <Space size="middle">
-          <Tooltip title="Editar Miembro">
-            <Button
-              className={styles['admin-members__action-btn']}
-              type="text"
-              icon={<EditOutlined style={{ color: 'var(--color-text-primary)' }} />}
-              onClick={() => openEditModal(record)}
-              aria-label={`Editar miembro ${record.profiles?.full_name || ''}`}
-            />
-          </Tooltip>
-          
-          <Tooltip title="Asignar Chip">
-            <Button
-              className={styles['admin-members__action-btn']}
-              type="text"
-              icon={<CreditCardOutlined style={{ color: 'var(--color-accent)' }} />}
-              onClick={() => openChipModal(record)}
-              aria-label={`Asignar chip a ${record.profiles?.full_name || ''}`}
-            />
-          </Tooltip>
-
-          {record.status !== 'suspended' && (
-            <Tooltip title="Suspender Acceso">
-              <Button
-                className={styles['admin-members__action-btn']}
-                type="text"
-                danger
-                icon={<StopOutlined />}
-                onClick={() => handleSuspend(record)}
-                aria-label={`Suspender miembro ${record.profiles?.full_name || ''}`}
-              />
-            </Tooltip>
-          )}
-        </Space>
       ),
     },
   ];
@@ -475,6 +324,12 @@ export function AdminMembers() {
                 showSizeChanger: false,
                 position: ['bottomCenter']
               }}
+              onRow={(record) => ({
+                onClick: () => {
+                  navigate(`/admin/members/${record.id}`);
+                },
+                style: { cursor: 'pointer' }
+              })}
             />
           </div>
         )}
@@ -572,134 +427,7 @@ export function AdminMembers() {
           </Form>
         </Modal>
 
-        {/* Modal: Edit Member */}
-        <Modal
-          title="Editar Miembro"
-          open={isEditModalOpen}
-          onOk={handleEditSubmit}
-          onCancel={() => {
-            setIsEditModalOpen(false);
-            setEditingMember(null);
-            editForm.resetFields();
-          }}
-          okText="Guardar Cambios"
-          cancelText="Cancelar"
-          destroyOnClose
-          maskClosable={false}
-        >
-          <Form
-            form={editForm}
-            layout="vertical"
-          >
-            <Form.Item
-              name="fullName"
-              label="Nombre Completo"
-              rules={[{ required: true, message: 'El nombre es obligatorio' }]}
-            >
-              <Input />
-            </Form.Item>
 
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: 'El email es obligatorio' },
-                { type: 'email', message: 'Ingresa un email válido' }
-              ]}
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="phone"
-              label="Teléfono"
-            >
-              <Input placeholder="Sin registrar" />
-            </Form.Item>
-
-            <Form.Item
-              name="status"
-              label="Estado de Membresía"
-              rules={[{ required: true, message: 'El estado es obligatorio' }]}
-            >
-              <Select>
-                <Select.Option value="active">Activo</Select.Option>
-                <Select.Option value="expired">Vencido</Select.Option>
-                <Select.Option value="suspended">Suspendido</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="plan"
-              label="Plan"
-            >
-              <Select allowClear placeholder="Sin plan asignado">
-                <Select.Option value="1_day">1 Día</Select.Option>
-                <Select.Option value="15_days">15 Días Consumibles</Select.Option>
-                <Select.Option value="1_month">1 Mes</Select.Option>
-                <Select.Option value="1_year">1 Año</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="end_date"
-              label="Fecha de Vencimiento (YYYY-MM-DD)"
-            >
-              <Input type="date" />
-            </Form.Item>
-
-            <Form.Item
-              name="card_no"
-              label="Chip Asignado (Número de Tarjeta RFID)"
-            >
-              <Input placeholder="Ej. 1234567890" allowClear />
-            </Form.Item>
-
-            <Form.Item
-              name="zkteco_user_id"
-              label="ZKTeco User ID (PIN Físico)"
-            >
-              <Input placeholder="Ej. 9988" allowClear />
-            </Form.Item>
-          </Form>
-        </Modal>
-
-        {/* Modal: Quick Chip Assignment */}
-        <Modal
-          title={`Asignar Chip a ${chipMember?.profiles?.full_name || ''}`}
-          open={isChipModalOpen}
-          onOk={handleChipSubmit}
-          onCancel={() => {
-            setIsChipModalOpen(false);
-            setChipMember(null);
-            chipForm.resetFields();
-          }}
-          okText="Asignar"
-          cancelText="Cancelar"
-          destroyOnClose
-          maskClosable={false}
-        >
-          <Form
-            form={chipForm}
-            layout="vertical"
-          >
-            <Form.Item
-              name="card_no"
-              label="Número de Tarjeta RFID (Chip)"
-              rules={[{ required: true, message: 'El número de tarjeta es obligatorio' }]}
-            >
-              <Input placeholder="Ej. 1234567890" allowClear />
-            </Form.Item>
-
-            <Form.Item
-              name="zkteco_user_id"
-              label="ZKTeco User ID (PIN Físico)"
-              rules={[{ required: true, message: 'El PIN de ZKTeco es obligatorio' }]}
-            >
-              <Input placeholder="Ej. 9988" allowClear />
-            </Form.Item>
-          </Form>
-        </Modal>
       </main>
     </ConfigProvider>
   );

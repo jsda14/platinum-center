@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Member, Profile, Payment } from '../../domain/member/member.types';
+import type { Member, Profile, Payment, MemberDayPass } from '../../domain/member/member.types';
 
 export interface ManualPaymentData {
   member_id: string;
@@ -31,6 +31,12 @@ export interface UpdateMemberData {
   end_date?: string | null;
   card_no?: string | null;
   zkteco_user_id?: string | null;
+}
+
+export interface MemberDetail {
+  member: MemberWithProfile;
+  payments: Payment[];
+  dayPass: MemberDayPass | null;
 }
 
 export const adminRepository = {
@@ -273,5 +279,70 @@ export const adminRepository = {
       throw new Error(error.message);
     }
     return data || [];
+  },
+
+  async getMemberDetail(memberId: string): Promise<MemberDetail> {
+    const { data: member, error: memberError } = await supabase
+      .from('members')
+      .select('*, profiles:profile_id(full_name, email, phone)')
+      .eq('id', memberId)
+      .single();
+
+    if (memberError) {
+      throw new Error(`Error al obtener miembro: ${memberError.message}`);
+    }
+
+    const { data: payments, error: paymentsError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('member_id', memberId)
+      .order('payment_date', { ascending: false });
+
+    if (paymentsError) {
+      throw new Error(`Error al obtener pagos: ${paymentsError.message}`);
+    }
+
+    let dayPass: MemberDayPass | null = null;
+    if (member && member.plan === '15_days') {
+      const { data: dayPasses, error: dayPassError } = await supabase
+        .from('member_day_passes')
+        .select('*')
+        .eq('member_id', memberId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (dayPassError) {
+        throw new Error(`Error al obtener pases de día: ${dayPassError.message}`);
+      }
+
+      if (dayPasses && dayPasses.length > 0) {
+        dayPass = dayPasses[0] as MemberDayPass;
+      }
+    }
+
+    return {
+      member: member as MemberWithProfile,
+      payments: (payments || []) as Payment[],
+      dayPass
+    };
+  },
+
+  async updateMemberInfo(
+    memberId: string,
+    profileId: string,
+    data: { fullName: string; email: string; phone?: string | null }
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone
+      })
+      .eq('id', profileId);
+
+    if (error) {
+      throw new Error(`Error al actualizar perfil del miembro: ${error.message}`);
+    }
   }
 };
