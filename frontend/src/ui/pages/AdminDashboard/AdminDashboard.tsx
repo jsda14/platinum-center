@@ -276,7 +276,7 @@ export function AdminDashboard() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {data.planDistribution.map((entry, index) => (
+                    {data.planDistribution.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={PLAN_COLORS[index % PLAN_COLORS.length]} />
                     ))}
                   </Pie>

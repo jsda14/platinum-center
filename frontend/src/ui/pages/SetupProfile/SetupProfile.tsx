@@ -28,7 +28,7 @@ export function SetupProfile() {
   const dispatch = useAppDispatch();
   
   // Get existing auth state to pre-fill fullName if possible
-  const { profile, user } = useAppSelector((state) => state.auth);
+  const { profile, user, accessToken } = useAppSelector((state) => state.auth);
 
   const [formData, setFormData] = useState<SetupProfileFormData>({
     fullName: '',
@@ -133,7 +133,7 @@ export function SetupProfile() {
       // 4. Update Redux store
       const profileAction = await dispatch(fetchProfile(currentUserId));
       if (fetchProfile.fulfilled.match(profileAction)) {
-        dispatch(setUser({ user: session?.user || user, profile: profileAction.payload }));
+        dispatch(setUser({ user: session?.user || user, profile: profileAction.payload, accessToken: session?.access_token || accessToken }));
       }
 
       message.success('Perfil configurado y activado exitosamente');

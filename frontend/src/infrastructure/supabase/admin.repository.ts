@@ -340,7 +340,7 @@ export const adminRepository = {
   },
 
   async updateMemberInfo(
-    memberId: string,
+    _memberId: string,
     profileId: string,
     data: { fullName: string; email: string; phone?: string | null }
   ): Promise<void> {
