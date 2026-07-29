@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Member, Profile, Payment, MemberDayPass } from '../../domain/member/member.types';
+import type { Member, Profile, Payment, MemberDayPass, Plan } from '../../domain/member/member.types';
 
 export interface ManualPaymentData {
   member_id: string;
@@ -356,5 +356,55 @@ export const adminRepository = {
     if (error) {
       throw new Error(`Error al actualizar perfil del miembro: ${error.message}`);
     }
+  },
+
+  async getPlans(): Promise<Plan[]> {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .order('price', { ascending: true });
+
+    if (error) {
+      throw new Error(`Error al obtener planes: ${error.message}`);
+    }
+    return (data || []) as Plan[];
+  },
+
+  async updatePlan(id: string, data: Partial<Plan>): Promise<Plan> {
+    const { data: updated, error } = await supabase
+      .from('plans')
+      .update({
+        name: data.name,
+        price: data.price,
+        duration_days: data.duration_days,
+        active: data.active
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error al actualizar plan: ${error.message}`);
+    }
+    return updated as Plan;
+  },
+
+  async createPlan(data: Omit<Plan, 'id' | 'created_at'>): Promise<Plan> {
+    const { data: created, error } = await supabase
+      .from('plans')
+      .insert({
+        name: data.name,
+        slug: data.slug,
+        price: data.price,
+        duration_days: data.duration_days,
+        active: data.active
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error al crear plan: ${error.message}`);
+    }
+    return created as Plan;
   }
 };
