@@ -16,6 +16,7 @@ import { SetupProfile } from './ui/pages/SetupProfile/SetupProfile';
 import { MemberSettings } from './ui/pages/MemberSettings/MemberSettings';
 import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
 import { AdminMemberDetail } from './ui/pages/AdminMemberDetail/AdminMemberDetail';
+import { AdminDashboard } from './ui/pages/AdminDashboard/AdminDashboard';
 
 
 export function App() {
@@ -39,7 +40,7 @@ export function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<div>Dashboard Admin</div>} />
+        <Route index element={<AdminDashboard />} />
         <Route path="members" element={<AdminMembers />} />
         <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />

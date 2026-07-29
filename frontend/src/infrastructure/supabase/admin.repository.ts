@@ -39,6 +39,18 @@ export interface MemberDetail {
   dayPass: MemberDayPass | null;
 }
 
+export interface DashboardMetrics {
+  totalActiveMembers: number;
+  monthlyRevenue: number;
+  expiringThisWeek: MemberWithProfile[];
+  newMembersThisMonth: number;
+  revenueByMonth: { name: string; revenue: number }[];
+  planDistribution: { name: string; value: number }[];
+  paymentMethodDistribution: { name: string; value: number; method: string }[];
+  recentPayments: any[];
+  membersWithoutChip: MemberWithProfile[];
+}
+
 export const adminRepository = {
   async getMembers(): Promise<MemberWithProfile[]> {
     const { data, error } = await supabase
