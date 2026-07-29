@@ -28,7 +28,7 @@ type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
 export function MemberSettings() {
   const dispatch = useAppDispatch();
-  const { user, profile } = useAppSelector((state) => state.auth);
+  const { user, profile, accessToken } = useAppSelector((state) => state.auth);
 
   // Form states
   const [personalInfo, setPersonalInfo] = useState<PersonalInfoData>({
@@ -122,7 +122,7 @@ export function MemberSettings() {
       // Update Redux state
       const profileAction = await dispatch(fetchProfile(currentUserId));
       if (fetchProfile.fulfilled.match(profileAction)) {
-        dispatch(setUser({ user, profile: profileAction.payload }));
+        dispatch(setUser({ user, profile: profileAction.payload, accessToken }));
       }
 
       message.success('Información personal guardada con éxito.');
