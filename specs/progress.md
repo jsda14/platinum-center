@@ -90,17 +90,17 @@
 - [x] Registro de pagos manuales (cash / nequi / daviplata)
 - [x] Reactivación automática del chip al registrar pago manual
 - [x] Lógica de renovación anticipada: sumar días desde fecha_fin actual
-- [ ] Página de detalle de miembro /admin/members/:id con:
+- [x] Página de detalle de miembro /admin/members/:id con:
   - Información del miembro (nombre, email, teléfono, chip)
   - Estado actual de membresía (plan activo, días restantes, vencimiento)
   - Historial de pagos completo
   - Historial de accesos (disponible tras Fase 4 ZKTeco)
   - Botones de acción: registrar pago, editar info, suspender, asignar chip
-- [ ] Gestión de planes (precios, duración editables)
-- [ ] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
+- [x] Gestión de planes (precios, duración editables)
+- [x] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
 - [ ] Vista receptionist (permisos limitados)
 - [ ] Configuración del gym (nombre, logo, horarios)
-- [ ] Vista de miembros sin chip asignado (card_no = null)
+- [x] Vista de miembros sin chip asignado (card_no = null)
 
 ---
 
@@ -122,12 +122,23 @@
 ## Fase 5 — Pagos + Notificaciones completas
 **Estado: ⚪ Pendiente**
 
-- [ ] Bold webhook end-to-end (pago `confirmed` → activa membresía automáticamente)
-- [ ] Idempotencia: UNIQUE constraint en `transaction_id`
-- [ ] Flujo completo: pago → Supabase → Railway → inBio Pro
-- [ ] Lógica `15_days`: crear `member_day_passes` al confirmar pago
-- [ ] Todos los emails automáticos funcionando
-- [ ] Notificaciones in-app en tiempo real
+> Bold y notificaciones completados en Fase 2. 
+> Fase 5 ahora enfocada en membresías grupales.
+
+- [x] Bold webhook end-to-end (pago confirmed → activa membresía)
+- [x] Idempotencia: UNIQUE constraint en transaction_id
+- [x] Flujo completo: pago → Supabase → Railway → inBio Pro
+- [x] Lógica 15_days: crear member_day_passes al confirmar pago
+- [x] Emails automáticos via Supabase Edge Functions (Brevo)
+- [x] Notificaciones in-app en tiempo real (Supabase Realtime)
+- [ ] Membresías grupales (ver specs/group-memberships.md):
+  - [ ] Schema: plan_group_pricing, group_memberships, group_membership_members
+  - [ ] Portal miembro: crear grupo, invitar personas, pago total o dividido
+  - [ ] Panel admin: registrar grupo presencial con pago manual
+  - [ ] Precios grupales configurables desde gestión de planes
+  - [ ] Email de bienvenida a cada miembro del grupo
+  - [ ] Activación de chip por cada miembro del grupo
+- [ ] Configurar precios grupales en panel admin (plan_group_pricing)
 
 ---
 
