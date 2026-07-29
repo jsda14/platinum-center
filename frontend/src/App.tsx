@@ -17,6 +17,7 @@ import { MemberSettings } from './ui/pages/MemberSettings/MemberSettings';
 import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
 import { AdminMemberDetail } from './ui/pages/AdminMemberDetail/AdminMemberDetail';
 import { AdminDashboard } from './ui/pages/AdminDashboard/AdminDashboard';
+import { AdminPlans } from './ui/pages/AdminPlans/AdminPlans';
 
 
 export function App() {
@@ -44,6 +45,7 @@ export function App() {
         <Route path="members" element={<AdminMembers />} />
         <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />
+        <Route path="plans" element={<AdminPlans />} />
         <Route path="config" element={<div>Configuración del Gym</div>} />
       </Route>
 

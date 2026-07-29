@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -60,6 +61,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       onClick: () => navigate('/admin/payments'),
     },
     {
+      key: '/admin/plans',
+      icon: <TagOutlined />,
+      label: 'Planes',
+      onClick: () => navigate('/admin/plans'),
+    },
+    {
       key: '/admin/config',
       icon: <SettingOutlined />,
       label: 'Configuración',
@@ -96,6 +103,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               ? '/admin/members'
               : location.pathname.startsWith('/admin/payments')
               ? '/admin/payments'
+              : location.pathname.startsWith('/admin/plans')
+              ? '/admin/plans'
               : location.pathname.startsWith('/admin/config')
               ? '/admin/config'
               : location.pathname.startsWith('/reception')

@@ -170,3 +170,12 @@ backend-cloud/src/
 **Decisión:** Página dedicada /admin/members/:id en lugar de modal expandido
 **Razón:** El modal es insuficiente para mostrar historial de pagos, accesos y múltiples acciones. Una página dedicada es más limpia, escalable y fácil de entender para el admin.
 **Impacto:** AdminMembers.tsx — click en miembro navega a detalle
+
+---
+
+## [2026-07] Dashboard métricas en backend
+**Decisión:** Métricas del dashboard calculadas en Railway (FastAPI)
+**Razón:** Escalabilidad, rendimiento y seguridad. PostgreSQL ejecuta
+las agregaciones directamente, el frontend solo renderiza.
+El volumen crecerá con el tiempo — esta arquitectura lo soporta.
+
