@@ -91,7 +91,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[
+            location.pathname.startsWith('/admin/members')
+              ? '/admin/members'
+              : location.pathname.startsWith('/admin/payments')
+              ? '/admin/payments'
+              : location.pathname.startsWith('/admin/config')
+              ? '/admin/config'
+              : location.pathname.startsWith('/reception')
+              ? '/reception'
+              : '/admin'
+          ]}
           items={menuItems}
           className={styles['admin-layout__menu']}
         />
