@@ -57,3 +57,48 @@ CREATE POLICY "communications_select_policy" ON public.communications
 DROP POLICY IF EXISTS "communications_insert_policy" ON public.communications;
 CREATE POLICY "communications_insert_policy" ON public.communications
     FOR INSERT WITH CHECK (public.is_super_admin());
+
+
+-- RLS policies para plan_group_pricing
+ALTER TABLE public.plan_group_pricing ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "super_admin can manage group pricing"
+ON public.plan_group_pricing
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND role IN ('super_admin', 'receptionist')
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND role IN ('super_admin', 'receptionist')
+  )
+);
+
+-- RLS policies para communications
+ALTER TABLE public.communications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "super_admin can manage communications"
+ON public.communications
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND role = 'super_admin'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND role = 'super_admin'
+  )
+);

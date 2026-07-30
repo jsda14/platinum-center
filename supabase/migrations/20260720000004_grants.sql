@@ -27,3 +27,6 @@ GRANT INSERT ON public.payments TO service_role;
 GRANT INSERT ON public.member_day_passes TO service_role;
 
 GRANT UPDATE ON public.profiles TO authenticated;
+
+GRANT INSERT, UPDATE, DELETE ON public.plan_group_pricing TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.communications TO authenticated;
