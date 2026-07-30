@@ -7,7 +7,7 @@
 ---
 
 ## Estado general
-**Fase actual:** 3 — Panel admin + recepcionista
+**Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
 **Última actualización:** 2026-07
 
@@ -78,7 +78,7 @@
 ---
 
 ## Fase 3 — Panel admin + recepcionista
-**Estado: 🟡 En progreso**
+**Estado: ✅ Completada**
 
 - [x] CRUD de miembros (crear, editar, suspender)
 - [x] Asignación de chip RFID a miembro nuevo sin chip
@@ -98,14 +98,18 @@
   - Botones de acción: registrar pago, editar info, suspender, asignar chip
 - [x] Gestión de planes (precios, duración editables)
 - [x] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
-- [ ] Vista receptionist (permisos limitados)
-- [ ] Configuración del gym (nombre, logo, horarios)
+- [x] Vista receptionist (permisos limitados)
+- [x] Configuración del gym (nombre, logo, horarios)
 - [x] Vista de miembros sin chip asignado (card_no = null)
+- [x] Vista receptionist con permisos limitados
+- [x] Rutas DRY: /admin/* para super_admin, /reception/* para receptionist
+- [x] Mismo componente, diferente URL según rol
+- [x] AdminMemberDetail: botones restringidos por rol en ambas URLs
 
 ---
 
 ## Fase 4 — Integración ZKTeco
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso**
 
 - [ ] FastAPI local con los 3 endpoints del protocolo iClock
 - [ ] Endpoint `POST /iclock/devicecmd` (confirmación de comandos)
@@ -158,6 +162,8 @@
 ---
 
 ## Notas y bloqueos activos
+- Fase 3 completa — lista para entrega a Sevastián
+- Cobrar $400.000 COP por Fase 3
 - Frontend: https://platinum-center.vercel.app
 - Backend: https://platinum-center-production.up.railway.app
 - Webhook Supabase configurado: `members` UPDATE → Railway `/webhooks/member-status`
