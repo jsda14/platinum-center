@@ -10,6 +10,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   TagOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -67,10 +68,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       onClick: () => navigate('/admin/plans'),
     },
     {
-      key: '/admin/config',
+      key: '/admin/settings',
       icon: <SettingOutlined />,
       label: 'Configuración',
-      onClick: () => navigate('/admin/config'),
+      onClick: () => navigate('/admin/settings'),
+    },
+    {
+      key: '/admin/communications',
+      icon: <NotificationOutlined />,
+      label: 'Comunicados',
+      onClick: () => navigate('/admin/communications'),
     },
   ];
 
@@ -105,8 +112,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               ? '/admin/payments'
               : location.pathname.startsWith('/admin/plans')
               ? '/admin/plans'
-              : location.pathname.startsWith('/admin/config')
-              ? '/admin/config'
+              : location.pathname.startsWith('/admin/settings')
+              ? '/admin/settings'
+              : location.pathname.startsWith('/admin/communications')
+              ? '/admin/communications'
               : location.pathname.startsWith('/reception')
               ? '/reception'
               : '/admin'

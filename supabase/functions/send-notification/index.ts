@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails, recovery_link } = await req.json();
+    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails, recovery_link, custom_subject, custom_body, recipients } = await req.json();
 
     if (!BREVO_API_KEY) {
       throw new Error("Missing BREVO_API_KEY environment variable");
@@ -184,6 +184,41 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-top: 25px;">En tu portal personal podrás ver tu historial de pagos, el estado actual de tu membresía, sugerencias y mucho más.</p>
         ${emailFooterHtml}
       `;
+    } else if (type === 'BULK_COMMUNICATION') {
+      subject = custom_subject || "Comunicado de Platinum Center 📢";
+      
+      const formattedBody = (custom_body || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br />");
+
+      htmlContent = `
+        <div style="background-color: #1A1A1A; color: #FFFFFF; font-family: 'Inter', sans-serif; padding: 40px 20px; text-align: center; min-height: 100vh;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #242424; border: 1px solid #3A3A3A; border-radius: 12px; overflow: hidden; text-align: left; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);">
+            <!-- Header/Branding -->
+            <div style="background-color: #1A1A1A; padding: 25px 20px; text-align: center; border-bottom: 2px solid #C41E3A;">
+              <h1 style="color: #C41E3A; margin: 0; font-family: 'Impact', 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(196, 30, 58, 0.3);">PLATINUM CENTER</h1>
+              <p style="color: #D4A017; font-size: 11px; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;">Comunicado de Platinum Center 📢</p>
+            </div>
+            <!-- Body Content -->
+            <div style="padding: 30px; line-height: 1.6;">
+              <h2 style="color: #FFFFFF; font-size: 20px; margin-top: 0; margin-bottom: 20px;">¡Hola!</h2>
+              <div style="font-size: 15px; color: #FFFFFF; line-height: 1.6;">
+                ${formattedBody}
+              </div>
+              <p style="font-size: 13px; color: #A0A0A0; margin-top: 30px; border-top: 1px solid #3A3A3A; padding-top: 15px;">
+                Si tienes alguna duda o deseas contactarnos, puedes responder directamente a este correo o escribirnos por WhatsApp al +57 300 123 4567.
+              </p>
+            </div>
+            <!-- Footer -->
+            <div style="background-color: #1A1A1A; padding: 20px; text-align: center; border-top: 1px solid #3A3A3A;">
+              <p style="color: #A0A0A0; font-size: 11px; margin: 0;">&copy; ${new Date().getFullYear()} Gym Platinum Center. Todos los derechos reservados.</p>
+              <p style="color: #A0A0A0; font-size: 10px; margin: 5px 0 0 0;">Bogotá, Colombia</p>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       throw new Error(`Unsupported notification type: ${type}`);
     }
@@ -202,6 +237,8 @@ Deno.serve(async (req) => {
         },
         to: type === 'PAYMENT_CONFIRMED_ADMIN'
           ? (admin_emails && admin_emails.length > 0 ? admin_emails : [{ email: "jsda14@gmail.com", name: "Admin" }])
+          : type === 'BULK_COMMUNICATION'
+          ? (recipients || [])
           : [
               {
                 email: toEmail,
