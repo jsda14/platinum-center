@@ -42,13 +42,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     navigate('/login');
   };
 
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const menuItems = [
-    {
+    ...(isSuperAdmin ? [{
       key: '/admin',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
       onClick: () => navigate('/admin'),
-    },
+    }] : []),
     {
       key: '/admin/members',
       icon: <UserOutlined />,
@@ -67,18 +69,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       label: 'Planes',
       onClick: () => navigate('/admin/plans'),
     },
-    {
-      key: '/admin/settings',
-      icon: <SettingOutlined />,
-      label: 'Configuración',
-      onClick: () => navigate('/admin/settings'),
-    },
-    {
-      key: '/admin/communications',
-      icon: <NotificationOutlined />,
-      label: 'Comunicados',
-      onClick: () => navigate('/admin/communications'),
-    },
+    ...(isSuperAdmin ? [
+      {
+        key: '/admin/settings',
+        icon: <SettingOutlined />,
+        label: 'Configuración',
+        onClick: () => navigate('/admin/settings'),
+      },
+      {
+        key: '/admin/communications',
+        icon: <NotificationOutlined />,
+        label: 'Comunicados',
+        onClick: () => navigate('/admin/communications'),
+      },
+    ] : []),
   ];
 
   return (

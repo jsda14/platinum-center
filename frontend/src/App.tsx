@@ -57,7 +57,7 @@ export function App() {
       <Route
         path="/reception/*"
         element={
-          <ProtectedRoute allowedRoles={['receptionist', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['receptionist']}>
             <AdminLayout />
           </ProtectedRoute>
         }
@@ -69,7 +69,7 @@ export function App() {
       <Route
         path="/portal/*"
         element={
-          <ProtectedRoute allowedRoles={['member', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['member']}>
             <MemberLayout />
           </ProtectedRoute>
         }
