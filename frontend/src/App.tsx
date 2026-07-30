@@ -18,6 +18,9 @@ import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
 import { AdminMemberDetail } from './ui/pages/AdminMemberDetail/AdminMemberDetail';
 import { AdminDashboard } from './ui/pages/AdminDashboard/AdminDashboard';
 import { AdminPlans } from './ui/pages/AdminPlans/AdminPlans';
+import { AdminSettings } from './ui/pages/AdminSettings/AdminSettings';
+import { AdminCommunications } from './ui/pages/AdminCommunications/AdminCommunications';
+
 
 
 export function App() {
@@ -46,7 +49,8 @@ export function App() {
         <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="plans" element={<AdminPlans />} />
-        <Route path="config" element={<div>Configuración del Gym</div>} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="communications" element={<AdminCommunications />} />
       </Route>
 
       {/* Receptionist routes */}

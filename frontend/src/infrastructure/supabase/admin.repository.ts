@@ -1,5 +1,6 @@
 import { supabase } from './client';
-import type { Member, Profile, Payment, MemberDayPass, Plan } from '../../domain/member/member.types';
+import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGroupPricing } from '../../domain/member/member.types';
+
 
 export interface ManualPaymentData {
   member_id: string;
@@ -406,5 +407,124 @@ export const adminRepository = {
       throw new Error(`Error al crear plan: ${error.message}`);
     }
     return created as Plan;
+  },
+
+  async getGymConfig(): Promise<GymConfig> {
+    const { data, error } = await supabase
+      .from('gym_config')
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Error al obtener configuración: ${error.message}`);
+    }
+    return data as GymConfig;
+  },
+
+  async updateGymConfig(data: Partial<GymConfig>): Promise<GymConfig> {
+    const { data: config } = await supabase.from('gym_config').select('id').single();
+    if (!config) {
+      const { data: inserted, error: insertError } = await supabase
+        .from('gym_config')
+        .insert(data)
+        .select()
+        .single();
+      if (insertError) {
+        throw new Error(`Error al crear configuración: ${insertError.message}`);
+      }
+      return inserted as GymConfig;
+    }
+
+    const { data: updated, error } = await supabase
+      .from('gym_config')
+      .update({
+        ...data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', config.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error al actualizar configuración: ${error.message}`);
+    }
+    return updated as GymConfig;
+  },
+
+  async getGroupPricing(): Promise<PlanGroupPricing[]> {
+    const { data, error } = await supabase
+      .from('plan_group_pricing')
+      .select('*')
+      .order('min_members', { ascending: true });
+
+    if (error) {
+      throw new Error(`Error al obtener precios grupales: ${error.message}`);
+    }
+    return (data || []) as PlanGroupPricing[];
+  },
+
+  async updateGroupPricing(id: string, data: Partial<PlanGroupPricing>): Promise<PlanGroupPricing> {
+    const { data: updated, error } = await supabase
+      .from('plan_group_pricing')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error al actualizar precio grupal: ${error.message}`);
+    }
+    return updated as PlanGroupPricing;
+  },
+
+  async createGroupPricing(data: Omit<PlanGroupPricing, 'id' | 'created_at'>): Promise<PlanGroupPricing> {
+    const { data: created, error } = await supabase
+      .from('plan_group_pricing')
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error al crear precio grupal: ${error.message}`);
+    }
+    return created as PlanGroupPricing;
+  },
+
+  async getCommunications(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('communications')
+      .select('*, sent_by_profile:profiles!communications_sent_by_fkey(full_name)')
+      .order('sent_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Error al obtener historial de comunicados: ${error.message}`);
+    }
+    return data || [];
+  },
+
+  async sendCommunication(subject: string, body: string, recipientType: string): Promise<any> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/admin/send-communication`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        subject,
+        body,
+        recipient_type: recipientType
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al enviar comunicado');
+    }
+
+    return response.json();
   }
 };
