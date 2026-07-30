@@ -43,33 +43,36 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const isSuperAdmin = profile?.role === 'super_admin';
+  const basePath = location.pathname.startsWith('/reception')
+    ? '/reception'
+    : '/admin';
 
   const menuItems = [
-    ...(isSuperAdmin ? [{
+    ...(basePath === '/admin' ? [{
       key: '/admin',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
       onClick: () => navigate('/admin'),
     }] : []),
     {
-      key: '/admin/members',
+      key: `${basePath}/members`,
       icon: <UserOutlined />,
       label: 'Miembros',
-      onClick: () => navigate('/admin/members'),
+      onClick: () => navigate(`${basePath}/members`),
     },
     {
-      key: '/admin/payments',
+      key: `${basePath}/payments`,
       icon: <DollarOutlined />,
       label: 'Pagos',
-      onClick: () => navigate('/admin/payments'),
+      onClick: () => navigate(`${basePath}/payments`),
     },
     {
-      key: '/admin/plans',
+      key: `${basePath}/plans`,
       icon: <TagOutlined />,
       label: 'Planes',
-      onClick: () => navigate('/admin/plans'),
+      onClick: () => navigate(`${basePath}/plans`),
     },
-    ...(isSuperAdmin ? [
+    ...(basePath === '/admin' ? [
       {
         key: '/admin/settings',
         icon: <SettingOutlined />,
@@ -110,19 +113,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           theme="dark"
           mode="inline"
           selectedKeys={[
-            location.pathname.startsWith('/admin/members')
-              ? '/admin/members'
-              : location.pathname.startsWith('/admin/payments')
-              ? '/admin/payments'
-              : location.pathname.startsWith('/admin/plans')
-              ? '/admin/plans'
+            location.pathname.startsWith(`${basePath}/members`)
+              ? `${basePath}/members`
+              : location.pathname.startsWith(`${basePath}/payments`)
+              ? `${basePath}/payments`
+              : location.pathname.startsWith(`${basePath}/plans`)
+              ? `${basePath}/plans`
               : location.pathname.startsWith('/admin/settings')
               ? '/admin/settings'
               : location.pathname.startsWith('/admin/communications')
               ? '/admin/communications'
-              : location.pathname.startsWith('/reception')
-              ? '/reception'
-              : '/admin'
+              : basePath
           ]}
           items={menuItems}
           className={styles['admin-layout__menu']}

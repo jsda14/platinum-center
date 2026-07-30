@@ -26,6 +26,7 @@ import {
 } from '@ant-design/icons';
 
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
+import { useAppSelector } from '../../../infrastructure/store/store';
 
 // Import use cases
 import { getMemberDetail } from '../../../application/admin/getMemberDetail.usecase';
@@ -86,6 +87,8 @@ const formatCOP = (amount: number) => {
 export function AdminMemberDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAppSelector(state => state.auth);
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   // Core States
   const [detail, setDetail] = useState<MemberDetail | null>(null);
@@ -445,15 +448,17 @@ export function AdminMemberDetail() {
                   <span className={styles['admin-member-detail__info-value']}>{member.profiles?.phone || 'Sin teléfono'}</span>
                 </div>
                 
-                <Button
-                  type="default"
-                  icon={<EditOutlined />}
-                  onClick={openEditModal}
-                  className={styles['admin-member-detail__btn']}
-                  aria-label="Editar información de contacto"
-                >
-                  Editar información
-                </Button>
+                {isSuperAdmin && (
+                  <Button
+                    type="default"
+                    icon={<EditOutlined />}
+                    onClick={openEditModal}
+                    className={styles['admin-member-detail__btn']}
+                    aria-label="Editar información de contacto"
+                  >
+                    Editar información
+                  </Button>
+                )}
               </div>
 
               {/* RFID Chip Section */}
@@ -498,7 +503,7 @@ export function AdminMemberDetail() {
                   Registrar pago
                 </Button>
 
-                {member.status !== 'suspended' && (
+                {isSuperAdmin && member.status !== 'suspended' && (
                   <Button
                     type="default"
                     danger

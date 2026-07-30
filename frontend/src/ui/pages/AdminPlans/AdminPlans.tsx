@@ -22,6 +22,7 @@ import {
 import { z } from 'zod';
 
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
+import { useAppSelector } from '../../../infrastructure/store/store';
 
 // Import use cases
 import { getPlans, updatePlan, createPlan } from '../../../application/admin/managePlans.usecase';
@@ -59,6 +60,8 @@ const planFormSchema = z.object({
 });
 
 export function AdminPlans() {
+  const { profile } = useAppSelector(state => state.auth);
+  const isSuperAdmin = profile?.role === 'super_admin';
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -216,19 +219,21 @@ export function AdminPlans() {
         </span>
       )
     },
-    {
-      title: 'Acción',
-      key: 'action',
-      render: (_: unknown, record: Plan) => (
-        <Button
-          type="text"
-          icon={<EditOutlined />}
-          onClick={() => openEditModal(record)}
-          className={styles['admin-plans__action-btn']}
-          aria-label={`Editar plan ${record.name}`}
-        />
-      )
-    }
+    ...(isSuperAdmin ? [
+      {
+        title: 'Acción',
+        key: 'action',
+        render: (_: unknown, record: Plan) => (
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
+            className={styles['admin-plans__action-btn']}
+            aria-label={`Editar plan ${record.name}`}
+          />
+        )
+      }
+    ] : [])
   ];
 
   return (
@@ -260,15 +265,17 @@ export function AdminPlans() {
             >
               Recargar
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreateModal}
-              className={styles['admin-plans__btn-create']}
-              aria-label="Crear nuevo plan"
-            >
-              Nuevo Plan
-            </Button>
+            {isSuperAdmin && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreateModal}
+                className={styles['admin-plans__btn-create']}
+                aria-label="Crear nuevo plan"
+              >
+                Nuevo Plan
+              </Button>
+            )}
           </Space>
         </header>
 

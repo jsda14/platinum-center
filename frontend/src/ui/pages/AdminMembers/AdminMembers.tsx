@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons';
 
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
+import { useAppSelector } from '../../../infrastructure/store/store';
 
 // Import use cases
 import { getMembers } from '../../../application/admin/getMembers.usecase';
@@ -50,6 +51,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function AdminMembers() {
   const navigate = useNavigate();
+  const { profile } = useAppSelector(state => state.auth);
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   // Main data states
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
