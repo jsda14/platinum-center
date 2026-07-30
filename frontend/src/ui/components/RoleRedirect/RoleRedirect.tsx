@@ -20,6 +20,6 @@ export function RoleRedirect(_props: RoleRedirectProps = {}) {
   }
 
   if (profile?.role === 'super_admin') return <Navigate to="/admin" replace />;
-  if (profile?.role === 'receptionist') return <Navigate to="/admin" replace />;
+  if (profile?.role === 'receptionist') return <Navigate to="/reception" replace />;
   return <Navigate to="/portal" replace />;
 }

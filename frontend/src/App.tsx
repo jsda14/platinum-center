@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthSession } from './ui/hooks/useAuthSession';
 import { ProtectedRoute } from './ui/components/ProtectedRoute/ProtectedRoute';
 import { RoleRedirect } from './ui/components/RoleRedirect/RoleRedirect';
 import { AuthLayout } from './ui/layouts/AuthLayout/AuthLayout';
 import { AdminLayout } from './ui/layouts/AdminLayout/AdminLayout';
 import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
+
 import { AdminMembers } from './ui/pages/AdminMembers/AdminMembers';
 import { Login } from './ui/pages/Login/Login';
 import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
@@ -21,7 +22,57 @@ import { AdminPlans } from './ui/pages/AdminPlans/AdminPlans';
 import { AdminSettings } from './ui/pages/AdminSettings/AdminSettings';
 import { AdminCommunications } from './ui/pages/AdminCommunications/AdminCommunications';
 
+import { useAppSelector } from './infrastructure/store/store';
 
+// Helper redirects to maintain DRY principle and handle hardcoded inner-component navigations
+function AdminMembersRedirect() {
+  const { profile } = useAppSelector((state) => state.auth);
+  if (profile?.role === 'receptionist') {
+    return <Navigate to="/reception/members" replace />;
+  }
+  return (
+    <AdminLayout>
+      <AdminMembers />
+    </AdminLayout>
+  );
+}
+
+function AdminMemberDetailRedirect() {
+  const { id } = useParams<{ id: string }>();
+  const { profile } = useAppSelector((state) => state.auth);
+  if (profile?.role === 'receptionist') {
+    return <Navigate to={`/reception/members/${id}`} replace />;
+  }
+  return (
+    <AdminLayout>
+      <AdminMemberDetail />
+    </AdminLayout>
+  );
+}
+
+function AdminPaymentsRedirect() {
+  const { profile } = useAppSelector((state) => state.auth);
+  if (profile?.role === 'receptionist') {
+    return <Navigate to="/reception/payments" replace />;
+  }
+  return (
+    <AdminLayout>
+      <AdminPayments />
+    </AdminLayout>
+  );
+}
+
+function AdminPlansRedirect() {
+  const { profile } = useAppSelector((state) => state.auth);
+  if (profile?.role === 'receptionist') {
+    return <Navigate to="/reception/plans" replace />;
+  }
+  return (
+    <AdminLayout>
+      <AdminPlans />
+    </AdminLayout>
+  );
+}
 
 export function App() {
   useAuthSession();
@@ -35,20 +86,54 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
-      {/* Admin routes */}
+
+      {/* Specific routes matched first to handle cross-role redirects and component re-use */}
+      <Route
+        path="/admin/members/:id"
+        element={
+          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+            <AdminMemberDetailRedirect />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/members"
+        element={
+          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+            <AdminMembersRedirect />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/payments"
+        element={
+          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+            <AdminPaymentsRedirect />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/plans"
+        element={
+          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+            <AdminPlansRedirect />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin routes (restricted to super_admin only) */}
       <Route
         path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+          <ProtectedRoute allowedRoles={['super_admin']}>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
         <Route index element={<AdminDashboard />} />
-        <Route path="members" element={<AdminMembers />} />
-        <Route path="members/:id" element={<AdminMemberDetail />} />
-        <Route path="payments" element={<AdminPayments />} />
-        <Route path="plans" element={<AdminPlans />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="communications" element={<AdminCommunications />} />
       </Route>
@@ -62,7 +147,11 @@ export function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<div>Panel Recepción</div>} />
+        <Route index element={<AdminMembers />} />
+        <Route path="members" element={<AdminMembers />} />
+        <Route path="members/:id" element={<AdminMemberDetail />} />
+        <Route path="payments" element={<AdminPayments />} />
+        <Route path="plans" element={<AdminPlans />} />
       </Route>
 
       {/* Member Portal routes */}
