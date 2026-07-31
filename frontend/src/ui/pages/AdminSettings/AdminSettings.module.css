@@ -495,3 +495,75 @@
   margin-bottom: 0;
 }
 
+/* Operational hours title */
+.admin-settings__schedule-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--color-text-primary);
+}
+
+/* Appearance preview theme classes */
+.admin-settings__swatch--primary {
+  background-color: #C41E3A;
+}
+
+.admin-settings__swatch--accent {
+  background-color: #D4A017;
+}
+
+.admin-settings__swatch--bg {
+  background-color: #242424;
+}
+
+.admin-settings__slider-fill--40 {
+  width: 40%;
+}
+
+.admin-settings__slider-thumb--40 {
+  left: 40%;
+}
+
+.admin-settings__slider-fill--60 {
+  width: 60%;
+}
+
+.admin-settings__slider-thumb--60 {
+  left: 60%;
+}
+
+.admin-settings__sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-dark-surface);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  z-index: 10;
+}
+
+.admin-settings__info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.admin-settings__info-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.admin-settings__fields-grid-full-width {
+  grid-column: 1 / -1;
+}
+
+
+
+
