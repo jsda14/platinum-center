@@ -29,6 +29,7 @@ import { createMember } from '../../../application/admin/createMember.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 
 // Import types
+import { adminRepository } from '../../../infrastructure/supabase/admin.repository';
 import type { MemberWithProfile } from '../../../infrastructure/supabase/admin.repository';
 import type { Plan } from '../../../domain/member/member.types';
 

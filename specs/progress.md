@@ -100,7 +100,7 @@
 - [x] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
 - [x] Vista receptionist (permisos limitados)
 - [x] Configuración del gym (nombre, logo, horarios)
-- [x] Vista de miembros sin chip asignado (card_no = null)
+- [x] Vista de miembros sin chip asignado (filtro en AdminMembers + Dashboard)
 - [x] Vista receptionist con permisos limitados
 - [x] Rutas DRY: /admin/* para super_admin, /reception/* para receptionist
 - [x] Mismo componente, diferente URL según rol
@@ -180,3 +180,15 @@
 - Flujo completo de creación de miembro: admin crea → email bienvenida → SetupProfile → portal
 - Supabase auth.admin.generate_link usado para links de activación
 - maskClosable={false} aplicado a todos los modales del admin
+- Precios grupales: UI configurada en /admin/settings pero NO integrada 
+  en flujo de pago — se integra en Fase 5 con membresías grupales
+- LockedFeature: botones duales de contacto (WhatsApp + Email) 
+  en sub-componentes Section y Page
+
+## Upsells implementados
+- LockedFeature componente creado y desplegado
+- Exportar reportes: LockedFeature.Button en Dashboard
+- Personalización de colores: LockedFeature.Section en Settings
+- Programar comunicados: LockedFeature.Section en Communications  
+- WhatsApp Business: LockedFeature.Badge en Settings
+- Contacto para upgrades: WhatsApp +573057532192 / jsda14@gmail.com
