@@ -278,10 +278,9 @@ export function AdminSettings() {
       });
     };
 
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
       // Revert URL to settings page immediately
       window.history.pushState(null, '', '/admin/settings');
-
       Modal.confirm({
         title: '¿Salir sin guardar?',
         content: 'Tienes cambios sin guardar. Si sales ahora los perderás.',
