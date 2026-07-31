@@ -32,7 +32,7 @@ import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { supabase } from '../../../infrastructure/supabase/client';
 import { getDashboardMetrics } from '../../../application/admin/getDashboardMetrics.usecase';
 import type { DashboardMetrics } from '../../../infrastructure/supabase/admin.repository';
-import { LockedFeature } from '@/ui/components/LockedFeature/LockedFeature';
+// import { LockedFeature } from '@/ui/components/LockedFeature/LockedFeature';
 
 import styles from './AdminDashboard.module.css';
 
@@ -195,11 +195,14 @@ export function AdminDashboard() {
       <main className={styles['admin-dashboard']} role="main">
         <header className={styles['admin-dashboard__header']}>
           <h1 className={styles['admin-dashboard__title']}>Dashboard de Control</h1>
-          <LockedFeature.Button
+          {/* <LockedFeature.Button
             title="Exportar reportes"
             description="Descarga reportes mensuales de ingresos, miembros activos y pagos en PDF o Excel."
             icon={<DownloadOutlined />}
-          />
+          /> */}
+          <Button icon={<DownloadOutlined />} disabled>
+            Exportar reportes
+          </Button>
         </header>
 
         {/* ROW 1: Summary Cards */}
