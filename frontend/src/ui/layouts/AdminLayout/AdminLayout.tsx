@@ -42,7 +42,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     navigate('/login');
   };
 
-  const isSuperAdmin = profile?.role === 'super_admin';
   const basePath = location.pathname.startsWith('/reception')
     ? '/reception'
     : '/admin';
