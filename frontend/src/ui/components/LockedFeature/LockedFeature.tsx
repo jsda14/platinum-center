@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
 import { Button as AntdButton, Tooltip } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
+import { LockOutlined, WhatsAppOutlined, MailOutlined } from '@ant-design/icons';
 import styles from './LockedFeature.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
-
-const DEFAULT_CONTACT_URL = 'mailto:gym.platinum.center@gmail.com?subject=Interes%20en%20Funcionalidad%20Premium';
 
 // Sub-Component 1: Button
 interface LockedFeatureButtonProps {
@@ -39,7 +37,6 @@ function LockedFeatureButton({ title, description, className, icon }: LockedFeat
 interface LockedFeatureSectionProps {
   title: string;
   description: string;
-  contactUrl?: string;
   comingSoon?: boolean;
   blur?: boolean;
   children: ReactNode;
@@ -48,7 +45,6 @@ interface LockedFeatureSectionProps {
 function LockedFeatureSection({
   title,
   description,
-  contactUrl,
   comingSoon = true,
   blur = true,
   children
@@ -75,15 +71,27 @@ function LockedFeatureSection({
           </span>
           <h3 className={styles['locked-feature-section__title']}>{title}</h3>
           <p className={styles['locked-feature-section__description']}>{description}</p>
-          <AntdButton
-            type="primary"
-            href={contactUrl || DEFAULT_CONTACT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles['locked-feature-section__btn']}
-          >
-            Quiero saber más
-          </AntdButton>
+          <div className={styles['locked-feature-section__contact-actions']}>
+            <AntdButton
+              type="primary"
+              icon={<WhatsAppOutlined />}
+              href="https://wa.me/573057532192"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles['locked-feature-section__contact-btn--whatsapp']}
+            >
+              WhatsApp
+            </AntdButton>
+            <AntdButton
+              icon={<MailOutlined />}
+              href="mailto:jsda14@gmail.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles['locked-feature-section__contact-btn--email']}
+            >
+              Email
+            </AntdButton>
+          </div>
         </div>
       </div>
     </div>
@@ -94,7 +102,6 @@ function LockedFeatureSection({
 interface LockedFeaturePageProps {
   title: string;
   description: string;
-  contactUrl?: string;
   comingSoon?: boolean;
   icon?: ReactNode;
 }
@@ -102,7 +109,6 @@ interface LockedFeaturePageProps {
 function LockedFeaturePage({
   title,
   description,
-  contactUrl,
   comingSoon = true,
   icon
 }: LockedFeaturePageProps) {
@@ -129,15 +135,27 @@ function LockedFeaturePage({
         </span>
         <h1 className={styles['locked-feature-page__title']}>{title}</h1>
         <p className={styles['locked-feature-page__description']}>{description}</p>
-        <AntdButton
-          type="primary"
-          href={contactUrl || DEFAULT_CONTACT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles['locked-feature-page__btn']}
-        >
-          Quiero saber más
-        </AntdButton>
+        <div className={styles['locked-feature-page__contact-actions']}>
+          <AntdButton
+            type="primary"
+            icon={<WhatsAppOutlined />}
+            href="https://wa.me/573057532192"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles['locked-feature-page__contact-btn--whatsapp']}
+          >
+            WhatsApp
+          </AntdButton>
+          <AntdButton
+            icon={<MailOutlined />}
+            href="mailto:jsda14@gmail.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles['locked-feature-page__contact-btn--email']}
+          >
+            Email
+          </AntdButton>
+        </div>
       </div>
     </div>
   );

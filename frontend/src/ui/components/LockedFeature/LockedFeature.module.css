@@ -102,18 +102,45 @@
   line-height: 1.5;
 }
 
-.locked-feature-section__btn {
+.locked-feature-section__contact-actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.locked-feature-section__contact-btn--whatsapp {
+  flex: 1;
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
   color: var(--color-text-primary) !important;
   border-radius: var(--radius-md) !important;
   font-weight: 600 !important;
-  width: 100%;
-  margin-top: var(--space-2);
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
-.locked-feature-section__btn:hover {
+.locked-feature-section__contact-btn--whatsapp:hover {
   background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.locked-feature-section__contact-btn--email {
+  flex: 1;
+  background-color: transparent !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-section__contact-btn--email:hover {
+  background-color: rgba(196, 30, 58, 0.1) !important;
+  color: var(--color-primary-hover) !important;
   border-color: var(--color-primary-hover) !important;
 }
 
@@ -186,19 +213,47 @@
   line-height: 1.6;
 }
 
-.locked-feature-page__btn {
+.locked-feature-page__contact-actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.locked-feature-page__contact-btn--whatsapp {
+  flex: 1;
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
   color: var(--color-text-primary) !important;
   border-radius: var(--radius-md) !important;
   font-weight: 600 !important;
-  padding: 0 var(--space-6) !important;
   height: 40px !important;
-  margin-top: var(--space-3);
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
-.locked-feature-page__btn:hover {
+.locked-feature-page__contact-btn--whatsapp:hover {
   background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.locked-feature-page__contact-btn--email {
+  flex: 1;
+  background-color: transparent !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-page__contact-btn--email:hover {
+  background-color: rgba(196, 30, 58, 0.1) !important;
+  color: var(--color-primary-hover) !important;
   border-color: var(--color-primary-hover) !important;
 }
 
