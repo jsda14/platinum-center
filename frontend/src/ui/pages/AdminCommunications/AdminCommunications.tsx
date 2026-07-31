@@ -11,14 +11,13 @@ import {
   Modal,
   Tag,
   message,
-  Space,
-  Statistic
+  DatePicker,
+  TimePicker
 } from 'antd';
 import {
   SendOutlined,
   EyeOutlined,
   HistoryOutlined,
-  MailOutlined,
   ReloadOutlined,
   UsergroupAddOutlined
 } from '@ant-design/icons';
@@ -29,6 +28,7 @@ import {
   getCommunicationsHistory,
   sendBulkCommunication
 } from '../../../application/admin/manageCommunications.usecase';
+import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
 import styles from './AdminCommunications.module.css';
 
 const RECIPIENT_LABELS: Record<string, string> = {
@@ -235,6 +235,21 @@ export function AdminCommunications() {
                   ]}
                 />
               </Form.Item>
+
+              <LockedFeature.Section
+                title="Programar comunicado"
+                description="Programa tus comunicados para que se envíen automáticamente en la fecha y hora que elijas."
+                blur={false}
+              >
+                <div className={styles['admin-comm__schedule-container']}>
+                  <Form.Item label="Fecha de envío" className={styles['admin-comm__schedule-item']}>
+                    <DatePicker disabled placeholder="Seleccionar fecha" className={styles['admin-comm__full-width']} />
+                  </Form.Item>
+                  <Form.Item label="Hora de envío" className={styles['admin-comm__schedule-item']}>
+                    <TimePicker disabled placeholder="Seleccionar hora" format="HH:mm" className={styles['admin-comm__full-width']} />
+                  </Form.Item>
+                </div>
+              </LockedFeature.Section>
 
               <Form.Item
                 name="body"

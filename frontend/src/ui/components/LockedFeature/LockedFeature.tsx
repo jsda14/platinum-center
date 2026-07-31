@@ -11,9 +11,10 @@ interface LockedFeatureButtonProps {
   title: string;
   description: string;
   className?: string;
+  icon?: ReactNode;
 }
 
-function LockedFeatureButton({ title, description, className }: LockedFeatureButtonProps) {
+function LockedFeatureButton({ title, description, className, icon }: LockedFeatureButtonProps) {
   return (
     <Tooltip
       title={
@@ -25,7 +26,7 @@ function LockedFeatureButton({ title, description, className }: LockedFeatureBut
     >
       <AntdButton
         disabled
-        icon={<LockOutlined />}
+        icon={icon !== undefined ? icon : <LockOutlined />}
         className={`${styles['locked-feature-button']} ${className || ''}`}
       >
         {title}

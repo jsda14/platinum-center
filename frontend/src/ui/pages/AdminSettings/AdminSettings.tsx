@@ -11,7 +11,6 @@ import {
   Table,
   InputNumber,
   Switch,
-  Card,
   Upload,
   message,
   Modal,
@@ -46,6 +45,7 @@ import {
 } from '../../../application/admin/manageSettings.usecase';
 import { getPlans } from '../../../application/admin/managePlans.usecase';
 import type { GymConfig, PlanGroupPricing, Plan } from '../../../domain/member/member.types';
+import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
 
 import styles from './AdminSettings.module.css';
 
@@ -69,9 +69,9 @@ const DAYS_OPTIONS = [
 ];
 
 export function AdminSettings() {
-  const [gymConfig, setGymConfig] = useState<GymConfig | null>(null);
+  const [_gymConfig, setGymConfig] = useState<GymConfig | null>(null);
   const [groupPricing, setGroupPricing] = useState<PlanGroupPricing[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [_plans, setPlans] = useState<Plan[]>([]);
   const [monthlyPlan, setMonthlyPlan] = useState<Plan | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -625,6 +625,16 @@ export function AdminSettings() {
             </Form.Item>
           </div>
 
+          <div className={styles['admin-settings__whatsapp-row']}>
+            <span className={styles['admin-settings__whatsapp-label']}>
+              WhatsApp Business 
+              <LockedFeature.Badge />
+            </span>
+            <p className={styles['admin-settings__whatsapp-description']}>
+              Próximamente podrás configurar tu número de WhatsApp Business para enviar notificaciones automáticas de vencimiento, confirmaciones de pago y comunicados a tus miembros.
+            </p>
+          </div>
+
           <footer className={styles['admin-settings__form-footer']}>
             <Button
               type="primary"
@@ -690,16 +700,51 @@ export function AdminSettings() {
       ),
       children: (
         <div className={styles['admin-settings__appearance-section']}>
-          <Card className={styles['admin-settings__placeholder-card']}>
-            <div className={styles['admin-settings__placeholder-content']}>
-              <BgColorsOutlined className={styles['admin-settings__placeholder-icon']} />
-              <h3>Personalización de Colores</h3>
-              <p>
-                Próximamente — Podrás cambiar los colores principales, el fondo del portal del
-                miembro, y habilitar un tema personalizado para alinearlo con tu marca corporativa.
-              </p>
+          <LockedFeature.Section
+            title="Personalización de Colores y Tema"
+            description="Personaliza los colores del portal, el logo en emails y el tema visual para alinearlo con tu marca corporativa."
+            blur={true}
+          >
+            <div className={styles['appearance-preview']}>
+              <div className={styles['appearance-preview__section']}>
+                <h4 className={styles['appearance-preview__title']}>Paleta de Colores</h4>
+                <div className={styles['appearance-preview__swatches']}>
+                  <div className={styles['appearance-preview__swatch-item']}>
+                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#C41E3A' }} />
+                    <span className={styles['appearance-preview__swatch-label']}>Color Primario</span>
+                  </div>
+                  <div className={styles['appearance-preview__swatch-item']}>
+                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#D4A017' }} />
+                    <span className={styles['appearance-preview__swatch-label']}>Color Accent</span>
+                  </div>
+                  <div className={styles['appearance-preview__swatch-item']}>
+                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#242424' }} />
+                    <span className={styles['appearance-preview__swatch-label']}>Color Fondo</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={styles['appearance-preview__section']}>
+                <h4 className={styles['appearance-preview__title']}>Estilos de Componentes</h4>
+                <div className={styles['appearance-preview__sliders']}>
+                  <div className={styles['appearance-preview__slider-item']}>
+                    <span className={styles['appearance-preview__slider-label']}>Esquinas redondeadas (Border Radius)</span>
+                    <div className={styles['appearance-preview__slider-track']}>
+                      <div className={styles['appearance-preview__slider-fill']} style={{ width: '40%' }} />
+                      <div className={styles['appearance-preview__slider-thumb']} style={{ left: '40%' }} />
+                    </div>
+                  </div>
+                  <div className={styles['appearance-preview__slider-item']}>
+                    <span className={styles['appearance-preview__slider-label']}>Espaciado de elementos (Padding)</span>
+                    <div className={styles['appearance-preview__slider-track']}>
+                      <div className={styles['appearance-preview__slider-fill']} style={{ width: '60%' }} />
+                      <div className={styles['appearance-preview__slider-thumb']} style={{ left: '60%' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </Card>
+          </LockedFeature.Section>
         </div>
       )
     }
