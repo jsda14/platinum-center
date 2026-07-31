@@ -53,11 +53,16 @@ export interface DashboardMetrics {
 }
 
 export const adminRepository = {
-  async getMembers(): Promise<MemberWithProfile[]> {
-    const { data, error } = await supabase
+  async getMembers(withoutChip?: boolean): Promise<MemberWithProfile[]> {
+    let query = supabase
       .from('members')
-      .select('*, profiles:profile_id(full_name, email, phone)')
-      .order('created_at', { ascending: false });
+      .select('*, profiles:profile_id(full_name, email, phone)');
+
+    if (withoutChip) {
+      query = query.is('card_no', null).eq('status', 'active');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       throw new Error(error.message);

@@ -65,6 +65,10 @@ export function AdminMembers() {
   const [searchText, setSearchText] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
+  const membersWithoutChipCount = members.filter(
+    (item) => !item.card_no && item.status === 'active'
+  ).length;
+
   // Modals states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 
@@ -146,7 +150,12 @@ export function AdminMembers() {
       fullName.toLowerCase().includes(searchText.toLowerCase()) ||
       email.toLowerCase().includes(searchText.toLowerCase());
 
-    const matchesStatus = statusFilter ? item.status === statusFilter : true;
+    let matchesStatus = true;
+    if (statusFilter === 'no_chip') {
+      matchesStatus = !item.card_no && item.status === 'active';
+    } else if (statusFilter) {
+      matchesStatus = item.status === statusFilter;
+    }
     return matchesSearch && matchesStatus;
   });
 
@@ -156,7 +165,7 @@ export function AdminMembers() {
       title: 'Nombre',
       dataIndex: ['profiles', 'full_name'],
       key: 'fullName',
-      render: (text: string) => <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{text || 'Sin Nombre'}</span>,
+      render: (text: string) => <span className={styles['admin-members__name-text']}>{text || 'Sin Nombre'}</span>,
     },
     {
       title: 'Email',
@@ -167,7 +176,7 @@ export function AdminMembers() {
       title: 'Plan',
       dataIndex: 'plan',
       key: 'plan',
-      render: (val: string) => PLAN_LABELS[val] || val || <span style={{ color: 'var(--color-text-secondary)' }}>Sin Plan</span>,
+      render: (val: string) => PLAN_LABELS[val] || val || <span className={styles['admin-members__secondary-text']}>Sin Plan</span>,
     },
     {
       title: 'Estado',
@@ -191,7 +200,7 @@ export function AdminMembers() {
       title: 'Vencimiento',
       dataIndex: 'end_date',
       key: 'endDate',
-      render: (date: string) => date || <span style={{ color: 'var(--color-text-secondary)' }}>Sin asignar</span>,
+      render: (date: string) => date || <span className={styles['admin-members__secondary-text']}>Sin asignar</span>,
     },
     {
       title: 'Chip Asignado',
@@ -200,7 +209,41 @@ export function AdminMembers() {
       render: (card: string) => card ? (
         <Tag color="blue">{card}</Tag>
       ) : (
-        <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>Sin chip</span>
+        <span className={styles['admin-members__no-chip-text']}>Sin chip</span>
+      ),
+    },
+    {
+      title: 'Acciones',
+      key: 'actions',
+      render: (_: unknown, record: MemberWithProfile) => (
+        <div onClick={(e) => e.stopPropagation()} className={styles['admin-members__actions-cell']}>
+          {isSuperAdmin && record.status !== 'suspended' && (
+            <Button
+              danger
+              size="small"
+              onClick={() => {
+                Modal.confirm({
+                  title: '¿Suspender miembro?',
+                  content: `¿Estás seguro de suspender la membresía de ${record.profiles?.full_name || 'este miembro'}?`,
+                  okText: 'Suspender',
+                  cancelText: 'Cancelar',
+                  okButtonProps: { danger: true },
+                  onOk: async () => {
+                    try {
+                      await adminRepository.suspendMember(record.id);
+                      message.success('Miembro suspendido con éxito');
+                      await loadData();
+                    } catch (err: any) {
+                      message.error(err.message || 'Error al suspender miembro');
+                    }
+                  }
+                });
+              }}
+            >
+              Suspender
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
@@ -245,23 +288,31 @@ export function AdminMembers() {
             className={styles['admin-members__search-input']}
             allowClear
           />
-          <Select
-            placeholder="Filtrar por estado"
-            value={statusFilter}
-            onChange={(val) => setStatusFilter(val)}
-            className={styles['admin-members__status-select']}
-            allowClear
-          >
-            <Select.Option value="">Todos los estados</Select.Option>
-            <Select.Option value="active">Activos</Select.Option>
-            <Select.Option value="expired">Vencidos</Select.Option>
-            <Select.Option value="suspended">Suspendidos</Select.Option>
-          </Select>
+          <div className={styles['admin-members__status-filter-container']}>
+            <Select
+              placeholder="Filtrar por estado"
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val)}
+              className={styles['admin-members__status-select']}
+              allowClear
+            >
+              <Select.Option value="">Todos los estados</Select.Option>
+              <Select.Option value="active">Activos</Select.Option>
+              <Select.Option value="expired">Vencidos</Select.Option>
+              <Select.Option value="suspended">Suspendidos</Select.Option>
+              <Select.Option value="no_chip">Sin chip asignado</Select.Option>
+            </Select>
+            {membersWithoutChipCount > 0 && (
+              <span className={styles['admin-members__chip-alert-badge']}>
+                {membersWithoutChipCount} sin chip
+              </span>
+            )}
+          </div>
           <Button
             type="default"
             icon={<ReloadOutlined />}
             onClick={loadData}
-            style={{ height: '40px', borderRadius: 'var(--radius-md)' }}
+            className={styles['admin-members__btn-reload']}
             aria-label="Actualizar datos"
           >
             Recargar
@@ -288,7 +339,7 @@ export function AdminMembers() {
           <div className={styles['admin-members__empty-container']}>
             <Empty
               description={
-                <span style={{ color: 'var(--color-text-secondary)' }}>
+                <span className={styles['admin-members__secondary-text']}>
                   No se encontraron miembros con los filtros aplicados.
                 </span>
               }
@@ -300,7 +351,7 @@ export function AdminMembers() {
                   setSearchText('');
                   setStatusFilter('');
                 }}
-                style={{ marginTop: 'var(--space-3)' }}
+                className={styles['admin-members__empty-action-btn']}
               >
                 Limpiar filtros
               </Button>
@@ -309,8 +360,7 @@ export function AdminMembers() {
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => setIsCreateModalOpen(true)}
-                className={styles['admin-members__btn-create']}
-                style={{ marginTop: 'var(--space-3)' }}
+                className={`${styles['admin-members__btn-create']} ${styles['admin-members__empty-action-btn']}`}
               >
                 Registrar primer miembro
               </Button>
@@ -331,7 +381,7 @@ export function AdminMembers() {
                 onClick: () => {
                   navigate(`/admin/members/${record.id}`);
                 },
-                style: { cursor: 'pointer' }
+                className: styles['admin-members__table-row']
               })}
             />
           </div>
@@ -423,7 +473,7 @@ export function AdminMembers() {
               <InputNumber
                 formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                 parser={value => value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0}
-                style={{ width: '100%' }}
+                className={styles['admin-members__input-number-full']}
                 placeholder="Monto pagado"
               />
             </Form.Item>

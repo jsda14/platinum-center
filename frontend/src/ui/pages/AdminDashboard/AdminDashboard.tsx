@@ -361,6 +361,7 @@ export function AdminDashboard() {
                     <Button
                       type="default"
                       className={styles['dashboard-list__action-btn']}
+                      // Navigate directly to the member detail to assign the chip
                       onClick={() => navigate(`/admin/members/${member.id}`)}
                       size="small"
                     >

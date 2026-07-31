@@ -242,3 +242,62 @@
   background-color: var(--color-border) !important;
   color: var(--color-text-primary) !important;
 }
+
+.admin-members__status-filter-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .admin-members__status-filter-container {
+    width: auto;
+  }
+}
+
+.admin-members__chip-alert-badge {
+  background-color: #F59E0B;
+  color: #1A1A1A;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.admin-members__name-text {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.admin-members__secondary-text {
+  color: var(--color-text-secondary);
+}
+
+.admin-members__no-chip-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.admin-members__btn-reload {
+  height: 40px !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-members__empty-action-btn {
+  margin-top: var(--space-3) !important;
+}
+
+.admin-members__input-number-full {
+  width: 100% !important;
+}
+
+.admin-members__actions-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-members__table-row {
+  cursor: pointer;
+}
