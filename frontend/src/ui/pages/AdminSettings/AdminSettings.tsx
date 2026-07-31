@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useContext } from 'react';
 import {
   ConfigProvider,
   theme,
@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   Button,
-  Checkbox,
   TimePicker,
   Table,
   InputNumber,
@@ -32,7 +31,11 @@ import {
   BgColorsOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { UploadFile } from 'antd/es/upload/interface';
+import { UNSAFE_NavigationContext as NavigationContext } from 'react-router-dom';
+import type { UploadProps } from 'antd';
+import type { UploadFile, RcFile } from 'antd/es/upload/interface';
+
+type UploadRequestOption = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { supabase } from '../../../infrastructure/supabase/client';
@@ -58,21 +61,75 @@ const formatCOP = (amount: number) => {
   }).format(amount);
 };
 
-const DAYS_OPTIONS = [
-  { label: 'Lun', value: 'monday' },
-  { label: 'Mar', value: 'tuesday' },
-  { label: 'Mié', value: 'wednesday' },
-  { label: 'Jue', value: 'thursday' },
-  { label: 'Vie', value: 'friday' },
-  { label: 'Sáb', value: 'saturday' },
-  { label: 'Dom', value: 'sunday' }
+interface DaySchedule {
+  open: string;
+  close: string;
+  active: boolean;
+}
+
+interface GymSchedule {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+const DEFAULT_SCHEDULE: GymSchedule = {
+  monday: { open: '05:00', close: '22:00', active: true },
+  tuesday: { open: '05:00', close: '22:00', active: true },
+  wednesday: { open: '05:00', close: '22:00', active: true },
+  thursday: { open: '05:00', close: '22:00', active: true },
+  friday: { open: '05:00', close: '22:00', active: true },
+  saturday: { open: '07:00', close: '20:00', active: true },
+  sunday: { open: '08:00', close: '14:00', active: true }
+};
+
+const DAYS_ORDER: (keyof GymSchedule)[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday'
 ];
+
+const DAY_LABELS: Record<keyof GymSchedule, string> = {
+  monday: 'Lunes',
+  tuesday: 'Martes',
+  wednesday: 'Miércoles',
+  thursday: 'Jueves',
+  friday: 'Viernes',
+  saturday: 'Sábado',
+  sunday: 'Domingo'
+};
+
+const parseTime = (timeStr: string) => {
+  if (!timeStr) return null;
+  return dayjs(timeStr, timeStr.split(':').length === 3 ? 'HH:mm:ss' : 'HH:mm');
+};
 
 export function AdminSettings() {
   const [_gymConfig, setGymConfig] = useState<GymConfig | null>(null);
   const [groupPricing, setGroupPricing] = useState<PlanGroupPricing[]>([]);
   const [_plans, setPlans] = useState<Plan[]>([]);
+  const [schedule, setSchedule] = useState<GymSchedule>(DEFAULT_SCHEDULE);
   const [monthlyPlan, setMonthlyPlan] = useState<Plan | null>(null);
+
+  const [isEditingInfo, setIsEditingInfo] = useState<boolean>(false);
+  const [initialValues, setInitialValues] = useState<{
+    formValues: {
+      name: string;
+      address?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      website?: string | null;
+    };
+    schedule: GymSchedule;
+  } | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -113,20 +170,25 @@ export function AdminSettings() {
       if (configData) {
         setLogoUrl(configData.logo_url || null);
         
-        // Format opening and closing times for TimePicker
-        const openTime = configData.opening_time ? dayjs(configData.opening_time, 'HH:mm:ss') : null;
-        const closeTime = configData.closing_time ? dayjs(configData.closing_time, 'HH:mm:ss') : null;
+        const configWithSchedule = configData as GymConfig & { schedule?: GymSchedule };
+        const dbSchedule = configWithSchedule.schedule;
+        const activeSchedule = dbSchedule || DEFAULT_SCHEDULE;
+        setSchedule(activeSchedule);
 
-        form.setFieldsValue({
+        const formVals = {
           name: configData.name,
           address: configData.address,
           phone: configData.phone,
           email: configData.email,
-          website: configData.website,
-          opening_days: configData.opening_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-          opening_time: openTime,
-          closing_time: closeTime
+          website: configData.website
+        };
+        form.setFieldsValue(formVals);
+
+        setInitialValues({
+          formValues: formVals,
+          schedule: activeSchedule
         });
+        form.resetFields(Object.keys(formVals));
 
         if (configData.logo_url) {
           setFileList([
@@ -151,9 +213,53 @@ export function AdminSettings() {
     loadData();
   }, [loadData]);
 
+  const hasUnsavedChanges = isEditingInfo && (
+    form.isFieldsTouched() || 
+    JSON.stringify(schedule) !== JSON.stringify(initialValues?.schedule)
+  );
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  const { navigator } = useContext(NavigationContext);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const unblock = (navigator as any).block((tx: any) => {
+      Modal.confirm({
+        title: '¿Salir sin guardar?',
+        content: 'Tienes cambios sin guardar. Si sales ahora los perderás.',
+        okText: 'Salir sin guardar',
+        cancelText: 'Volver y guardar',
+        okButtonProps: { danger: true },
+        onOk: () => {
+          unblock();
+          tx.retry();
+        },
+        onCancel: () => {
+          // Do nothing
+        }
+      });
+    });
+
+    return unblock;
+  }, [navigator, hasUnsavedChanges]);
+
   // Handle logo upload to Supabase Storage
-  const handleLogoUpload = async (options: any) => {
-    const { file, onSuccess, onError } = options;
+  const handleLogoUpload = async (options: UploadRequestOption) => {
+    const file = options.file as RcFile;
+    const { onSuccess, onError } = options;
     setIsSubmitting(true);
     try {
       const fileExt = file.name.split('.').pop();
@@ -183,11 +289,15 @@ export function AdminSettings() {
           url: publicUrl
         }
       ]);
-      onSuccess(null, file);
+      if (onSuccess) {
+        onSuccess(null, file as any);
+      }
       message.success('Nuevo logo cargado temporalmente. Guarde la configuración para confirmar.');
     } catch (err: any) {
       console.error(err);
-      onError(err);
+      if (onError) {
+        onError(err);
+      }
       message.error(`Error al subir logo: ${err.message || err}`);
     } finally {
       setIsSubmitting(false);
@@ -200,20 +310,19 @@ export function AdminSettings() {
     try {
       const values = await form.validateFields();
       
-      const updatedConfig: Partial<GymConfig> = {
+      const updatedConfig = {
         name: values.name,
         address: values.address,
         phone: values.phone,
         email: values.email,
         website: values.website,
-        opening_days: values.opening_days,
         logo_url: logoUrl,
-        opening_time: values.opening_time ? values.opening_time.format('HH:mm:ss') : null,
-        closing_time: values.closing_time ? values.closing_time.format('HH:mm:ss') : null
+        schedule: schedule
       };
 
-      await updateGymConfig(updatedConfig);
+      await updateGymConfig(updatedConfig as any);
       message.success('Configuración del gimnasio guardada correctamente');
+      setIsEditingInfo(false);
       await loadData();
     } catch (err: any) {
       console.error(err);
@@ -369,7 +478,7 @@ export function AdminSettings() {
               className={styles['admin-settings__table-form-item']}
               rules={[{ required: true, message: 'Requerido' }]}
             >
-              <InputNumber min={1} className={styles['admin-settings__full-width']} />
+              <InputNumber min={1} precision={0} className={styles['admin-settings__full-width']} />
             </Form.Item>
           );
         }
@@ -388,7 +497,7 @@ export function AdminSettings() {
               name="max_members"
               className={styles['admin-settings__table-form-item']}
             >
-              <InputNumber min={1} placeholder="Ilimitado" className={styles['admin-settings__full-width']} />
+              <InputNumber min={1} precision={0} placeholder="Ilimitado" className={styles['admin-settings__full-width']} />
             </Form.Item>
           );
         }
@@ -409,7 +518,8 @@ export function AdminSettings() {
               rules={[{ required: true, message: 'Requerido' }]}
             >
               <InputNumber
-                min={0 as number}
+                min={1000 as number}
+                precision={0}
                 className={styles['admin-settings__full-width']}
                 formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                 parser={value => value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0}
@@ -499,6 +609,106 @@ export function AdminSettings() {
     }
   ];
 
+  const handleActiveChange = (day: keyof GymSchedule, checked: boolean) => {
+    setSchedule(prev => ({
+      ...prev,
+      [day]: { ...prev[day], active: checked }
+    }));
+  };
+
+  const handleOpenTimeChange = (day: keyof GymSchedule, time: dayjs.Dayjs | null) => {
+    if (time) {
+      setSchedule(prev => ({
+        ...prev,
+        [day]: { ...prev[day], open: time.format('HH:mm') }
+      }));
+    }
+  };
+
+  const handleCloseTimeChange = (day: keyof GymSchedule, time: dayjs.Dayjs | null) => {
+    if (time) {
+      setSchedule(prev => ({
+        ...prev,
+        [day]: { ...prev[day], close: time.format('HH:mm') }
+      }));
+    }
+  };
+
+  interface ScheduleRow {
+    key: keyof GymSchedule;
+    dayName: string;
+    active: boolean;
+    open: string;
+    close: string;
+  }
+
+  const scheduleDataSource: ScheduleRow[] = DAYS_ORDER.map(dayKey => ({
+    key: dayKey,
+    dayName: DAY_LABELS[dayKey],
+    active: schedule[dayKey]?.active ?? false,
+    open: schedule[dayKey]?.open ?? '00:00',
+    close: schedule[dayKey]?.close ?? '00:00'
+  }));
+
+  const scheduleColumns = [
+    {
+      title: 'Día',
+      dataIndex: 'dayName',
+      key: 'dayName',
+      width: '25%',
+      render: (text: string) => <strong style={{ color: 'var(--color-text-primary)' }}>{text}</strong>
+    },
+    {
+      title: 'Abierto',
+      dataIndex: 'active',
+      key: 'active',
+      width: '20%',
+      render: (active: boolean, record: ScheduleRow) => (
+        <Switch
+          checked={active}
+          onChange={(checked) => handleActiveChange(record.key, checked)}
+          checkedChildren="Sí"
+          unCheckedChildren="No"
+          disabled={!isEditingInfo}
+        />
+      )
+    },
+    {
+      title: 'Hora apertura',
+      dataIndex: 'open',
+      key: 'open',
+      width: '27.5%',
+      render: (open: string, record: ScheduleRow) => (
+        <TimePicker
+          value={open ? parseTime(open) : null}
+          format="HH:mm"
+          onChange={(time) => handleOpenTimeChange(record.key, time)}
+          disabled={!isEditingInfo || !record.active}
+          allowClear={false}
+          className={styles['admin-settings__full-width']}
+          placeholder="Apertura"
+        />
+      )
+    },
+    {
+      title: 'Hora cierre',
+      dataIndex: 'close',
+      key: 'close',
+      width: '27.5%',
+      render: (close: string, record: ScheduleRow) => (
+        <TimePicker
+          value={close ? parseTime(close) : null}
+          format="HH:mm"
+          onChange={(time) => handleCloseTimeChange(record.key, time)}
+          disabled={!isEditingInfo || !record.active}
+          allowClear={false}
+          className={styles['admin-settings__full-width']}
+          placeholder="Cierre"
+        />
+      )
+    }
+  ];
+
   const tabItems = [
     {
       key: 'info',
@@ -515,6 +725,28 @@ export function AdminSettings() {
           onFinish={handleSaveConfig}
           className={styles['admin-settings__form']}
         >
+          <header className={styles['admin-settings__info-header']}>
+            <h3 className={styles['admin-settings__info-title']}>
+              Información General del Gimnasio
+            </h3>
+            <Button
+              type="text"
+              icon={isEditingInfo ? <CloseOutlined /> : <EditOutlined />}
+              onClick={() => {
+                if (isEditingInfo) {
+                  if (initialValues) {
+                    form.setFieldsValue(initialValues.formValues);
+                    setSchedule(initialValues.schedule);
+                    form.resetFields();
+                  }
+                }
+                setIsEditingInfo(!isEditingInfo);
+              }}
+            >
+              {isEditingInfo ? 'Cancelar' : 'Editar'}
+            </Button>
+          </header>
+
           <div className={styles['admin-settings__logo-section']}>
             <div className={styles['admin-settings__logo-card']}>
               <h3 className={styles['admin-settings__logo-title']}>Logo del Gimnasio</h3>
@@ -535,6 +767,7 @@ export function AdminSettings() {
                 customRequest={handleLogoUpload}
                 fileList={fileList}
                 showUploadList={false}
+                disabled={!isEditingInfo}
                 beforeUpload={(file) => {
                   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
                   if (!isJpgOrPng) {
@@ -547,7 +780,7 @@ export function AdminSettings() {
                   return isJpgOrPng && isLt2M;
                 }}
               >
-                <Button icon={<UploadOutlined />} className={styles['admin-settings__logo-btn']}>
+                <Button icon={<UploadOutlined />} className={styles['admin-settings__logo-btn']} disabled={!isEditingInfo}>
                   Subir nuevo logo
                 </Button>
               </Upload>
@@ -559,22 +792,32 @@ export function AdminSettings() {
                 label="Nombre del gimnasio"
                 rules={[{ required: true, message: 'El nombre es obligatorio' }]}
               >
-                <Input placeholder="Ej. Platinum Center" />
+                <Input placeholder="Ej. Platinum Center" disabled={!isEditingInfo} />
               </Form.Item>
 
               <Form.Item
                 name="website"
                 label="Sitio Web"
+                rules={[{ type: 'url', message: 'Ingresa un sitio web válido (ej: https://example.com)' }]}
               >
-                <Input prefix={<GlobalOutlined />} placeholder="Ej. https://platinumcenter.com" />
+                <Input prefix={<GlobalOutlined />} placeholder="Ej. https://platinumcenter.com" disabled={!isEditingInfo} />
               </Form.Item>
 
               <Form.Item
                 name="phone"
                 label="Teléfono de contacto"
-                rules={[{ required: true, message: 'El teléfono es obligatorio' }]}
+                rules={[
+                  { required: true, message: 'El teléfono es obligatorio' },
+                  { pattern: /^[0-9]{10}$/, message: 'El teléfono debe tener exactamente 10 dígitos' }
+                ]}
               >
-                <Input placeholder="Ej. +57 300 123 4567" />
+                <Input
+                  type="tel"
+                  maxLength={10}
+                  onKeyPress={(e) => !/[0-9]/.test(e.key) && e.preventDefault()}
+                  placeholder="Ej. 3001234567"
+                  disabled={!isEditingInfo}
+                />
               </Form.Item>
 
               <Form.Item
@@ -585,44 +828,34 @@ export function AdminSettings() {
                   { type: 'email', message: 'Ingresa un correo electrónico válido' }
                 ]}
               >
-                <Input placeholder="Ej. info@platinumcenter.com" />
+                <Input placeholder="Ej. info@platinumcenter.com" disabled={!isEditingInfo} />
+              </Form.Item>
+
+              <Form.Item
+                name="address"
+                label="Dirección"
+                rules={[{ required: true, message: 'La dirección es obligatoria' }]}
+                className={styles['admin-settings__fields-grid-full-width']}
+              >
+                <Input.TextArea rows={2} placeholder="Dirección completa de la sede" disabled={!isEditingInfo} />
               </Form.Item>
             </div>
           </div>
 
-          <Form.Item
-            name="address"
-            label="Dirección"
-            rules={[{ required: true, message: 'La dirección es obligatoria' }]}
-          >
-            <Input.TextArea rows={2} placeholder="Dirección completa de la sede" />
-          </Form.Item>
-
-          <div className={styles['admin-settings__hours-section']}>
-            <Form.Item
-              name="opening_time"
-              label="Hora de apertura"
-              rules={[{ required: true, message: 'Requerido' }]}
-            >
-              <TimePicker format="HH:mm" className={styles['admin-settings__full-width']} placeholder="Apertura" />
-            </Form.Item>
-
-            <Form.Item
-              name="closing_time"
-              label="Hora de cierre"
-              rules={[{ required: true, message: 'Requerido' }]}
-            >
-              <TimePicker format="HH:mm" className={styles['admin-settings__full-width']} placeholder="Cierre" />
-            </Form.Item>
-
-            <Form.Item
-              name="opening_days"
-              label="Días de operación"
-              rules={[{ required: true, message: 'Selecciona al menos un día' }]}
-              className={styles['admin-settings__flex-2']}
-            >
-              <Checkbox.Group options={DAYS_OPTIONS} className={styles['admin-settings__days-checkboxes']} />
-            </Form.Item>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 className={styles['admin-settings__schedule-title']}>
+              Horario de Operación
+            </h3>
+            <div className={styles['admin-settings__table-wrapper']}>
+              <Table
+                dataSource={scheduleDataSource}
+                columns={scheduleColumns}
+                pagination={false}
+                rowKey="key"
+                size="middle"
+                bordered
+              />
+            </div>
           </div>
 
           <div className={styles['admin-settings__whatsapp-row']}>
@@ -635,16 +868,19 @@ export function AdminSettings() {
             </p>
           </div>
 
-          <footer className={styles['admin-settings__form-footer']}>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              htmlType="submit"
-              className={styles['admin-settings__save-btn']}
-            >
-              Guardar Configuración
-            </Button>
-          </footer>
+          {isEditingInfo && (
+            <footer className={styles['admin-settings__sticky-footer']}>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                htmlType="submit"
+                className={styles['admin-settings__save-btn']}
+                loading={isSubmitting}
+              >
+                Guardar Configuración
+              </Button>
+            </footer>
+          )}
         </Form>
       )
     },
@@ -710,15 +946,15 @@ export function AdminSettings() {
                 <h4 className={styles['appearance-preview__title']}>Paleta de Colores</h4>
                 <div className={styles['appearance-preview__swatches']}>
                   <div className={styles['appearance-preview__swatch-item']}>
-                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#C41E3A' }} />
+                    <div className={`${styles['appearance-preview__swatch']} ${styles['admin-settings__swatch--primary']}`} />
                     <span className={styles['appearance-preview__swatch-label']}>Color Primario</span>
                   </div>
                   <div className={styles['appearance-preview__swatch-item']}>
-                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#D4A017' }} />
+                    <div className={`${styles['appearance-preview__swatch']} ${styles['admin-settings__swatch--accent']}`} />
                     <span className={styles['appearance-preview__swatch-label']}>Color Accent</span>
                   </div>
                   <div className={styles['appearance-preview__swatch-item']}>
-                    <div className={styles['appearance-preview__swatch']} style={{ backgroundColor: '#242424' }} />
+                    <div className={`${styles['appearance-preview__swatch']} ${styles['admin-settings__swatch--bg']}`} />
                     <span className={styles['appearance-preview__swatch-label']}>Color Fondo</span>
                   </div>
                 </div>
@@ -730,15 +966,15 @@ export function AdminSettings() {
                   <div className={styles['appearance-preview__slider-item']}>
                     <span className={styles['appearance-preview__slider-label']}>Esquinas redondeadas (Border Radius)</span>
                     <div className={styles['appearance-preview__slider-track']}>
-                      <div className={styles['appearance-preview__slider-fill']} style={{ width: '40%' }} />
-                      <div className={styles['appearance-preview__slider-thumb']} style={{ left: '40%' }} />
+                      <div className={`${styles['appearance-preview__slider-fill']} ${styles['admin-settings__slider-fill--40']}`} />
+                      <div className={`${styles['appearance-preview__slider-thumb']} ${styles['admin-settings__slider-thumb--40']}`} />
                     </div>
                   </div>
                   <div className={styles['appearance-preview__slider-item']}>
                     <span className={styles['appearance-preview__slider-label']}>Espaciado de elementos (Padding)</span>
                     <div className={styles['appearance-preview__slider-track']}>
-                      <div className={styles['appearance-preview__slider-fill']} style={{ width: '60%' }} />
-                      <div className={styles['appearance-preview__slider-thumb']} style={{ left: '60%' }} />
+                      <div className={`${styles['appearance-preview__slider-fill']} ${styles['admin-settings__slider-fill--60']}`} />
+                      <div className={`${styles['appearance-preview__slider-thumb']} ${styles['admin-settings__slider-thumb--60']}`} />
                     </div>
                   </div>
                 </div>
@@ -799,14 +1035,14 @@ export function AdminSettings() {
               ]}
               initialValue={2}
             >
-              <InputNumber min={1} className={styles['admin-settings__full-width']} placeholder="Ej. 3" />
+              <InputNumber min={1} precision={0} className={styles['admin-settings__full-width']} placeholder="Ej. 3" />
             </Form.Item>
 
             <Form.Item
               name="max_members"
               label="Máximo de personas (opcional)"
             >
-              <InputNumber min={1} className={styles['admin-settings__full-width']} placeholder="Dejar en blanco para ilimitado" />
+              <InputNumber min={1} precision={0} className={styles['admin-settings__full-width']} placeholder="Dejar en blanco para ilimitado" />
             </Form.Item>
 
             <Form.Item
@@ -814,11 +1050,12 @@ export function AdminSettings() {
               label="Precio por persona ($ COP)"
               rules={[
                 { required: true, message: 'El precio es requerido' },
-                { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' }
+                { type: 'number', min: 1000, message: 'Debe ser al menos 1,000' }
               ]}
             >
               <InputNumber
-                min={0 as number}
+                min={1000 as number}
+                precision={0}
                 className={styles['admin-settings__full-width']}
                 placeholder="Precio unitario"
                 formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
