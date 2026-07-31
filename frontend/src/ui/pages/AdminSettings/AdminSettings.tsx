@@ -236,7 +236,11 @@ export function AdminSettings() {
   useEffect(() => {
     if (!hasUnsavedChanges) return;
 
-    const unblock = (navigator as any).block((tx: any) => {
+    const nav = navigator as any;
+    const originalPush = nav.push;
+    const originalReplace = nav.replace;
+
+    nav.push = (to: any, state: any) => {
       Modal.confirm({
         title: '¿Salir sin guardar?',
         content: 'Tienes cambios sin guardar. Si sales ahora los perderás.',
@@ -244,16 +248,64 @@ export function AdminSettings() {
         cancelText: 'Volver y guardar',
         okButtonProps: { danger: true },
         onOk: () => {
-          unblock();
-          tx.retry();
+          nav.push = originalPush;
+          nav.replace = originalReplace;
+          setIsEditingInfo(false);
+          originalPush(to, state);
         },
         onCancel: () => {
           // Do nothing
         }
       });
-    });
+    };
 
-    return unblock;
+    nav.replace = (to: any, state: any) => {
+      Modal.confirm({
+        title: '¿Salir sin guardar?',
+        content: 'Tienes cambios sin guardar. Si sales ahora los perderás.',
+        okText: 'Salir sin guardar',
+        cancelText: 'Volver y guardar',
+        okButtonProps: { danger: true },
+        onOk: () => {
+          nav.push = originalPush;
+          nav.replace = originalReplace;
+          setIsEditingInfo(false);
+          originalReplace(to, state);
+        },
+        onCancel: () => {
+          // Do nothing
+        }
+      });
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Revert URL to settings page immediately
+      window.history.pushState(null, '', '/admin/settings');
+
+      Modal.confirm({
+        title: '¿Salir sin guardar?',
+        content: 'Tienes cambios sin guardar. Si sales ahora los perderás.',
+        okText: 'Salir sin guardar',
+        cancelText: 'Volver y guardar',
+        okButtonProps: { danger: true },
+        onOk: () => {
+          window.removeEventListener('popstate', handlePopState);
+          setIsEditingInfo(false);
+          window.history.back();
+        },
+        onCancel: () => {
+          // Do nothing, URL is already reverted
+        }
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      nav.push = originalPush;
+      nav.replace = originalReplace;
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [navigator, hasUnsavedChanges]);
 
   // Handle logo upload to Supabase Storage
