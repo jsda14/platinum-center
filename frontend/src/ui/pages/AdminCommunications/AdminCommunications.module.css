@@ -231,3 +231,19 @@
   background-color: var(--color-border) !important;
   color: var(--color-text-primary) !important;
 }
+
+/* Schedule section styles */
+.admin-comm__schedule-container {
+  display: flex;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.admin-comm__schedule-item {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.admin-comm__full-width {
+  width: 100% !important;
+}

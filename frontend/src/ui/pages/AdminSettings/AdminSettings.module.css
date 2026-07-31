@@ -376,3 +376,122 @@
   color: var(--color-status-expired);
 }
 
+/* Appearance Preview Styles */
+.appearance-preview {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.appearance-preview__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.appearance-preview__title {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.appearance-preview__swatches {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.appearance-preview__swatch-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.appearance-preview__swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+}
+
+.appearance-preview__swatch-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.appearance-preview__sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.appearance-preview__slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.appearance-preview__slider-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.appearance-preview__slider-track {
+  position: relative;
+  height: 6px;
+  background-color: var(--color-dark-elevated);
+  border-radius: var(--radius-full);
+  width: 100%;
+}
+
+.appearance-preview__slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+.appearance-preview__slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-text-primary);
+  border: 2px solid var(--color-primary);
+  cursor: not-allowed;
+}
+
+/* WhatsApp Row Styles */
+.admin-settings__whatsapp-row {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-settings__whatsapp-label {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-settings__whatsapp-description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
