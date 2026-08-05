@@ -48,7 +48,7 @@ import {
 } from '../../../application/admin/manageSettings.usecase';
 import { getPlans } from '../../../application/admin/managePlans.usecase';
 import type { GymConfig, PlanGroupPricing, Plan } from '../../../domain/member/member.types';
-// import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
+import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
 
 import styles from './AdminSettings.module.css';
 
@@ -914,7 +914,7 @@ export function AdminSettings() {
           <div className={styles['admin-settings__whatsapp-row']}>
             <span className={styles['admin-settings__whatsapp-label']}>
               WhatsApp Business 
-              {/* <LockedFeature.Badge /> */}
+              <LockedFeature.Badge />
             </span>
             <p className={styles['admin-settings__whatsapp-description']}>
               Próximamente podrás configurar tu número de WhatsApp Business para enviar notificaciones automáticas de vencimiento, confirmaciones de pago y comunicados a tus miembros.
@@ -989,11 +989,11 @@ export function AdminSettings() {
       ),
       children: (
         <div className={styles['admin-settings__appearance-section']}>
-          {/* <LockedFeature.Section
+          <LockedFeature.Section
             title="Personalización de Colores y Tema"
             description="Personaliza los colores del portal, el logo en emails y el tema visual para alinearlo con tu marca corporativa."
             blur={true}
-          > */}
+          >
             <div className={styles['appearance-preview']}>
               <div className={styles['appearance-preview__section']}>
                 <h4 className={styles['appearance-preview__title']}>Paleta de Colores</h4>
@@ -1033,7 +1033,7 @@ export function AdminSettings() {
                 </div>
               </div>
             </div>
-          {/* </LockedFeature.Section> */}
+          </LockedFeature.Section>
         </div>
       )
     }
