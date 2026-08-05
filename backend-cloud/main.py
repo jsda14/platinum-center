@@ -6,6 +6,7 @@ from src.api.routes.bold import router as bold_router
 from src.api.routes.admin import router as admin_router
 from src.api.routes.dashboard import router as dashboard_router
 from src.api.routes.admin_communications import router as admin_comm_router
+from src.api.routes.zkteco import router as zkteco_router
 
 load_dotenv()
 
@@ -24,6 +25,7 @@ app.include_router(bold_router)
 app.include_router(admin_router)
 app.include_router(dashboard_router)
 app.include_router(admin_comm_router)
+app.include_router(zkteco_router)
 
 @app.get("/health")
 def health_check():
