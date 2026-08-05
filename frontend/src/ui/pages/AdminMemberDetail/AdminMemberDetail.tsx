@@ -503,7 +503,7 @@ export function AdminMemberDetail() {
                   Registrar pago
                 </Button>
 
-                {isSuperAdmin && member.status !== 'suspended' && (
+                {member.status !== 'suspended' && (
                   <Button
                     type="default"
                     danger

@@ -218,7 +218,7 @@ export function AdminMembers() {
       key: 'actions',
       render: (_: unknown, record: MemberWithProfile) => (
         <div onClick={(e) => e.stopPropagation()} className={styles['admin-members__actions-cell']}>
-          {isSuperAdmin && record.status !== 'suspended' && (
+          {record.status !== 'suspended' && (
             <Button
               danger
               size="small"
