@@ -1,0 +1,120 @@
+.roles-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  width: 100%;
+}
+
+.roles-management__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+.roles-management__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.roles-management__description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.roles-management__table-wrapper {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.roles-management__badge {
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  display: inline-block;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.roles-management__badge--super-admin {
+  background-color: rgba(196, 30, 58, 0.15) !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.roles-management__badge--receptionist {
+  background-color: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+.roles-management__badge--member {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid var(--color-status-active) !important;
+  color: var(--color-status-active) !important;
+}
+
+.roles-management__avatar {
+  background-color: var(--color-dark-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.roles-management__action-btn {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.roles-management__action-btn:hover:not(:disabled) {
+  background-color: var(--color-dark-surface) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.roles-management__modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.roles-management__select {
+  width: 100% !important;
+}
+
+.roles-management__unauthorized,
+.roles-management__error {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.roles-management__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-status-expired);
+}
+
+
+.roles-management__name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+  .roles-management {
+    padding: var(--space-2) 0;
+  }
+}

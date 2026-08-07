@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGroupPricing } from '../../domain/member/member.types';
+import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGroupPricing, UserRole } from '../../domain/member/member.types';
 
 
 export interface ManualPaymentData {
@@ -531,5 +531,28 @@ export const adminRepository = {
     }
 
     return response.json();
+  },
+
+  async getAllUsers(): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    return (data || []) as Profile[];
+  },
+
+  async updateUserRole(profileId: string, newRole: UserRole): Promise<void> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', profileId);
+
+    if (error) {
+      throw new Error(`Error al actualizar el rol: ${error.message}`);
+    }
   }
 };
