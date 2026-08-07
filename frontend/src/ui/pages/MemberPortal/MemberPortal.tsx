@@ -3,6 +3,8 @@ import { useAppSelector } from '../../../infrastructure/store/store';
 import { getMemberStatus, type MemberStatusResult } from '../../../application/member/getMemberStatus.usecase';
 import { useMemberStatusRealtime } from '../../../ui/hooks/useMemberStatusRealtime';
 import { StatusNotification } from '../../../ui/components/StatusNotification/StatusNotification';
+import { WifiOutlined, WarningOutlined } from '@ant-design/icons';
+import { Tooltip, Button } from 'antd';
 import styles from './MemberPortal.module.css';
 
 export function MemberPortal() {
@@ -164,6 +166,42 @@ export function MemberPortal() {
       </div>
      )}
     </div>
+    </section>
+
+    <section className={`${styles['member-portal__chip-card']} ${member.card_no ? styles['member-portal__chip-card--has-chip'] : styles['member-portal__chip-card--no-chip']}`}>
+      {member.card_no ? (
+        <>
+          <div className={styles['member-portal__chip-header']}>
+            <div className={styles['member-portal__chip-badge-wrapper']}>
+              <span className={`${styles['member-portal__chip-badge']} ${styles['member-portal__chip-badge--active']}`}>
+                <WifiOutlined className={styles['member-portal__chip-icon']} /> Chip activo
+              </span>
+            </div>
+            <span className={styles['member-portal__chip-no']}>N.° #{member.card_no}</span>
+          </div>
+          <p className={styles['member-portal__chip-description']}>
+            Tu acceso al gym está habilitado
+          </p>
+        </>
+      ) : (
+        <>
+          <div className={styles['member-portal__chip-header']}>
+            <div className={styles['member-portal__chip-badge-wrapper']}>
+              <span className={`${styles['member-portal__chip-badge']} ${styles['member-portal__chip-badge--warning']}`}>
+                <WarningOutlined className={styles['member-portal__chip-icon']} /> Sin chip registrado
+              </span>
+            </div>
+            <Tooltip title="El chip es la tarjeta física que te permite entrar al gym mediante el torniquete automático.">
+              <Button type="link" size="small" className={styles['member-portal__chip-help-btn']}>
+                ¿Qué es esto?
+              </Button>
+            </Tooltip>
+          </div>
+          <p className={styles['member-portal__chip-description']}>
+            Visita recepción para activar tu acceso físico
+          </p>
+        </>
+      )}
     </section>
 
     {toastStatus && (
