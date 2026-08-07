@@ -9,7 +9,7 @@
 ## Estado general
 **Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-07
+**Última actualización:** 2026-08-06
 
 ---
 
@@ -111,15 +111,19 @@
 ## Fase 4 — Integración ZKTeco
 **Estado: 🟡 En progreso**
 
-- [ ] FastAPI local con los 3 endpoints del protocolo iClock
-- [ ] Endpoint `POST /iclock/devicecmd` (confirmación de comandos)
-- [ ] Cola de comandos en memoria (MVP)
-- [ ] Lógica de casos: `active` / `expired` / `exhausted` / unknown card
-- [ ] Cloudflare Tunnel configurado y probado desde PC de desarrollo
-- [ ] Webhook Supabase → Railway → PC gym funcionando
-- [ ] **Visita presencial al gym completada**
+- [x] FastAPI local con los 4 endpoints del protocolo iClock (GET/POST /iclock/cdata, GET /iclock/getrequest, POST /iclock/devicecmd)
+- [x] Cola de comandos SQLite (no memoria — más robusto)
+- [x] Cloudflare Tunnel configurado y probado desde PC de desarrollo
+- [x] Webhook Railway → Cloudflare Tunnel → FastAPI local funcionando
+- [x] tunnel_client.py: activate/deactivate/sync via túnel
+- [x] Simulador del inBio Pro para pruebas sin hardware
+- [ ] Panel gestión de roles en /admin/settings
+- [ ] Google OAuth configurado con Client ID real
+- [ ] Estado del chip visible en portal del miembro
+- [ ] Ajustes visuales y responsive pendientes
+- [ ] Visita presencial al gym
 - [ ] Mapeo de IDs existentes en Supabase
-- [ ] Prueba real con tarjeta física ✅
+- [ ] Prueba real con tarjeta física
 
 ---
 
@@ -162,6 +166,10 @@
 ---
 
 ## Notas y bloqueos activos
+- ZKTeco local bridge: `platinum-center-local` funcionando con SQLite
+- Tunnel client probado: Railway → Cloudflare → FastAPI local → cola SQLite
+- SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
+- `TUNNEL_SECRET` debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
 - Fase 3 completa — lista para entrega a Sevastián
 - Cobrar $400.000 COP por Fase 3
 - Frontend: https://platinum-center.vercel.app
