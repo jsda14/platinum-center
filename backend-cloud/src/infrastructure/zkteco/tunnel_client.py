@@ -23,7 +23,7 @@ async def activate_member(member_id: str, card_no: str, zkteco_user_id: str,
         "card_no": card_no,
         "zkteco_user_id": zkteco_user_id,
         "full_name": full_name,
-        "sn": sn
+        "sn": sn or "PLATINUM001"  
     }
     
     try:
