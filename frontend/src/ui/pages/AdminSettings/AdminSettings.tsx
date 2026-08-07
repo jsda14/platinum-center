@@ -28,7 +28,8 @@ import {
   InfoCircleOutlined,
   SettingOutlined,
   TeamOutlined,
-  BgColorsOutlined
+  BgColorsOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { UNSAFE_NavigationContext as NavigationContext } from 'react-router-dom';
@@ -49,6 +50,8 @@ import {
 import { getPlans } from '../../../application/admin/managePlans.usecase';
 import type { GymConfig, PlanGroupPricing, Plan } from '../../../domain/member/member.types';
 import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
+import { useAppSelector } from '@/infrastructure/store/store';
+import { RolesManagement } from './components/RolesManagement/RolesManagement';
 
 import styles from './AdminSettings.module.css';
 
@@ -113,6 +116,9 @@ const parseTime = (timeStr: string) => {
 };
 
 export function AdminSettings() {
+  const { profile } = useAppSelector((state) => state.auth);
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const [_gymConfig, setGymConfig] = useState<GymConfig | null>(null);
   const [groupPricing, setGroupPricing] = useState<PlanGroupPricing[]>([]);
   const [_plans, setPlans] = useState<Plan[]>([]);
@@ -937,6 +943,18 @@ export function AdminSettings() {
         </Form>
       )
     },
+    ...(isSuperAdmin ? [
+      {
+        key: 'roles',
+        label: (
+          <span className={styles['admin-settings__tab-label']}>
+            <UserOutlined className={styles['admin-settings__tab-icon']} />
+            Usuarios y Roles
+          </span>
+        ),
+        children: <RolesManagement />
+      }
+    ] : []),
     {
       key: 'pricing',
       label: (
