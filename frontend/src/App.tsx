@@ -24,6 +24,7 @@ import { AdminCommunications } from './ui/pages/AdminCommunications/AdminCommuni
 import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
 import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
 import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
+import { Landing } from './ui/pages/Landing/Landing';
 
 import { useAppSelector } from './infrastructure/store/store';
 
@@ -83,7 +84,7 @@ export function App() {
   return (
     <>
       <Routes>
-      <Route path="/" element={<RoleRedirect />} />
+      <Route path="/" element={<Landing />} />
 
       {/* Public / Auth routes */}
       <Route element={<AuthLayout />}>
