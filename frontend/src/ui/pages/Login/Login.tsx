@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
-import { Modal, Button } from 'antd';
+import { Modal } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { loginWithEmail } from '../../../infrastructure/store/authSlice';
+import { supabase } from '../../../infrastructure/supabase/client';
 import styles from './Login.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
@@ -21,7 +22,6 @@ export function Login() {
   const { loading, error: authError } = useAppSelector((state) => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -67,8 +67,29 @@ export function Login() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    setIsGoogleModalOpen(true);
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/portal',
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          }
+        }
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Error al intentar iniciar sesión con Google';
+      Modal.error({
+        title: 'Error de Autenticación',
+        content: msg,
+        okText: 'Entendido',
+        maskClosable: false
+      });
+    }
   };
 
   return (
@@ -191,36 +212,6 @@ export function Login() {
           </button>
         </div>
       </div>
-
-      <Modal
-        title={
-          <div className={styles['login-modal__title']}>
-            Próximamente
-          </div>
-        }
-        open={isGoogleModalOpen}
-        onOk={() => setIsGoogleModalOpen(false)}
-        onCancel={() => setIsGoogleModalOpen(false)}
-        footer={[
-          <Button
-            key="ok"
-            type="primary"
-            onClick={() => setIsGoogleModalOpen(false)}
-            className={styles['login-modal__button']}
-          >
-            Entendido
-          </Button>
-        ]}
-        className={styles['login-modal']}
-        centered
-        width={360}
-      >
-        <p className={styles['login-modal__message']}>
-          El inicio de sesión con Google estará disponible muy pronto.
-        </p>
-      </Modal>
     </div>
   );
-};
-
-export default Login;
+}
