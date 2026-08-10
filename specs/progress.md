@@ -117,13 +117,17 @@
 - [x] Webhook Railway → Cloudflare Tunnel → FastAPI local funcionando
 - [x] tunnel_client.py: activate/deactivate/sync via túnel
 - [x] Simulador del inBio Pro para pruebas sin hardware
-- [ ] Panel gestión de roles en /admin/settings
-- [ ] Google OAuth configurado con Client ID real
-- [ ] Estado del chip visible en portal del miembro
-- [ ] Ajustes visuales y responsive pendientes
-- [ ] Visita presencial al gym
+- [x] Panel gestión de roles en /admin/settings
+- [x] Google OAuth configurado con Client ID real
+- [x] Estado del chip visible en portal del miembro
+- [x] Landing page pública para verificación Google
+- [x] Páginas /terminos y /politica-privacidad
+- [x] Responsive mejorado en admin y portal
+- [x] AdminProfile para admin y recepcionista
 - [ ] Mapeo de IDs existentes en Supabase
-- [ ] Prueba real con tarjeta física
+- [ ] Prueba Google Auth con correo personal
+- [ ] Prueba flujo completo con chip RFID real
+- [ ] Visita presencial al gym (pendiente confirmar fecha)
 
 ---
 
@@ -166,6 +170,9 @@
 ---
 
 ## Notas y bloqueos activos
+- Google OAuth verificado en Search Console: platinum-center.vercel.app
+- Google Cloud pantalla consentimiento: enviada para revisión
+- TUNNEL_SECRET debe coincidir en ambos .env al reconectar el túnel
 - ZKTeco local bridge: `platinum-center-local` funcionando con SQLite
 - Tunnel client probado: Railway → Cloudflare → FastAPI local → cola SQLite
 - SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
