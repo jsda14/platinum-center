@@ -149,3 +149,31 @@
     padding-left: var(--space-2) !important;
   }
 }
+
+/* Mobile Sidebar & Overlay */
+.admin-layout__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 998;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 768px) {
+  .admin-layout__sider {
+    position: fixed !important;
+    height: 100vh;
+    z-index: 999;
+    left: 0;
+    top: 0;
+  }
+  
+  /* Cuando está cerrado en mobile, lo movemos fuera de la pantalla */
+  .admin-layout__sider[style*="width: 0px"],
+  .admin-layout__sider[style*="width: 80px"] {
+    transform: translateX(-100%);
+  }
+}

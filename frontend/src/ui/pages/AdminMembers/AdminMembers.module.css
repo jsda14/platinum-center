@@ -1,4 +1,4 @@
-.admin-members {
+.admin-members__container {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -6,6 +6,9 @@
   padding: var(--space-4);
   color: var(--color-text-primary);
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .admin-members__header {
@@ -115,6 +118,7 @@
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   box-shadow: var(--shadow-card);
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -300,4 +304,14 @@
 
 .admin-members__table-row {
   cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .admin-members__filters {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .admin-members__filters > * {
+    width: 100%;
+  }
 }
