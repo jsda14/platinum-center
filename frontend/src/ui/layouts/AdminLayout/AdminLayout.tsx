@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, Avatar } from 'antd';
 import {
@@ -31,11 +31,17 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { profile } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -89,6 +95,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <Layout className={styles['admin-layout']}>
+      {window.innerWidth < 768 && !collapsed && (
+        <div 
+          className={styles['admin-layout__overlay']} 
+          onClick={() => setCollapsed(true)}
+        />
+      )}
       <Sider
         trigger={null}
         collapsible

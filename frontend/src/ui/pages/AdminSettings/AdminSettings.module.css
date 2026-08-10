@@ -564,6 +564,43 @@
   grid-column: 1 / -1;
 }
 
+/* Mobile Navigation */
+.admin-settings__mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
 
+.admin-settings__mobile-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
 
+.admin-settings__mobile-tab:hover {
+  background-color: var(--color-dark-elevated);
+}
 
+.admin-settings__mobile-tab--active {
+  border-color: var(--color-primary);
+  background-color: rgba(196, 30, 58, 0.05);
+}
+
+.admin-settings__mobile-tab--active .admin-settings__tab-icon {
+  color: var(--color-primary);
+}
+
+.admin-settings__mobile-content {
+  animation: fadeInUp var(--transition-fast) ease forwards;
+}

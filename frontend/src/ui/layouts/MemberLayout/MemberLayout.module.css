@@ -75,9 +75,16 @@
 .member-layout__content {
   flex: 1;
   padding: var(--space-4);
-  max-width: 600px;
+  max-width: 100%;
   width: 100%;
   margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .member-layout__content {
+    max-width: 1200px;
+    padding: var(--space-6);
+  }
 }
 
 .member-layout__tabbar {

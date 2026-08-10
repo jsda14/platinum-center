@@ -169,11 +169,13 @@ export function AdminMembers() {
       title: 'Email',
       dataIndex: ['profiles', 'email'],
       key: 'email',
+      responsive: ['md'] as any,
     },
     {
       title: 'Plan',
       dataIndex: 'plan',
       key: 'plan',
+      responsive: ['md'] as any,
       render: (val: string) => PLAN_LABELS[val] || val || <span className={styles['admin-members__secondary-text']}>Sin Plan</span>,
     },
     {
@@ -198,12 +200,14 @@ export function AdminMembers() {
       title: 'Vencimiento',
       dataIndex: 'end_date',
       key: 'endDate',
+      responsive: ['md'] as any,
       render: (date: string) => date || <span className={styles['admin-members__secondary-text']}>Sin asignar</span>,
     },
     {
       title: 'Chip Asignado',
       dataIndex: 'card_no',
       key: 'cardNo',
+      responsive: ['md'] as any,
       render: (card: string) => card ? (
         <Tag color="blue">{card}</Tag>
       ) : (
@@ -262,7 +266,7 @@ export function AdminMembers() {
       }}
     >
       {isSubmitting && <LoadingScreen message="Procesando..." />}
-      <main className={styles['admin-members']} role="main">
+      <main className={styles['admin-members__container']} role="main">
         <header className={styles['admin-members__header']}>
           <h1 className={styles['admin-members__title']}>Gestión de Miembros</h1>
           <Button
@@ -370,6 +374,7 @@ export function AdminMembers() {
               dataSource={filteredData}
               columns={columns}
               rowKey="id"
+              scroll={{ x: window.innerWidth < 768 ? undefined : 1000 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: false,

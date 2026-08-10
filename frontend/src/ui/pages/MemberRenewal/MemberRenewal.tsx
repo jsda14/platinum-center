@@ -207,77 +207,92 @@ export function MemberRenewal() {
         </p>
       </header>
 
-      <div className={styles['member-renewal__layout']}>
-        <div className={styles['member-renewal__plans-container']}>
-          <div className={styles['member-renewal__grid']}>
-            {plans.map((plan) => {
-              const isSelected = selectedPlan?.id === plan.id;
-              const benefits = getPlanBenefits(plan.slug);
+      <div
+        className={`${styles['member-renewal__content']} ${
+          selectedPlan ? styles['member-renewal__content--with-summary'] : ''
+        }`}
+      >
+        <div
+          className={`${styles['member-renewal__plans-grid']} ${
+            !selectedPlan ? styles['member-renewal__plans-grid--full'] : ''
+          }`}
+        >
+          {plans.map((plan) => {
+            const isSelected = selectedPlan?.id === plan.id;
+            const benefits = getPlanBenefits(plan.slug);
 
-              return (
-                <article
-                  key={plan.id}
-                  className={`${styles['member-renewal__card']} ${
-                    isSelected ? styles['member-renewal__card--selected'] : ''
-                  }`}
-                >
-                  <div className={styles['member-renewal__card-header']}>
-                    <h3 className={styles['member-renewal__plan-name']}>{plan.name}</h3>
-                    <div className={styles['member-renewal__price-container']}>
-                      <span className={styles['member-renewal__price']}>
-                        {formatCOP(plan.price)}
-                      </span>
-                    </div>
+            return (
+              <article
+                key={plan.id}
+                className={`${styles['member-renewal__card']} ${
+                  isSelected ? styles['member-renewal__card--selected'] : ''
+                }`}
+              >
+                {plan.slug === '1_year' && (
+                  <span className={styles['member-renewal__popular-badge']}>MEJOR VALOR</span>
+                )}
+                <div className={styles['member-renewal__card-header']}>
+                  <h3 className={styles['member-renewal__plan-name']}>{plan.name}</h3>
+                  <div className={styles['member-renewal__price-container']}>
+                    <span className={styles['member-renewal__price']}>
+                      {formatCOP(plan.price)}
+                    </span>
                   </div>
+                </div>
 
-                  <div className={styles['member-renewal__divider']} />
+                <div className={styles['member-renewal__divider']} />
 
-                  <ul className={styles['member-renewal__benefits']}>
-                    {benefits.map((benefit, index) => (
-                      <li key={index} className={styles['member-renewal__benefit-item']}>
-                        <CheckCircleOutlined className={styles['member-renewal__benefit-icon']} />
-                        <span className={styles['member-renewal__benefit-text']}>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <ul className={styles['member-renewal__benefits']}>
+                  {benefits.map((benefit, index) => (
+                    <li key={index} className={styles['member-renewal__benefit-item']}>
+                      <CheckCircleOutlined className={styles['member-renewal__benefit-icon']} />
+                      <span className={styles['member-renewal__benefit-text']}>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
 
-                  <button
-                    type="button"
-                    className={`${styles['member-renewal__select-button']} ${
-                      isSelected ? styles['member-renewal__select-button--selected'] : ''
-                    }`}
-                    onClick={() => handleSelectPlan(plan)}
-                    aria-label={`Seleccionar plan ${plan.name}`}
-                  >
-                    {isSelected ? 'Plan Seleccionado' : 'Seleccionar Plan'}
-                  </button>
-                </article>
-              );
-            })}
-          </div>
+                <button
+                  type="button"
+                  className={`${styles['member-renewal__select-button']} ${
+                    isSelected ? styles['member-renewal__select-button--selected'] : ''
+                  }`}
+                  onClick={() => handleSelectPlan(plan)}
+                  aria-label={`Seleccionar plan ${plan.name}`}
+                >
+                  {isSelected ? '✓ Plan Seleccionado' : 'Seleccionar Plan'}
+                </button>
+              </article>
+            );
+          })}
         </div>
 
         {selectedPlan && (
-          <section
+          <aside
             ref={checkoutSectionRef}
-            className={styles['member-renewal__checkout']}
+            className={styles['member-renewal__summary-wrapper']}
             aria-labelledby="checkout-summary-title"
           >
             <div className={styles['member-renewal__checkout-box']}>
-              <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
-                Resumen de Compra
-              </h2>
-              <div className={styles['member-renewal__checkout-row']}>
-                <span className={styles['member-renewal__checkout-label']}>Plan a adquirir:</span>
-                <span className={styles['member-renewal__checkout-val']}>
-                  {selectedPlan.name}
-                </span>
+              <div className={styles['member-renewal__checkout-header']}>
+                <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
+                  Resumen de Compra
+                </h2>
+                <span className={styles['member-renewal__checkout-badge']}>Paso Final</span>
               </div>
-              <div className={styles['member-renewal__checkout-row']}>
-                <span className={styles['member-renewal__checkout-label']}>Total a pagar:</span>
-                <span className={styles['member-renewal__checkout-price']}>
-                  {formatCOP(selectedPlan.price)}
-                </span>
+
+              <div className={styles['member-renewal__checkout-details']}>
+                <div className={styles['member-renewal__checkout-row']}>
+                  <span className={styles['member-renewal__checkout-label']}>Plan seleccionado:</span>
+                  <span className={styles['member-renewal__checkout-val']}>
+                    {selectedPlan.name}
+                  </span>
+                </div>
+                <div className={styles['member-renewal__checkout-row']}>
+                  <span className={styles['member-renewal__checkout-label']}>Monto total:</span>
+                  <span className={styles['member-renewal__checkout-price']}>
+                    {formatCOP(selectedPlan.price)}
+                  </span>
+                </div>
               </div>
 
               <div className={styles['member-renewal__divider']} />
@@ -285,7 +300,7 @@ export function MemberRenewal() {
               <div className={styles['member-renewal__security']}>
                 <SafetyOutlined className={styles['member-renewal__security-icon']} />
                 <span className={styles['member-renewal__security-text']}>
-                  Pago seguro procesado por Bold. Acepta PSE, tarjetas de crédito, Nequi y DaviPlata.
+                  Pago seguro procesado por Bold. Acepta PSE, Tarjetas de Crédito, Nequi y DaviPlata.
                 </span>
               </div>
 
@@ -319,7 +334,7 @@ export function MemberRenewal() {
                 </div>
               )}
             </div>
-          </section>
+          </aside>
         )}
       </div>
 
