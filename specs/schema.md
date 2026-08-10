@@ -32,7 +32,9 @@ end_date        DATE
 created_at      TIMESTAMPTZ DEFAULT NOW()
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 ```
-
+-- card_no = null → miembro sin chip asignado todavía
+-- Al asignar card_no: sistema envía comando al inBio Pro automáticamente
+-- Al renovar membresía con chip existente: sistema reactiva el chip en inBio Pro
 ---
 
 ### `payments`
@@ -126,6 +128,19 @@ status      TEXT CHECK (status IN ('pending', 'read', 'answered')) DEFAULT 'pend
 response    TEXT
 created_at  TIMESTAMPTZ DEFAULT NOW()
 ```
+
+---
+
+
+### `payment_intents`
+Contexto temporal de pagos Bold para reconciliación en webhook.
+
+id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
+order_id    TEXT UNIQUE NOT NULL     -- UUID generado por el frontend
+member_id   UUID REFERENCES members(id)
+plan_slug   TEXT NOT NULL
+amount      NUMERIC(10,2) NOT NULL
+created_at  TIMESTAMPTZ DEFAULT NOW()
 
 ---
 

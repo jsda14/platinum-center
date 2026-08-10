@@ -15,7 +15,9 @@ import type {
   memberDayPassSchema,
   accessLogSchema,
   suggestionSchema,
-  gymConfigSchema
+  gymConfigSchema,
+  planGroupPricingSchema,
+  communicationSchema
 } from './member.schema';
 
 export type UserRole = z.infer<typeof userRoleSchema>;
@@ -35,3 +37,6 @@ export type MemberDayPass = z.infer<typeof memberDayPassSchema>;
 export type AccessLog = z.infer<typeof accessLogSchema>;
 export type Suggestion = z.infer<typeof suggestionSchema>;
 export type GymConfig = z.infer<typeof gymConfigSchema>;
+export type PlanGroupPricing = z.infer<typeof planGroupPricingSchema>;
+export type Communication = z.infer<typeof communicationSchema>;
+

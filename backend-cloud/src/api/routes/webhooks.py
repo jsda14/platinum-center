@@ -4,6 +4,8 @@ from src.infrastructure.supabase import supabase_client
 from datetime import datetime, date
 import httpx
 
+from src.infrastructure.zkteco.tunnel_client import deactivate_member
+
 async def invoke_send_notification(payload: dict):
     supabase_url = os.getenv("SUPABASE_URL")
     service_key = os.getenv("SUPABASE_SECRET_KEY")
@@ -61,6 +63,32 @@ async def member_status_webhook(
     print(f"[WEBHOOK] end_date_str: {end_date_str}")
     print(f"[WEBHOOK] profile_id: {profile_id}")
     print(f"[WEBHOOK] Condición email: {status_val == 'active' and 0 < days_remaining <= 3}")
+
+    if status_val == "expired":
+        member_id = record.get("id")
+        if member_id:
+            try:
+                member_res = supabase_client.table("members").select("*").eq("id", member_id).execute()
+                if member_res.data:
+                    m_data = member_res.data[0]
+                    zkteco_user_id = m_data.get("zkteco_user_id")
+                    sn = m_data.get("sn")
+                    
+                    if zkteco_user_id:
+                        full_name = "Miembro"
+                        p_res = supabase_client.table("profiles").select("full_name").eq("id", profile_id).execute()
+                        if p_res.data:
+                            full_name = p_res.data[0].get("full_name", "Miembro")
+                            
+                        await deactivate_member(
+                            member_id=member_id,
+                            zkteco_user_id=zkteco_user_id,
+                            full_name=full_name,
+                            sn=sn
+                        )
+            except Exception as z_err:
+                print(f"[ZKTeco] Error al desactivar miembro expirado: {str(z_err)}")
+        return {"status": "expired_processed"}
 
     if status_val == "active" and 0 < days_remaining <= 3:
         # Fetch profile info

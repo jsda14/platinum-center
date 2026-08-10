@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
 import type { Plan } from '../../../domain/member/member.types';
 import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymentButton';
+import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import styles from './MemberRenewal.module.css';
 
@@ -12,11 +13,15 @@ export function MemberRenewal() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+
+  const checkoutSectionRef = useRef<HTMLDivElement>(null);
 
   // States for Bold payment
   const [orderId, setOrderId] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [isGeneratingSignature, setIsGeneratingSignature] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +56,20 @@ export function MemberRenewal() {
     setOrderId(null);
     setSignature(null);
     setIsGeneratingSignature(true);
+    setIsSubmitting(true);
     setError(null);
+
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      setShowScrollIndicator(true);
+      setTimeout(() => {
+        setShowScrollIndicator(false);
+      }, 3000);
+
+      setTimeout(() => {
+        checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
 
     try {
       // 1. Generate unique order ID
@@ -103,6 +121,7 @@ export function MemberRenewal() {
       setError(msg);
     } finally {
       setIsGeneratingSignature(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -180,6 +199,7 @@ export function MemberRenewal() {
 
   return (
     <div className={styles['member-renewal']} role="main">
+      {isSubmitting && <LoadingScreen message="Iniciando transacción segura..." />}
       <header className={styles['member-renewal__header']}>
         <h1 className={styles['member-renewal__title']}>Renueva tu Membresía</h1>
         <p className={styles['member-renewal__subtitle']}>
@@ -187,115 +207,126 @@ export function MemberRenewal() {
         </p>
       </header>
 
-      <div className={styles['member-renewal__grid']}>
-        {plans.map((plan) => {
-          const isSelected = selectedPlan?.id === plan.id;
-          const benefits = getPlanBenefits(plan.slug);
+      <div className={styles['member-renewal__layout']}>
+        <div className={styles['member-renewal__plans-container']}>
+          <div className={styles['member-renewal__grid']}>
+            {plans.map((plan) => {
+              const isSelected = selectedPlan?.id === plan.id;
+              const benefits = getPlanBenefits(plan.slug);
 
-          return (
-            <article
-              key={plan.id}
-              className={`${styles['member-renewal__card']} ${
-                isSelected ? styles['member-renewal__card--selected'] : ''
-              }`}
-            >
-              <div className={styles['member-renewal__card-header']}>
-                <h3 className={styles['member-renewal__plan-name']}>{plan.name}</h3>
-                <div className={styles['member-renewal__price-container']}>
-                  <span className={styles['member-renewal__price']}>
-                    {formatCOP(plan.price)}
-                  </span>
-                </div>
+              return (
+                <article
+                  key={plan.id}
+                  className={`${styles['member-renewal__card']} ${
+                    isSelected ? styles['member-renewal__card--selected'] : ''
+                  }`}
+                >
+                  <div className={styles['member-renewal__card-header']}>
+                    <h3 className={styles['member-renewal__plan-name']}>{plan.name}</h3>
+                    <div className={styles['member-renewal__price-container']}>
+                      <span className={styles['member-renewal__price']}>
+                        {formatCOP(plan.price)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles['member-renewal__divider']} />
+
+                  <ul className={styles['member-renewal__benefits']}>
+                    {benefits.map((benefit, index) => (
+                      <li key={index} className={styles['member-renewal__benefit-item']}>
+                        <CheckCircleOutlined className={styles['member-renewal__benefit-icon']} />
+                        <span className={styles['member-renewal__benefit-text']}>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    type="button"
+                    className={`${styles['member-renewal__select-button']} ${
+                      isSelected ? styles['member-renewal__select-button--selected'] : ''
+                    }`}
+                    onClick={() => handleSelectPlan(plan)}
+                    aria-label={`Seleccionar plan ${plan.name}`}
+                  >
+                    {isSelected ? 'Plan Seleccionado' : 'Seleccionar Plan'}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedPlan && (
+          <section
+            ref={checkoutSectionRef}
+            className={styles['member-renewal__checkout']}
+            aria-labelledby="checkout-summary-title"
+          >
+            <div className={styles['member-renewal__checkout-box']}>
+              <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
+                Resumen de Compra
+              </h2>
+              <div className={styles['member-renewal__checkout-row']}>
+                <span className={styles['member-renewal__checkout-label']}>Plan a adquirir:</span>
+                <span className={styles['member-renewal__checkout-val']}>
+                  {selectedPlan.name}
+                </span>
+              </div>
+              <div className={styles['member-renewal__checkout-row']}>
+                <span className={styles['member-renewal__checkout-label']}>Total a pagar:</span>
+                <span className={styles['member-renewal__checkout-price']}>
+                  {formatCOP(selectedPlan.price)}
+                </span>
               </div>
 
               <div className={styles['member-renewal__divider']} />
 
-              <ul className={styles['member-renewal__benefits']}>
-                {benefits.map((benefit, index) => (
-                  <li key={index} className={styles['member-renewal__benefit-item']}>
-                    <CheckCircleOutlined className={styles['member-renewal__benefit-icon']} />
-                    <span className={styles['member-renewal__benefit-text']}>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className={styles['member-renewal__security']}>
+                <SafetyOutlined className={styles['member-renewal__security-icon']} />
+                <span className={styles['member-renewal__security-text']}>
+                  Pago seguro procesado por Bold. Acepta PSE, tarjetas de crédito, Nequi y DaviPlata.
+                </span>
+              </div>
 
-              <button
-                type="button"
-                className={`${styles['member-renewal__select-button']} ${
-                  isSelected ? styles['member-renewal__select-button--selected'] : ''
-                }`}
-                onClick={() => handleSelectPlan(plan)}
-                aria-label={`Seleccionar plan ${plan.name}`}
-              >
-                {isSelected ? 'Plan Seleccionado' : 'Seleccionar Plan'}
-              </button>
-            </article>
-          );
-        })}
+              {isGeneratingSignature && (
+                <div className={styles['member-renewal__loading-signature']}>
+                  Generando transacción segura...
+                </div>
+              )}
+
+              {error && (
+                <div className={styles['member-renewal__checkout-error']} role="alert">
+                  {error}
+                </div>
+              )}
+
+              {signature && orderId && memberId && (
+                <div className={styles['member-renewal__payment-button-wrapper']}>
+                  <BoldPaymentButton
+                    orderId={orderId}
+                    amount={Math.round(selectedPlan.price)}
+                    apiKey={import.meta.env.VITE_BOLD_API_KEY}
+                    integritySignature={signature}
+                    planName={selectedPlan.name}
+                    redirectionUrl={redirectionUrl}
+                    metadata={{
+                      reference: orderId,
+                      member_id: memberId,
+                      plan: selectedPlan.slug,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
-      {selectedPlan && (
-        <section
-          className={styles['member-renewal__checkout']}
-          aria-labelledby="checkout-summary-title"
-        >
-          <div className={styles['member-renewal__checkout-box']}>
-            <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
-              Resumen de Compra
-            </h2>
-            <div className={styles['member-renewal__checkout-row']}>
-              <span className={styles['member-renewal__checkout-label']}>Plan a adquirir:</span>
-              <span className={styles['member-renewal__checkout-val']}>
-                {selectedPlan.name}
-              </span>
-            </div>
-            <div className={styles['member-renewal__checkout-row']}>
-              <span className={styles['member-renewal__checkout-label']}>Total a pagar:</span>
-              <span className={styles['member-renewal__checkout-price']}>
-                {formatCOP(selectedPlan.price)}
-              </span>
-            </div>
-
-            <div className={styles['member-renewal__divider']} />
-
-            <div className={styles['member-renewal__security']}>
-              <SafetyOutlined className={styles['member-renewal__security-icon']} />
-              <span className={styles['member-renewal__security-text']}>
-                Pago seguro procesado por Bold. Acepta PSE, tarjetas de crédito, Nequi y DaviPlata.
-              </span>
-            </div>
-
-            {isGeneratingSignature && (
-              <div className={styles['member-renewal__loading-signature']}>
-                Generando transacción segura...
-              </div>
-            )}
-
-            {error && (
-              <div className={styles['member-renewal__checkout-error']} role="alert">
-                {error}
-              </div>
-            )}
-
-            {signature && orderId && memberId && (
-              <div className={styles['member-renewal__payment-button-wrapper']}>
-                <BoldPaymentButton
-                  orderId={orderId}
-                  amount={Math.round(selectedPlan.price)}
-                  apiKey={import.meta.env.VITE_BOLD_API_KEY}
-                  integritySignature={signature}
-                  planName={selectedPlan.name}
-                  redirectionUrl={redirectionUrl}
-                  metadata={{
-                    reference: orderId,
-                    member_id: memberId,
-                    plan: selectedPlan.slug,
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </section>
+      {showScrollIndicator && (
+        <div className={styles['member-renewal__scroll-indicator']}>
+          <span>👇 Desliza para pagar</span>
+        </div>
       )}
     </div>
   );

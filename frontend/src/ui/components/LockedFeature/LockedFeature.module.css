@@ -1,0 +1,281 @@
+/* Root container classes */
+.locked-feature-button {
+  background-color: var(--color-dark-elevated) !important;
+  color: var(--color-text-secondary) !important;
+  border-color: var(--color-border) !important;
+  cursor: not-allowed !important;
+}
+
+/* Tooltip classes */
+.locked-feature-tooltip__title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.locked-feature-tooltip__description {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Section Overlay & Wrapper classes */
+.locked-feature-section {
+  position: relative;
+  width: 100%;
+}
+
+.locked-feature-section__children {
+  transition: filter var(--transition-normal);
+}
+
+.locked-feature-section__children--blurred {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.locked-feature-section__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(26, 26, 26, 0.8);
+  z-index: 10;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.locked-feature-section__card {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 400px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.locked-feature-section__icon {
+  font-size: 40px;
+  color: var(--color-accent);
+}
+
+.locked-feature-section__badge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.locked-feature-section__badge--soon {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.locked-feature-section__badge--upgrade {
+  background-color: var(--color-accent);
+  color: var(--color-dark);
+}
+
+.locked-feature-section__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.locked-feature-section__description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.locked-feature-section__contact-actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.locked-feature-section__contact-btn--whatsapp {
+  flex: 1;
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-section__contact-btn--whatsapp:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.locked-feature-section__contact-btn--email {
+  flex: 1;
+  background-color: transparent !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-section__contact-btn--email:hover {
+  background-color: rgba(196, 30, 58, 0.1) !important;
+  color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+/* Page locks classes */
+.locked-feature-page {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(36,36,36,1) 0%, rgba(26,26,26,1) 100%);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.locked-feature-page__container {
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+.locked-feature-page__logo {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+  margin-bottom: var(--space-2);
+}
+
+.locked-feature-page__icon {
+  font-size: 56px;
+  color: var(--color-accent);
+}
+
+.locked-feature-page__badge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.locked-feature-page__badge--soon {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.locked-feature-page__badge--upgrade {
+  background-color: var(--color-accent);
+  color: var(--color-dark);
+}
+
+.locked-feature-page__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.locked-feature-page__description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.locked-feature-page__contact-actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.locked-feature-page__contact-btn--whatsapp {
+  flex: 1;
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-page__contact-btn--whatsapp:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.locked-feature-page__contact-btn--email {
+  flex: 1;
+  background-color: transparent !important;
+  border: 1px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-feature-page__contact-btn--email:hover {
+  background-color: rgba(196, 30, 58, 0.1) !important;
+  color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+/* Badge classes */
+.locked-feature-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: var(--space-2);
+}
+
+.locked-feature-badge--soon {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.locked-feature-badge--upgrade {
+  background-color: var(--color-accent);
+  color: var(--color-dark);
+}

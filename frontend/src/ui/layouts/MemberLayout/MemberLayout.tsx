@@ -4,6 +4,7 @@ import {
   CreditCardOutlined,
   CommentOutlined,
   LogoutOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -59,6 +60,15 @@ export function MemberLayout() {
           <span className={styles['member-layout__user-name']}>
             {profile?.full_name || 'Miembro'}
           </span>
+          <button
+            type="button"
+            className={styles['member-layout__logout-button']}
+            onClick={() => navigate('/portal/settings')}
+            aria-label="Configuración"
+            title="Configuración"
+          >
+            <SettingOutlined />
+          </button>
           <button
             type="button"
             className={styles['member-layout__logout-button']}

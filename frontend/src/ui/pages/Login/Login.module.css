@@ -189,3 +189,88 @@
   width: 18px;
   height: 18px;
 }
+
+.login__password-container {
+  position: relative;
+  width: 100%;
+}
+
+.login__password-container .login__input {
+  padding-right: var(--space-7);
+}
+
+.login__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  padding: var(--space-1);
+  transition: color var(--transition-fast);
+  outline: none;
+}
+
+.login__password-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+/* Custom Modal Dark Styles overrides */
+.login-modal :global(.ant-modal-content) {
+  background-color: var(--color-dark-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-elevated) !important;
+}
+
+.login-modal :global(.ant-modal-header) {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  margin-bottom: var(--space-3) !important;
+}
+
+.login-modal__title {
+  color: var(--color-primary) !important;
+  font-family: var(--font-display) !important;
+  font-size: var(--font-size-2xl) !important;
+  letter-spacing: 1px;
+}
+
+.login-modal :global(.ant-modal-close) {
+  color: var(--color-text-secondary) !important;
+}
+
+.login-modal :global(.ant-modal-close:hover) {
+  color: var(--color-text-primary) !important;
+  background-color: var(--color-dark-surface) !important;
+}
+
+.login-modal__message {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.login-modal__button {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-md) !important;
+  height: auto !important;
+  padding: var(--space-2) var(--space-5) !important;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
+}
+
+.login-modal__button:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}

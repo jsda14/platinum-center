@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
 import httpx
+from src.infrastructure.zkteco.tunnel_client import activate_member
 
 async def invoke_send_notification(payload: dict):
     supabase_url = os.getenv("SUPABASE_URL")
@@ -225,6 +226,7 @@ async def bold_payment_webhook(
         start_date = date.today()
         end_date = start_date + timedelta(days=duration_days)
         
+
         # 1. Actualizar membresía en la tabla members
         supabase_client.table("members").update({
             "status": "active",
@@ -233,6 +235,37 @@ async def bold_payment_webhook(
             "end_date": end_date.isoformat(),
             "updated_at": datetime.now().isoformat()
         }).eq("id", member_id).execute()
+
+        # Buscar el miembro para obtener card_no, zkteco_user_id, full_name
+        try:
+            m_res = supabase_client.table("members")\
+                .select("card_no, zkteco_user_id, profile_id")\
+                .eq("id", member_id)\
+                .execute()
+            if m_res.data:
+                m_data = m_res.data[0]
+                card_no = m_data.get("card_no")
+                zkteco_user_id = m_data.get("zkteco_user_id")
+                profile_id = m_data.get("profile_id")
+                
+                full_name = "Miembro"
+                if profile_id:
+                    p_res = supabase_client.table("profiles").select("full_name").eq("id", profile_id).execute()
+                    if p_res.data:
+                        full_name = p_res.data[0].get("full_name", "Miembro")
+                
+                if card_no:
+                    await activate_member(
+                        member_id=member_id,
+                        card_no=card_no,
+                        zkteco_user_id=zkteco_user_id or "",
+                        full_name=full_name,
+                        sn=None
+                    )
+                else:
+                    print("[CHIP] Miembro sin chip — omitiendo activación ZKTeco")
+        except Exception as z_err:
+            print(f"[ZKTeco] Error al intentar activar miembro tras pago: {str(z_err)}")
         
         # 2. Registrar el pago en la tabla payments como confirmado
         payment_data = {
@@ -300,13 +333,28 @@ async def bold_payment_webhook(
                             
                             print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED_ADMIN...")
                             # Enviar correo al admin
+                            try:
+                                admins_res = supabase_client.table("profiles")\
+                                    .select("email", "full_name")\
+                                    .in_("role", ["super_admin", "receptionist"])\
+                                    .execute()
+                                admin_emails = [
+                                    {"email": a.get("email"), "name": a.get("full_name") or "Admin"}
+                                    for a in admins_res.data
+                                    if a.get("email")
+                                ]
+                            except Exception as db_err:
+                                print(f"[NOTIFY] Error query admins: {str(db_err)}")
+                                admin_emails = []
+
                             await invoke_send_notification({
                                 'type': 'PAYMENT_CONFIRMED_ADMIN',
                                 'member_email': member_email,
                                 'member_name': member_name,
                                 'plan': plan_slug,
                                 'amount': amount_cop,
-                                'end_date': end_date.isoformat()
+                                'end_date': end_date.isoformat(),
+                                'admin_emails': admin_emails
                             })
                             print(f"[NOTIFY] Edge Function invocada (admin)")
         except Exception as fn_err:

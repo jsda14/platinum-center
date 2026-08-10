@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { Modal } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
-import { loginWithEmail, loginWithGoogle } from '../../../infrastructure/store/authSlice';
+import { loginWithEmail } from '../../../infrastructure/store/authSlice';
+import { supabase } from '../../../infrastructure/supabase/client';
 import styles from './Login.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
@@ -17,6 +20,8 @@ export function Login() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { loading, error: authError } = useAppSelector((state) => state.auth);
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -63,7 +68,28 @@ export function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    await dispatch(loginWithGoogle());
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/portal',
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          }
+        }
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Error al intentar iniciar sesión con Google';
+      Modal.error({
+        title: 'Error de Autenticación',
+        content: msg,
+        okText: 'Entendido',
+        maskClosable: false
+      });
+    }
   };
 
   return (
@@ -112,18 +138,28 @@ export function Login() {
               <label htmlFor="password" className={styles.login__label}>
                 Contraseña
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className={`${styles.login__input} ${
-                  errors.password ? styles['login__input--error'] : ''
-                }`}
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-              />
+              <div className={styles['login__password-container']}>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`${styles.login__input} ${
+                    errors.password ? styles['login__input--error'] : ''
+                  }`}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className={styles['login__password-toggle']}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                </button>
+              </div>
               {errors.password && (
                 <span className={styles['login__error-message']}>{errors.password}</span>
               )}
@@ -178,6 +214,4 @@ export function Login() {
       </div>
     </div>
   );
-};
-
-export default Login;
+}
