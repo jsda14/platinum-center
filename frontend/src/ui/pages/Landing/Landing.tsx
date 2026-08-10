@@ -44,7 +44,7 @@ export function Landing() {
           type="primary"
           icon={<LoginOutlined />}
           onClick={() => navigate('/login')}
-          className={styles.landing__login-btn}
+          className={styles['landing__login-btn']}
         >
           Iniciar sesión
         </Button>
