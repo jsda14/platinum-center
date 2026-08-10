@@ -24,6 +24,7 @@ import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
 import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
 import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
 import { Landing } from './ui/pages/Landing/Landing';
+import { AdminProfile } from './ui/pages/AdminProfile/AdminProfile';
 
 import { useAppSelector } from './infrastructure/store/store';
 
@@ -144,6 +145,7 @@ export function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="communications" element={<AdminCommunications />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* Receptionist routes */}
@@ -160,6 +162,7 @@ export function App() {
         <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="plans" element={<AdminPlans />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* Member Portal routes */}
