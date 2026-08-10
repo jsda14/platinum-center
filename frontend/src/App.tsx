@@ -21,6 +21,9 @@ import { AdminDashboard } from './ui/pages/AdminDashboard/AdminDashboard';
 import { AdminPlans } from './ui/pages/AdminPlans/AdminPlans';
 import { AdminSettings } from './ui/pages/AdminSettings/AdminSettings';
 import { AdminCommunications } from './ui/pages/AdminCommunications/AdminCommunications';
+import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
+import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
+import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
 
 import { useAppSelector } from './infrastructure/store/store';
 
@@ -78,7 +81,8 @@ export function App() {
   useAuthSession();
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<RoleRedirect />} />
 
       {/* Public / Auth routes */}
@@ -86,6 +90,10 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
+
+      {/* Public pages */}
+      <Route path="/terminos" element={<TermsOfService />} />
+      <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
 
       {/* Specific routes matched first to handle cross-role redirects and component re-use */}
       <Route
@@ -173,6 +181,8 @@ export function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <CookieBanner />
+  </>
   );
 }
 
