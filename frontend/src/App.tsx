@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthSession } from './ui/hooks/useAuthSession';
 import { ProtectedRoute } from './ui/components/ProtectedRoute/ProtectedRoute';
-import { RoleRedirect } from './ui/components/RoleRedirect/RoleRedirect';
 import { AuthLayout } from './ui/layouts/AuthLayout/AuthLayout';
 import { AdminLayout } from './ui/layouts/AdminLayout/AdminLayout';
 import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
