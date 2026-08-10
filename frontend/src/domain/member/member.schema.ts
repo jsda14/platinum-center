@@ -106,5 +106,28 @@ export const gymConfigSchema = z.object({
   email: z.string().nullable().optional(),
   opening_time: z.string().nullable().optional(),
   closing_time: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  opening_days: z.array(z.string()).default(['monday','tuesday','wednesday','thursday','friday','saturday']),
   updated_at: z.string().optional()
 });
+
+export const planGroupPricingSchema = z.object({
+  id: z.uuid(),
+  plan_id: z.uuid().nullable().optional(),
+  min_members: z.number().int().min(1, 'El mínimo de personas debe ser al menos 1'),
+  max_members: z.number().int().positive().nullable().optional(),
+  price_per_person: z.number().nonnegative('El precio debe ser un número positivo'),
+  active: z.boolean().default(true),
+  created_at: z.string().optional()
+});
+
+export const communicationSchema = z.object({
+  id: z.uuid(),
+  subject: z.string().min(1, 'El asunto es requerido'),
+  body: z.string().min(1, 'El cuerpo es requerido'),
+  recipient_type: z.string(),
+  recipients_count: z.number().int().default(0),
+  sent_by: z.uuid().nullable().optional(),
+  sent_at: z.string().optional()
+});
+

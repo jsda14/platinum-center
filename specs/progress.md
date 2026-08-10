@@ -7,9 +7,9 @@
 ---
 
 ## Estado general
-**Fase actual:** 3 — Panel admin + recepcionista
+**Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-07
+**Última actualización:** 2026-08-06
 
 ---
 
@@ -78,42 +78,75 @@
 ---
 
 ## Fase 3 — Panel admin + recepcionista
-**Estado: 🟡 En progreso**
+**Estado: ✅ Completada**
 
-- [ ] CRUD de miembros
-- [ ] Registro de pagos manuales (cash / nequi / daviplata)
-- [ ] Gestión de planes (precios, duración)
-- [ ] Dashboard métricas: ingresos del mes, miembros active, vencimientos próximos
-- [ ] Vista receptionist (permisos limitados)
-- [ ] Configuración del gym (nombre, logo, horarios)
-- [ ] Lógica de renovación anticipada: si miembro activo paga, sumar días desde fecha_fin actual
+- [x] CRUD de miembros (crear, editar, suspender)
+- [x] Asignación de chip RFID a miembro nuevo sin chip
+- [x] Email de bienvenida con link de activación al crear miembro
+- [x] Página SetupProfile para activación de cuenta primera vez
+- [x] Página MemberSettings para editar perfil y contraseña
+- [x] Modales con maskClosable={false}
+- [x] LoadingScreen en operaciones asíncronas
+- [x] Registro de pagos manuales (cash / nequi / daviplata)
+- [x] Reactivación automática del chip al registrar pago manual
+- [x] Lógica de renovación anticipada: sumar días desde fecha_fin actual
+- [x] Página de detalle de miembro /admin/members/:id con:
+  - Información del miembro (nombre, email, teléfono, chip)
+  - Estado actual de membresía (plan activo, días restantes, vencimiento)
+  - Historial de pagos completo
+  - Historial de accesos (disponible tras Fase 4 ZKTeco)
+  - Botones de acción: registrar pago, editar info, suspender, asignar chip
+- [x] Gestión de planes (precios, duración editables)
+- [x] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
+- [x] Vista receptionist (permisos limitados)
+- [x] Configuración del gym (nombre, logo, horarios)
+- [x] Vista de miembros sin chip asignado (filtro en AdminMembers + Dashboard)
+- [x] Vista receptionist con permisos limitados
+- [x] Rutas DRY: /admin/* para super_admin, /reception/* para receptionist
+- [x] Mismo componente, diferente URL según rol
+- [x] AdminMemberDetail: botones restringidos por rol en ambas URLs
 
 ---
 
 ## Fase 4 — Integración ZKTeco
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso**
 
-- [ ] FastAPI local con los 3 endpoints del protocolo iClock
-- [ ] Endpoint `POST /iclock/devicecmd` (confirmación de comandos)
-- [ ] Cola de comandos en memoria (MVP)
-- [ ] Lógica de casos: `active` / `expired` / `exhausted` / unknown card
-- [ ] Cloudflare Tunnel configurado y probado desde PC de desarrollo
-- [ ] Webhook Supabase → Railway → PC gym funcionando
-- [ ] **Visita presencial al gym completada**
+- [x] FastAPI local con los 4 endpoints del protocolo iClock (GET/POST /iclock/cdata, GET /iclock/getrequest, POST /iclock/devicecmd)
+- [x] Cola de comandos SQLite (no memoria — más robusto)
+- [x] Cloudflare Tunnel configurado y probado desde PC de desarrollo
+- [x] Webhook Railway → Cloudflare Tunnel → FastAPI local funcionando
+- [x] tunnel_client.py: activate/deactivate/sync via túnel
+- [x] Simulador del inBio Pro para pruebas sin hardware
+- [ ] Panel gestión de roles en /admin/settings
+- [ ] Google OAuth configurado con Client ID real
+- [ ] Estado del chip visible en portal del miembro
+- [ ] Ajustes visuales y responsive pendientes
+- [ ] Visita presencial al gym
 - [ ] Mapeo de IDs existentes en Supabase
-- [ ] Prueba real con tarjeta física ✅
+- [ ] Prueba real con tarjeta física
 
 ---
 
 ## Fase 5 — Pagos + Notificaciones completas
 **Estado: ⚪ Pendiente**
 
-- [ ] Bold webhook end-to-end (pago `confirmed` → activa membresía automáticamente)
-- [ ] Idempotencia: UNIQUE constraint en `transaction_id`
-- [ ] Flujo completo: pago → Supabase → Railway → inBio Pro
-- [ ] Lógica `15_days`: crear `member_day_passes` al confirmar pago
-- [ ] Todos los emails automáticos funcionando
-- [ ] Notificaciones in-app en tiempo real
+> Bold y notificaciones completados en Fase 2. 
+> Fase 5 ahora enfocada en membresías grupales.
+
+- [x] Bold webhook end-to-end (pago confirmed → activa membresía)
+- [x] Idempotencia: UNIQUE constraint en transaction_id
+- [x] Flujo completo: pago → Supabase → Railway → inBio Pro
+- [x] Lógica 15_days: crear member_day_passes al confirmar pago
+- [x] Emails automáticos via Supabase Edge Functions (Brevo)
+- [x] Notificaciones in-app en tiempo real (Supabase Realtime)
+- [ ] Membresías grupales (ver specs/group-memberships.md):
+  - [ ] Schema: plan_group_pricing, group_memberships, group_membership_members
+  - [ ] Portal miembro: crear grupo, invitar personas, pago total o dividido
+  - [ ] Panel admin: registrar grupo presencial con pago manual
+  - [ ] Precios grupales configurables desde gestión de planes
+  - [ ] Email de bienvenida a cada miembro del grupo
+  - [ ] Activación de chip por cada miembro del grupo
+- [ ] Configurar precios grupales en panel admin (plan_group_pricing)
 
 ---
 
@@ -133,6 +166,12 @@
 ---
 
 ## Notas y bloqueos activos
+- ZKTeco local bridge: `platinum-center-local` funcionando con SQLite
+- Tunnel client probado: Railway → Cloudflare → FastAPI local → cola SQLite
+- SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
+- `TUNNEL_SECRET` debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
+- Fase 3 completa — lista para entrega a Sevastián
+- Cobrar $400.000 COP por Fase 3
 - Frontend: https://platinum-center.vercel.app
 - Backend: https://platinum-center-production.up.railway.app
 - Webhook Supabase configurado: `members` UPDATE → Railway `/webhooks/member-status`
@@ -146,4 +185,18 @@
 - Emails funcionando vía Supabase Edge Functions (Deno + Brevo)
 - Bold test mode: transaction_id "XXXX" guardado como null
 - URL staging Sevastián: https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app
-- Primera entrega lista: Fases 1 + 2 → cobrar $400.000 COP
+- Flujo completo de creación de miembro: admin crea → email bienvenida → SetupProfile → portal
+- Supabase auth.admin.generate_link usado para links de activación
+- maskClosable={false} aplicado a todos los modales del admin
+- Precios grupales: UI configurada en /admin/settings pero NO integrada 
+  en flujo de pago — se integra en Fase 5 con membresías grupales
+- LockedFeature: botones duales de contacto (WhatsApp + Email) 
+  en sub-componentes Section y Page
+
+## Upsells implementados
+- LockedFeature componente creado y desplegado
+- Exportar reportes: LockedFeature.Button en Dashboard
+- Personalización de colores: LockedFeature.Section en Settings
+- Programar comunicados: LockedFeature.Section en Communications  
+- WhatsApp Business: LockedFeature.Badge en Settings
+- Contacto para upgrades: WhatsApp +573057532192 / jsda14@gmail.com

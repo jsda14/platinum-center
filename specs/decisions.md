@@ -23,10 +23,10 @@
 
 ```
 src/
-├── domain/         # Entidades, tipos, Zod schemas — sin dependencias externas
-├── application/    # Casos de uso — orquestan el dominio
-├── infrastructure/ # Supabase, Redux, API calls — implementaciones externas
-└── ui/             # Componentes React, páginas, layouts, hooks
+26: ├── domain/         # Entidades, tipos, Zod schemas — sin dependencias externas
+27: ├── application/    # Casos de uso — orquestan el dominio
+28: ├── infrastructure/ # Supabase, Redux, API calls — implementaciones externas
+29: └── ui/             # Componentes React, páginas, layouts, hooks
 ```
 
 ---
@@ -131,17 +131,6 @@ Convención BEM en CSS Modules:
 
 ---
 
-## Plantilla para nuevas decisiones
-
-```
-## [YYYY-MM] Título corto
-**Decisión:** Qué se decidió
-**Razón:** Por qué — problema que resuelve, alternativas descartadas
-**Impacto:** Qué archivos o fases afecta
-```
-
----
-
 ## [2026-07] Gestor de paquetes frontend
 **Decisión:** pnpm en lugar de npm
 **Razón:** Más rápido, usa almacén central compartido sin duplicar dependencias, y es estricto con dependencias fantasma — solo accedes a lo que declaras explícitamente. Mayor seguridad por diseño.
@@ -174,4 +163,19 @@ backend-cloud/src/
 **Decisión:** Adopción obligatoria de principios SOLID (SRP, OCP, LSP, ISP, DIP) y Separación de Responsabilidades (SoC) como estándares de diseño en la arquitectura hexagonal tanto en frontend como en backend-cloud.
 **Razón:** Mantenibilidad y desacoplamiento. Las reglas de negocio permanecen aisladas de los detalles de infraestructura (Supabase, FastAPI, React, Bold, Brevo). Permite realizar pruebas unitarias desacopladas y cambiar proveedores externos sin modificar la lógica del dominio o los casos de uso.
 **Impacto:** Define la responsabilidad estricta de cada carpeta (`domain/`, `application/`, `infrastructure/`, `ui/` / `api/`). Prohíbe consultas directas a Supabase o lógica de fechas/membresías dentro de componentes UI o routers FastAPI.
+
+---
+
+## [2026-07] Vista de detalle de miembro
+**Decisión:** Página dedicada /admin/members/:id en lugar de modal expandido
+**Razón:** El modal es insuficiente para mostrar historial de pagos, accesos y múltiples acciones. Una página dedicada es más limpia, escalable y fácil de entender para el admin.
+**Impacto:** AdminMembers.tsx — click en miembro navega a detalle
+
+---
+
+## [2026-07] Dashboard métricas en backend
+**Decisión:** Métricas del dashboard calculadas en Railway (FastAPI)
+**Razón:** Escalabilidad, rendimiento y seguridad. PostgreSQL ejecuta
+las agregaciones directamente, el frontend solo renderiza.
+El volumen crecerá con el tiempo — esta arquitectura lo soporta.
 

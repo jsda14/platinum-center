@@ -83,13 +83,12 @@
 }
 
 .member-renewal__card--selected {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-glow-accent);
+  border: 2px solid var(--color-accent) !important;
+  animation: selectPulse var(--transition-slow) forwards ease-in-out;
 }
 
 .member-renewal__card--selected:hover {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-glow-accent);
+  border: 2px solid var(--color-accent) !important;
 }
 
 .member-renewal__card-header {
@@ -266,4 +265,55 @@
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+.member-renewal__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.member-renewal__plans-container {
+  width: 100%;
+}
+
+.member-renewal__scroll-indicator {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translate(-50%, 0);
+  background-color: var(--color-accent);
+  color: var(--color-dark);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-glow-accent);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+  animation: slideUpFade 0.3s ease-out, bounceIndicator 1.2s infinite ease-in-out;
+}
+
+@media (min-width: 1024px) {
+  .member-renewal__layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-6);
+  }
+
+  .member-renewal__plans-container {
+    flex: 1;
+  }
+
+  .member-renewal__checkout {
+    width: 380px;
+    position: sticky;
+    top: var(--space-5);
+    margin-top: 0;
+    flex-shrink: 0;
+  }
 }

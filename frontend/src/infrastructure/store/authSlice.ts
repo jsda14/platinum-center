@@ -6,6 +6,7 @@ import type { Profile } from '../../domain/member/member.types';
 export interface AuthState {
   user: User | null;
   profile: Profile | null;
+  accessToken: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -13,6 +14,7 @@ export interface AuthState {
 const initialState: AuthState = {
   user: null,
   profile: null,
+  accessToken: null,
   loading: true,
   error: null,
 };
@@ -40,7 +42,7 @@ export const fetchProfile = createAsyncThunk<Profile, string, { rejectValue: str
 );
 
 export const loginWithEmail = createAsyncThunk<
-  { user: User; profile: Profile | null },
+  { user: User; profile: Profile | null; accessToken: string | null },
   { email: string; password: string },
   { rejectValue: string }
 >('auth/loginWithEmail', async ({ email, password }, { dispatch, rejectWithValue }) => {
@@ -64,7 +66,8 @@ export const loginWithEmail = createAsyncThunk<
       profile = profileResult.payload;
     }
 
-    return { user: data.user, profile };
+    const token = data.session?.access_token || null;
+    return { user: data.user, profile, accessToken: token };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error inesperado al iniciar sesión';
     return rejectWithValue(message);
@@ -111,9 +114,10 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setUser(state, action: PayloadAction<{ user: User | null; profile: Profile | null }>) {
+    setUser(state, action: PayloadAction<{ user: User | null; profile: Profile | null; accessToken: string | null }>) {
       state.user = action.payload.user;
       state.profile = action.payload.profile;
+      state.accessToken = action.payload.accessToken;
       state.loading = false;
       state.error = null;
     },
@@ -130,6 +134,7 @@ const authSlice = createSlice({
       state.loading = false;
       state.user = action.payload.user;
       state.profile = action.payload.profile;
+      state.accessToken = action.payload.accessToken;
     });
     builder.addCase(loginWithEmail.rejected, (state, action) => {
       state.loading = false;
@@ -148,6 +153,7 @@ const authSlice = createSlice({
     builder.addCase(logout.fulfilled, (state) => {
       state.user = null;
       state.profile = null;
+      state.accessToken = null;
       state.loading = false;
       state.error = null;
     });

@@ -1,0 +1,303 @@
+.admin-members {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+  padding: var(--space-4);
+  color: var(--color-text-primary);
+  min-height: 100%;
+}
+
+.admin-members__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .admin-members__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.admin-members__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.admin-members__btn-create {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--space-2) !important;
+  transition: background-color var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+.admin-members__btn-create:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  transform: translateY(-1px);
+}
+
+.admin-members__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  background-color: var(--color-dark-surface);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .admin-members__filters {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.admin-members__search-input {
+  flex: 1;
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  height: 40px !important;
+}
+
+.admin-members__search-input :global(.ant-input) {
+  background-color: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-members__search-input :global(.ant-input-prefix) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-members__status-select {
+  width: 100% !important;
+  height: 40px !important;
+}
+
+@media (min-width: 768px) {
+  .admin-members__status-select {
+    width: 200px !important;
+  }
+}
+
+.admin-members__status-select :global(.ant-select-selector) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-members__status-select :global(.ant-select-arrow) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-members__table-wrapper {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+/* Modificaciones estéticas de la tabla de Ant Design en tema oscuro */
+.admin-members__table-wrapper :global(.ant-table) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-table-thead > tr > th) {
+  background: var(--color-dark-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+}
+
+.admin-members__table-wrapper :global(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-pagination-item-active) {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-primary) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-pagination-item-active a) {
+  color: var(--color-text-primary) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-pagination-item) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-pagination-item a) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-members__table-wrapper :global(.ant-pagination-prev .ant-pagination-item-link),
+.admin-members__table-wrapper :global(.ant-pagination-next .ant-pagination-item-link) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-members__action-btn {
+  border-radius: var(--radius-sm) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.admin-members__status-tag {
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  display: inline-block;
+  text-align: center;
+}
+
+.admin-members__status-tag--active {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid var(--color-status-active) !important;
+  color: var(--color-status-active) !important;
+}
+
+.admin-members__status-tag--expired {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid var(--color-status-expired) !important;
+  color: var(--color-status-expired) !important;
+}
+
+.admin-members__status-tag--suspended {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid var(--color-status-warning) !important;
+  color: var(--color-status-warning) !important;
+}
+
+.admin-members__loading-container,
+.admin-members__error-container,
+.admin-members__empty-container {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.admin-members__loading-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-members__error-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-status-expired);
+  margin: 0;
+}
+
+.admin-members__error-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-members__btn-retry {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-members__btn-retry:hover {
+  background-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-members__status-filter-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .admin-members__status-filter-container {
+    width: auto;
+  }
+}
+
+.admin-members__chip-alert-badge {
+  background-color: #F59E0B;
+  color: #1A1A1A;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.admin-members__name-text {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.admin-members__secondary-text {
+  color: var(--color-text-secondary);
+}
+
+.admin-members__no-chip-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.admin-members__btn-reload {
+  height: 40px !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-members__empty-action-btn {
+  margin-top: var(--space-3) !important;
+}
+
+.admin-members__input-number-full {
+  width: 100% !important;
+}
+
+.admin-members__actions-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-members__table-row {
+  cursor: pointer;
+}

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Button, Avatar } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -9,6 +9,8 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  TagOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -16,6 +18,13 @@ import styles from './AdminLayout.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
 const { Header, Sider, Content } = Layout;
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
 
 interface AdminLayoutProps {
   children?: ReactNode;
@@ -33,40 +42,49 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     navigate('/login');
   };
 
+  const basePath = location.pathname.startsWith('/reception')
+    ? '/reception'
+    : '/admin';
+
   const menuItems = [
-    {
+    ...(basePath === '/admin' ? [{
       key: '/admin',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
       onClick: () => navigate('/admin'),
-    },
+    }] : []),
     {
-      key: '/admin/members',
+      key: `${basePath}/members`,
       icon: <UserOutlined />,
       label: 'Miembros',
-      onClick: () => navigate('/admin/members'),
+      onClick: () => navigate(`${basePath}/members`),
     },
     {
-      key: '/admin/payments',
+      key: `${basePath}/payments`,
       icon: <DollarOutlined />,
       label: 'Pagos',
-      onClick: () => navigate('/admin/payments'),
+      onClick: () => navigate(`${basePath}/payments`),
     },
     {
-      key: '/admin/config',
-      icon: <SettingOutlined />,
-      label: 'Configuración',
-      onClick: () => navigate('/admin/config'),
+      key: `${basePath}/plans`,
+      icon: <TagOutlined />,
+      label: 'Planes',
+      onClick: () => navigate(`${basePath}/plans`),
     },
-  ];
-
-  const userMenuItems = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Cerrar sesión',
-      onClick: handleLogout,
-    },
+    ...(basePath === '/admin' ? [
+      {
+        key: '/admin/settings',
+        icon: <SettingOutlined />,
+        label: 'Configuración',
+        onClick: () => navigate('/admin/settings'),
+      },
+      {
+        key: '/admin/communications',
+        icon: <NotificationOutlined />,
+        label: 'Comunicados',
+        onClick: () => navigate('/admin/communications'),
+      },
+    ] : []),
   ];
 
   return (
@@ -93,7 +111,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[
+            location.pathname.startsWith(`${basePath}/members`)
+              ? `${basePath}/members`
+              : location.pathname.startsWith(`${basePath}/payments`)
+              ? `${basePath}/payments`
+              : location.pathname.startsWith(`${basePath}/plans`)
+              ? `${basePath}/plans`
+              : location.pathname.startsWith('/admin/settings')
+              ? '/admin/settings'
+              : location.pathname.startsWith('/admin/communications')
+              ? '/admin/communications'
+              : basePath
+          ]}
           items={menuItems}
           className={styles['admin-layout__menu']}
         />
@@ -108,23 +138,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             aria-label="Alternar navegación"
           />
           <div className={styles['admin-layout__user']}>
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div className={styles['admin-layout__user-info']}>
-                <Avatar
-                  src={profile?.avatar_url || undefined}
-                  icon={!profile?.avatar_url && <UserOutlined />}
-                  className={styles['admin-layout__avatar']}
-                />
-                <div className={styles['admin-layout__user-details']}>
-                  <span className={styles['admin-layout__user-name']}>
-                    {profile?.full_name || 'Usuario Admin'}
-                  </span>
-                  <span className={styles['admin-layout__user-role']}>
-                    {profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'}
-                  </span>
-                </div>
-              </div>
-            </Dropdown>
+            <Avatar
+              className={styles['admin-layout__user-avatar']}
+              shape="circle"
+            >
+              {getInitials(profile?.full_name || 'Usuario Admin')}
+            </Avatar>
+            <span className={styles['admin-layout__user-name']}>
+              {profile?.full_name || 'Usuario Admin'}
+            </span>
+            <span className={styles['admin-layout__user-role']}>
+              ({profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'})
+            </span>
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              className={styles['admin-layout__logout-btn']}
+              aria-label="Cerrar sesión"
+            />
           </div>
         </Header>
         <Content className={styles['admin-layout__content']}>
