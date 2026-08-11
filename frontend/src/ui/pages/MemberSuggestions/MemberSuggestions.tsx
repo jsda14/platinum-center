@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import { getMemberSuggestions } from '../../../application/member/getMemberSuggestions.usecase';
 import { createSuggestion } from '../../../application/member/createSuggestion.usecase';
+import { memberRepository } from '../../../infrastructure/supabase/member.repository';
 import type { Suggestion } from '../../../domain/member/member.types';
 import styles from './MemberSuggestions.module.css';
 
@@ -49,7 +50,7 @@ export function MemberSuggestions() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberId) return;
+    if (!profile) return;
 
     setFormError(null);
     setShowSuccessAlert(false);
@@ -64,7 +65,14 @@ export function MemberSuggestions() {
 
     try {
       setIsSubmitting(true);
-      const newSuggestion = await createSuggestion(memberId, message.trim());
+      let targetMemberId = memberId;
+      if (!targetMemberId) {
+        const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
+        targetMemberId = m.id;
+        setMemberId(m.id);
+      }
+
+      const newSuggestion = await createSuggestion(targetMemberId, message.trim());
       
       // Update UI state
       setSuggestions((prev) => [newSuggestion, ...prev]);
@@ -185,7 +193,7 @@ export function MemberSuggestions() {
           <div className={styles['member-suggestions__empty']}>
             <h3 className={styles['member-suggestions__empty-title']}>No tienes sugerencias previas</h3>
             <p className={styles['member-suggestions__empty-desc']}>
-              Aún no has enviado ninguna sugerencia a través de tu portal.
+              Aún no has enviado sugerencias.
             </p>
           </div>
         ) : (
@@ -221,4 +229,5 @@ export function MemberSuggestions() {
     </div>
   );
 }
+
 export default MemberSuggestions;

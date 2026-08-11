@@ -92,9 +92,15 @@ export function MemberPayments() {
 
   if (!payments || payments.length === 0) {
     return (
-      <div className={styles['member-payments__empty']}>
-        <h2>Sin pagos registrados</h2>
-        <p>No tienes ningún historial de pagos registrado en el sistema.</p>
+      <div className={styles['member-payments']} role="main">
+        <header className={styles['member-payments__header']}>
+          <h1 className={styles['member-payments__title']}>Historial de Pagos</h1>
+          <p className={styles['member-payments__subtitle']}>Consulta todos tus pagos y suscripciones</p>
+        </header>
+        <div className={styles['member-payments__empty']}>
+          <h2>Sin pagos registrados</h2>
+          <p>No tienes historial de pagos aún.</p>
+        </div>
       </div>
     );
   }
@@ -167,4 +173,5 @@ export function MemberPayments() {
     </div>
   );
 }
+
 export default MemberPayments;

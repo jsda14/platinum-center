@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
+import { memberRepository } from '../../../infrastructure/supabase/member.repository';
 import type { Plan } from '../../../domain/member/member.types';
 import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymentButton';
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
@@ -12,6 +13,7 @@ export function MemberRenewal() {
   const { profile } = useAppSelector((state) => state.auth);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [hasMember, setHasMember] = useState<boolean>(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
@@ -39,7 +41,12 @@ export function MemberRenewal() {
 
         // Fetch current member details via the application use case to get the member ID
         const statusResult = await getMemberStatus(profile.id);
-        setMemberId(statusResult.member.id);
+        if (statusResult.member) {
+          setMemberId(statusResult.member.id);
+          setHasMember(true);
+        } else {
+          setHasMember(false);
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al cargar los planes disponibles';
         setError(msg);
@@ -52,6 +59,8 @@ export function MemberRenewal() {
   }, [profile]);
 
   const handleSelectPlan = async (plan: Plan) => {
+    if (!profile) return;
+
     setSelectedPlan(plan);
     setOrderId(null);
     setSignature(null);
@@ -72,6 +81,13 @@ export function MemberRenewal() {
     }
 
     try {
+      let targetMemberId = memberId;
+      if (!targetMemberId) {
+        const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
+        targetMemberId = m.id;
+        setMemberId(m.id);
+      }
+
       // 1. Generate unique order ID
       const newOrderId = window.crypto && window.crypto.randomUUID 
         ? window.crypto.randomUUID() 
@@ -82,10 +98,6 @@ export function MemberRenewal() {
       // 2. Plan price in COP pesos (e.g. 60000)
       const amountInPesos = Math.round(plan.price);
 
-      if (!memberId) {
-        throw new Error('No se pudo encontrar el ID del miembro para registrar el pago');
-      }
-
       // 3. Register payment intent in backend-cloud
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const intentResponse = await fetch(`${apiUrl}/bold/create-payment-intent`, {
@@ -95,7 +107,7 @@ export function MemberRenewal() {
         },
         body: JSON.stringify({
           order_id: newOrderId,
-          member_id: memberId,
+          member_id: targetMemberId,
           plan_slug: plan.slug,
           amount: amountInPesos
         })
@@ -201,7 +213,9 @@ export function MemberRenewal() {
     <div className={styles['member-renewal']} role="main">
       {isSubmitting && <LoadingScreen message="Iniciando transacción segura..." />}
       <header className={styles['member-renewal__header']}>
-        <h1 className={styles['member-renewal__title']}>Renueva tu Membresía</h1>
+        <h1 className={styles['member-renewal__title']}>
+          {hasMember ? 'Renueva tu Membresía' : 'Adquiere tu Membresía'}
+        </h1>
         <p className={styles['member-renewal__subtitle']}>
           Selecciona el plan que mejor se adapte a tus objetivos y continúa entrenando en Platinum Center.
         </p>
