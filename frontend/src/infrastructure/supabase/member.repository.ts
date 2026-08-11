@@ -16,21 +16,21 @@ export const memberRepository = {
   },
 
   async getOrCreateMemberByProfileId(profileId: string): Promise<Member> {
-    const existing = await this.getMemberByProfileId(profileId);
-    if (existing) return existing;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/members/get-or-create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ profile_id: profileId }),
+    });
 
-    const { data, error } = await supabase
-      .from('members')
-      .insert({
-        profile_id: profileId,
-        status: 'expired',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ detail: 'Error al obtener o crear la membresía' }));
+      throw new Error(errData.detail || 'Error al obtener o crear la membresía');
     }
+
+    const data = await response.json();
     return data as Member;
   },
 
