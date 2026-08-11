@@ -88,7 +88,8 @@ export function App() {
 
       {/* Public / Auth routes */}
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login defaultMode="login" />} />
+        <Route path="/register" element={<Login defaultMode="register" />} />
         <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
 
