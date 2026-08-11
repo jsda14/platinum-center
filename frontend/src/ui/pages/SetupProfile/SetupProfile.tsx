@@ -10,8 +10,13 @@ import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import styles from './SetupProfile.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
-// Validation Schema using Zod
-const setupProfileSchema = z.object({
+// Validation Schemas using Zod
+const googleProfileSchema = z.object({
+  fullName: z.string().min(1, 'El nombre completo es requerido'),
+  phone: z.string().min(1, 'El teléfono es requerido'),
+});
+
+const emailProfileSchema = z.object({
   fullName: z.string().min(1, 'El nombre completo es requerido'),
   phone: z.string().min(1, 'El teléfono es requerido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
@@ -21,13 +26,18 @@ const setupProfileSchema = z.object({
   path: ['confirmPassword']
 });
 
-type SetupProfileFormData = z.infer<typeof setupProfileSchema>;
+type SetupProfileFormData = {
+  fullName: string;
+  phone: string;
+  password?: string;
+  confirmPassword?: string;
+};
 
 export function SetupProfile() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
-  // Get existing auth state to pre-fill fullName if possible
+  // Get existing auth state
   const { profile, user, accessToken } = useAppSelector((state) => state.auth);
 
   const [formData, setFormData] = useState<SetupProfileFormData>({
@@ -37,16 +47,20 @@ export function SetupProfile() {
     confirmPassword: ''
   });
 
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof SetupProfileFormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Fetch profile to pre-fill name and phone
+  // Fetch profile and check auth provider
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        const googleUser = session?.user?.app_metadata?.provider === 'google';
+        setIsGoogleUser(!!googleUser);
+
         const currentUserId = session?.user?.id || user?.id;
         if (!currentUserId) return;
 
@@ -86,8 +100,9 @@ export function SetupProfile() {
     setIsSubmitting(true);
     setErrors({});
 
-    // Zod validation
-    const validation = setupProfileSchema.safeParse(formData);
+    // Zod validation according to user provider
+    const schema = isGoogleUser ? googleProfileSchema : emailProfileSchema;
+    const validation = schema.safeParse(formData);
     if (!validation.success) {
       const fieldErrors: Partial<Record<keyof SetupProfileFormData, string>> = {};
       validation.error.issues.forEach((issue) => {
@@ -108,13 +123,15 @@ export function SetupProfile() {
         throw new Error('No se encontró una sesión de usuario activa.');
       }
 
-      // 2. Update user password in Auth
-      const { error: authError } = await supabase.auth.updateUser({
-        password: formData.password
-      });
+      // 2. Update user password in Auth only if manually registered by email
+      if (!isGoogleUser && formData.password) {
+        const { error: authError } = await supabase.auth.updateUser({
+          password: formData.password
+        });
 
-      if (authError) {
-        throw new Error(`Error en Auth: ${authError.message}`);
+        if (authError) {
+          throw new Error(`Error en Auth: ${authError.message}`);
+        }
       }
 
       // 3. Update profile fields
@@ -212,69 +229,74 @@ export function SetupProfile() {
               )}
             </div>
 
-            {/* Field: Password */}
-            <div className={styles['setup-profile__field']}>
-              <label htmlFor="password" className={styles['setup-profile__label']}>
-                Nueva Contraseña
-              </label>
-              <div className={styles['setup-profile__password-container']}>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className={`${styles['setup-profile__input']} ${
-                    errors.password ? styles['setup-profile__input--error'] : ''
-                  }`}
-                  placeholder="Mínimo 8 caracteres"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className={styles['setup-profile__password-toggle']}
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                </button>
-              </div>
-              {errors.password && (
-                <span className={styles['setup-profile__error-message']}>{errors.password}</span>
-              )}
-            </div>
+            {/* Password fields only for email signups */}
+            {!isGoogleUser && (
+              <>
+                {/* Field: Password */}
+                <div className={styles['setup-profile__field']}>
+                  <label htmlFor="password" className={styles['setup-profile__label']}>
+                    Nueva Contraseña
+                  </label>
+                  <div className={styles['setup-profile__password-container']}>
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`${styles['setup-profile__input']} ${
+                        errors.password ? styles['setup-profile__input--error'] : ''
+                      }`}
+                      placeholder="Mínimo 8 caracteres"
+                      value={formData.password || ''}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      type="button"
+                      className={styles['setup-profile__password-toggle']}
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <span className={styles['setup-profile__error-message']}>{errors.password}</span>
+                  )}
+                </div>
 
-            {/* Field: Confirm Password */}
-            <div className={styles['setup-profile__field']}>
-              <label htmlFor="confirmPassword" className={styles['setup-profile__label']}>
-                Confirmar Contraseña
-              </label>
-              <div className={styles['setup-profile__password-container']}>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className={`${styles['setup-profile__input']} ${
-                    errors.confirmPassword ? styles['setup-profile__input--error'] : ''
-                  }`}
-                  placeholder="Repite la contraseña"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className={styles['setup-profile__password-toggle']}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showConfirmPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <span className={styles['setup-profile__error-message']}>{errors.confirmPassword}</span>
-              )}
-            </div>
+                {/* Field: Confirm Password */}
+                <div className={styles['setup-profile__field']}>
+                  <label htmlFor="confirmPassword" className={styles['setup-profile__label']}>
+                    Confirmar Contraseña
+                  </label>
+                  <div className={styles['setup-profile__password-container']}>
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      className={`${styles['setup-profile__input']} ${
+                        errors.confirmPassword ? styles['setup-profile__input--error'] : ''
+                      }`}
+                      placeholder="Repite la contraseña"
+                      value={formData.confirmPassword || ''}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      type="button"
+                      className={styles['setup-profile__password-toggle']}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showConfirmPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <span className={styles['setup-profile__error-message']}>{errors.confirmPassword}</span>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Submit Button */}
             <button

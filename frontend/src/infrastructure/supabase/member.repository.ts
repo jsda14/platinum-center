@@ -2,7 +2,7 @@ import { supabase } from './client';
 import type { Member, MemberDayPass, Payment, Suggestion } from '../../domain/member/member.types';
 
 export const memberRepository = {
-  async getMemberByProfileId(profileId: string): Promise<Member> {
+  async getMemberByProfileId(profileId: string): Promise<Member | null> {
     const { data, error } = await supabase
       .from('members')
       .select('*')
@@ -12,8 +12,24 @@ export const memberRepository = {
     if (error) {
       throw new Error(error.message);
     }
-    if (!data) {
-      throw new Error('No se encontró información de membresía para este perfil.');
+    return (data || null) as Member | null;
+  },
+
+  async getOrCreateMemberByProfileId(profileId: string): Promise<Member> {
+    const existing = await this.getMemberByProfileId(profileId);
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from('members')
+      .insert({
+        profile_id: profileId,
+        status: 'expired',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
     }
     return data as Member;
   },
