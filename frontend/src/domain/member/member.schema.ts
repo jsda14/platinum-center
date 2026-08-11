@@ -19,7 +19,7 @@ export const suggestionStatusSchema = z.enum(['pending', 'read', 'answered']);
 export const profileSchema = z.object({
   id: z.uuid(),
   full_name: z.string().min(1, 'El nombre completo es requerido'),
-  email: z.string().email('Email inválido'),
+  email: z.email('Email inválido'),
   phone: z.string().nullable().optional(),
   role: userRoleSchema,
   avatar_url: z.string().nullable().optional(),
