@@ -19,10 +19,9 @@ async def get_or_create_member(data: GetOrCreateMemberRequest):
     if res.data:
         return res.data[0]
     
-    # Si no existe, crear
     insert_res = supabase_client.table("members").insert({
         "profile_id": profile_id,
-        "status": "inactive"
+        "status": "suspended"
     }).execute()
     
     return insert_res.data[0]
