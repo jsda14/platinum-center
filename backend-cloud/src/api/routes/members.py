@@ -18,7 +18,7 @@ async def get_or_create_member(data: GetOrCreateMemberRequest):
     res = supabase_client.table("members")\
         .select("*")\
         .eq("profile_id", profile_id)\
-        .maybeSingle()\
+        .maybe_single()\
         .execute()
     
     if res.data:
