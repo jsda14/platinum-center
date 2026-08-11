@@ -7,6 +7,8 @@ import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
 
 import { AdminMembers } from './ui/pages/AdminMembers/AdminMembers';
 import { Login } from './ui/pages/Login/Login';
+import { ForgotPassword } from './ui/pages/ForgotPassword/ForgotPassword';
+import { ResetPassword } from './ui/pages/ResetPassword/ResetPassword';
 import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
 import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
@@ -90,6 +92,8 @@ export function App() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login defaultMode="login" />} />
         <Route path="/register" element={<Login defaultMode="register" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
 

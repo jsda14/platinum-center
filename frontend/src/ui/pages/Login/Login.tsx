@@ -213,6 +213,16 @@ export function Login({ defaultMode = 'login' }: LoginProps) {
                 )}
               </div>
 
+              <div className={styles['login__forgot-container']}>
+                <button
+                  type="button"
+                  className={styles['login__forgot-button']}
+                  onClick={() => navigate('/forgot-password')}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
               <button
                 type="submit"
                 className={`${styles.login__button} ${styles['login__button--primary']}`}
@@ -225,7 +235,8 @@ export function Login({ defaultMode = 'login' }: LoginProps) {
             <form className={styles.login__form} onSubmit={handleRegisterSubmit} noValidate>
               {registerSuccess && (
                 <div className={`${styles.login__alert} ${styles['login__alert--success']}`} role="status">
-                  ¡Correo de registro enviado! Revisa tu bandeja de entrada para activar tu cuenta.
+                  ¡Correo enviado correctamente! Si este correo no está registrado, recibirás un enlace de activación en tu bandeja de entrada.
+                  Espera de 1 a 5 minutos.
                 </div>
               )}
 
