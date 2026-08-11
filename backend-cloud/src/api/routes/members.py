@@ -9,20 +9,15 @@ router = APIRouter(tags=["members"])
 
 @router.post("/members/get-or-create")
 async def get_or_create_member(data: GetOrCreateMemberRequest):
-    """
-    Obtiene o crea un registro en members para el profile_id dado.
-    Usa service role — bypasea RLS.
-    """
     profile_id = data.profile_id
-    # Buscar primero
+    
     res = supabase_client.table("members")\
         .select("*")\
         .eq("profile_id", profile_id)\
-        .maybe_single()\
         .execute()
     
     if res.data:
-        return res.data
+        return res.data[0]
     
     # Si no existe, crear
     insert_res = supabase_client.table("members").insert({
