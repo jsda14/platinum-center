@@ -25,7 +25,6 @@ import { AdminCommunications } from './ui/pages/AdminCommunications/AdminCommuni
 import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
 import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
 import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
-import { Landing } from './ui/pages/Landing/Landing';
 import { AdminProfile } from './ui/pages/AdminProfile/AdminProfile';
 
 import { useAppSelector } from './infrastructure/store/store';
@@ -86,7 +85,7 @@ export function App() {
   return (
     <>
       <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Public / Auth routes */}
       <Route element={<AuthLayout />}>
@@ -187,7 +186,7 @@ export function App() {
         <Route path="settings" element={<MemberSettings />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
     <CookieBanner />
   </>
