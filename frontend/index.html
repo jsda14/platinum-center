@@ -4,12 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/src/assets/platinum-center-logo.png">
-    <!-- 1. Título EXACTO sin nada extra -->
+    
+    <!-- 1. Títulos y Meta Tags explícitos para el bot de Google -->
     <title>Platinum Center</title>
+    <meta name="application-name" content="Platinum Center">
+    <meta property="og:title" content="Platinum Center">
+    <meta property="og:site_name" content="Platinum Center">
+    <meta name="apple-mobile-web-app-title" content="Platinum Center">
+    
     <meta name="google-site-verification" content="gdLn2ABlX3iinDkHcYVBTtJkNwcVK4X2xtbpmAlrfOk" />
   </head>
   <body>
-    <!-- 2. Texto duro para que el bot lo lea. Vite/React sobrescribirá este div al cargar, así que los usuarios no notarán nada raro -->
+    <!-- 2. Texto duro en el DOM para la validación superficial -->
     <div id="root">
       <h1 style="visibility: hidden;">Platinum Center</h1>
     </div>
