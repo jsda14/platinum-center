@@ -147,6 +147,13 @@ async def create_member(
         
         # 5. Si es plan 15_days, registrar pase diario
         if data.plan == '15_days' and payment_res.data:
+            # Cerrar cualquier day_pass activo anterior para este member_id
+            supabase_client.table("member_day_passes")\
+                .update({"status": "exhausted"})\
+                .eq("member_id", member_data["id"])\
+                .eq("status", "active")\
+                .execute()
+
             supabase_client.table("member_day_passes").insert({
                 "member_id": member_data["id"],
                 "payment_id": payment_res.data[0]["id"],

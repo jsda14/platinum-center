@@ -15,7 +15,7 @@ app = FastAPI(title="Platinum Center API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://platinum-center.vercel.app", "https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app"],
+    allow_origins=["http://localhost:5173", "https://platinum-center.vercel.app", "https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app", "https://www.gymplatinumcenter.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
