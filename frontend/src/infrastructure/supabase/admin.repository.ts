@@ -257,6 +257,13 @@ export const adminRepository = {
       throw new Error(`Error al actualizar membresía: ${updateMemberError.message}`);
     }
 
+    // Cerrar cualquier day_pass activo anterior para este member_id (el nuevo plan tiene prioridad)
+    await supabase
+      .from('member_day_passes')
+      .update({ status: 'exhausted' })
+      .eq('member_id', data.member_id)
+      .eq('status', 'active');
+
     // 7. Si es un plan de 15 días, registrar el member_day_passes
     if (data.plan === '15_days') {
       const partsStart = startDate.split('-');
