@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   IdcardOutlined,
@@ -8,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
+import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
 import styles from './MemberLayout.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
@@ -16,6 +18,19 @@ export function MemberLayout() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { profile } = useAppSelector((state) => state.auth);
+  const [hasActiveMember, setHasActiveMember] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    getMemberStatus(profile.id)
+      .then((res) => {
+        setHasActiveMember(!!res?.member);
+      })
+      .catch(() => {
+        setHasActiveMember(false);
+      });
+  }, [profile, location.pathname]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -30,12 +45,12 @@ export function MemberLayout() {
     },
     {
       path: '/portal/payments',
-      label: 'Pagos',
+      label: 'Historial de Pagos',
       icon: <CreditCardOutlined />,
     },
     {
       path: '/portal/renewal',
-      label: 'Renovar',
+      label: hasActiveMember ? 'Renovar' : 'Adquirir',
       icon: <CreditCardOutlined />,
     },
     {
@@ -106,3 +121,5 @@ export function MemberLayout() {
     </div>
   );
 }
+
+export default MemberLayout;

@@ -2,7 +2,7 @@ import { supabase } from './client';
 import type { Member, MemberDayPass, Payment, Suggestion } from '../../domain/member/member.types';
 
 export const memberRepository = {
-  async getMemberByProfileId(profileId: string): Promise<Member> {
+  async getMemberByProfileId(profileId: string): Promise<Member | null> {
     const { data, error } = await supabase
       .from('members')
       .select('*')
@@ -12,9 +12,25 @@ export const memberRepository = {
     if (error) {
       throw new Error(error.message);
     }
-    if (!data) {
-      throw new Error('No se encontró información de membresía para este perfil.');
+    return (data || null) as Member | null;
+  },
+
+  async getOrCreateMemberByProfileId(profileId: string): Promise<Member> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/members/get-or-create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ profile_id: profileId }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ detail: 'Error al obtener o crear la membresía' }));
+      throw new Error(errData.detail || 'Error al obtener o crear la membresía');
     }
+
+    const data = await response.json();
     return data as Member;
   },
 

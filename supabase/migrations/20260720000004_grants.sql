@@ -30,3 +30,5 @@ GRANT UPDATE ON public.profiles TO authenticated;
 
 GRANT INSERT, UPDATE, DELETE ON public.plan_group_pricing TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.communications TO authenticated;
+
+GRANT SELECT, INSERT ON public.access_logs TO service_role;

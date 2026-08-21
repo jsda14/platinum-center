@@ -45,7 +45,19 @@ async def access_event(
         member_id = member["id"]
         event_type = "granted"
 
-        # Registra en access_logs: event_type='granted'
+        # Extraer fecha (YYYY-MM-DD) y verificar si ya existe una entrada granted hoy
+        day_str = data.timestamp[:10]
+        existing_logs = supabase_client.table("access_logs")\
+            .select("id")\
+            .eq("member_id", member_id)\
+            .eq("event_type", "granted")\
+            .gte("timestamp", f"{day_str}T00:00:00")\
+            .lte("timestamp", f"{day_str}T23:59:59")\
+            .execute()
+
+        already_entered_today = bool(existing_logs.data)
+
+        # Registra en access_logs: event_type='granted' (se hace siempre para mantener el historial)
         supabase_client.table("access_logs").insert({
             "member_id": member_id,
             "card_no": data.card_no,
@@ -54,8 +66,8 @@ async def access_event(
             "raw_payload": json.dumps(data.dict())
         }).execute()
 
-        # Si plan es '15_days': incrementa days_used en member_day_passes
-        if member.get("plan") == "15_days":
+        # Si plan es '15_days' y es la primera entrada del día: incrementa days_used en member_day_passes
+        if member.get("plan") == "15_days" and not already_entered_today:
             passes_res = supabase_client.table("member_day_passes")\
                 .select("id, days_used, days_total")\
                 .eq("member_id", member_id)\

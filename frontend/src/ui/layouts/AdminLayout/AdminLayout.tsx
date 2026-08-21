@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar } from 'antd';
+import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -31,11 +31,17 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { profile } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -87,8 +93,32 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     ] : []),
   ];
 
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Mi Perfil',
+      onClick: () => navigate(`${basePath}/profile`),
+    },
+    {
+      type: 'divider' as const,
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Cerrar sesión',
+      onClick: handleLogout,
+    },
+  ];
+
   return (
     <Layout className={styles['admin-layout']}>
+      {window.innerWidth < 768 && !collapsed && (
+        <div 
+          className={styles['admin-layout__overlay']} 
+          onClick={() => setCollapsed(true)}
+        />
+      )}
       <Sider
         trigger={null}
         collapsible
@@ -118,6 +148,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               ? `${basePath}/payments`
               : location.pathname.startsWith(`${basePath}/plans`)
               ? `${basePath}/plans`
+              : location.pathname.startsWith(`${basePath}/profile`)
+              ? `${basePath}/profile`
               : location.pathname.startsWith('/admin/settings')
               ? '/admin/settings'
               : location.pathname.startsWith('/admin/communications')
@@ -138,24 +170,37 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             aria-label="Alternar navegación"
           />
           <div className={styles['admin-layout__user']}>
-            <Avatar
-              className={styles['admin-layout__user-avatar']}
-              shape="circle"
-            >
-              {getInitials(profile?.full_name || 'Usuario Admin')}
-            </Avatar>
-            <span className={styles['admin-layout__user-name']}>
-              {profile?.full_name || 'Usuario Admin'}
-            </span>
-            <span className={styles['admin-layout__user-role']}>
-              ({profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'})
-            </span>
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+                <Avatar
+                  className={styles['admin-layout__user-avatar']}
+                  shape="circle"
+                >
+                  {getInitials(profile?.full_name || 'Usuario Admin')}
+                </Avatar>
+                <span className={styles['admin-layout__user-name']}>
+                  {profile?.full_name || 'Usuario Admin'}
+                </span>
+                <span className={styles['admin-layout__user-role']}>
+                  ({profile?.role === 'super_admin' ? 'Super Admin' : 'Recepción'})
+                </span>
+              </div>
+            </Dropdown>
+            <Button
+              type="text"
+              icon={<SettingOutlined />}
+              onClick={() => navigate(`${basePath}/profile`)}
+              className={styles['admin-layout__logout-btn']}
+              aria-label="Mi perfil"
+              title="Mi perfil"
+            />
             <Button
               type="text"
               icon={<LogoutOutlined />}
               onClick={handleLogout}
               className={styles['admin-layout__logout-btn']}
               aria-label="Cerrar sesión"
+              title="Cerrar sesión"
             />
           </div>
         </Header>

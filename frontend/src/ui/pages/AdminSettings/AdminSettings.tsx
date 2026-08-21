@@ -125,6 +125,8 @@ export function AdminSettings() {
   const [schedule, setSchedule] = useState<GymSchedule>(DEFAULT_SCHEDULE);
   const [monthlyPlan, setMonthlyPlan] = useState<Plan | null>(null);
 
+  const [activeTab, setActiveTab] = useState<string>('info');
+
   const [isEditingInfo, setIsEditingInfo] = useState<boolean>(false);
   const [initialValues, setInitialValues] = useState<{
     formValues: {
@@ -1079,7 +1081,26 @@ export function AdminSettings() {
         </header>
 
         <div className={styles['admin-settings__tabs-wrapper']}>
-          <Tabs items={tabItems} defaultActiveKey="info" type="card" />
+          {window.innerWidth < 768 ? (
+            <>
+              <div className={styles['admin-settings__mobile-nav']}>
+                {tabItems.map(tab => (
+                  <button 
+                    key={tab.key}
+                    className={`${styles['admin-settings__mobile-tab']} ${activeTab === tab.key ? styles['admin-settings__mobile-tab--active'] : ''}`}
+                    onClick={() => setActiveTab(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className={styles['admin-settings__mobile-content']}>
+                {tabItems.find(t => t.key === activeTab)?.children}
+              </div>
+            </>
+          ) : (
+            <Tabs items={tabItems} defaultActiveKey="info" type="card" />
+          )}
         </div>
 
         {/* Modal for adding group pricing */}
