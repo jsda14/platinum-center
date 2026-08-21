@@ -281,15 +281,16 @@ async def bold_payment_webhook(
         }
         payment_res = supabase_client.table("payments").insert(payment_data).execute()
         
+        # Cerrar cualquier day_pass activo anterior para este member_id
+        supabase_client.table("member_day_passes")\
+            .update({"status": "exhausted"})\
+            .eq("member_id", member_id)\
+            .eq("status", "active")\
+            .execute()
+            
         # 3. Si el plan es de 15 días consumibles, inicializar su contador
         if plan_slug == "15_days" and payment_res.data:
             payment_id = payment_res.data[0].get("id")
-            
-            # Desactivar cualquier pase anterior que estuviera activo
-            supabase_client.table("member_day_passes").update({
-                "status": "expired",
-                "updated_at": datetime.now().isoformat()
-            }).eq("member_id", member_id).eq("status", "active").execute()
             
             # Insertar el nuevo pase
             day_pass_data = {
