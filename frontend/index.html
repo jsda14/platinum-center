@@ -4,11 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/src/assets/platinum-center-logo.png">
-    <title>Platinum Center — Portal de Miembros</title>
+    <!-- 1. Título EXACTO sin nada extra -->
+    <title>Platinum Center</title>
     <meta name="google-site-verification" content="gdLn2ABlX3iinDkHcYVBTtJkNwcVK4X2xtbpmAlrfOk" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- 2. Texto duro para que el bot lo lea. Vite/React sobrescribirá este div al cargar, así que los usuarios no notarán nada raro -->
+    <div id="root">
+      <h1 style="visibility: hidden;">Platinum Center</h1>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
