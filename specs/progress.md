@@ -9,7 +9,7 @@
 ## Estado general
 **Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-08-06
+**Última actualización:** 2026-08-12
 
 ---
 
@@ -90,20 +90,13 @@
 - [x] Registro de pagos manuales (cash / nequi / daviplata)
 - [x] Reactivación automática del chip al registrar pago manual
 - [x] Lógica de renovación anticipada: sumar días desde fecha_fin actual
-- [x] Página de detalle de miembro /admin/members/:id con:
-  - Información del miembro (nombre, email, teléfono, chip)
-  - Estado actual de membresía (plan activo, días restantes, vencimiento)
-  - Historial de pagos completo
-  - Historial de accesos (disponible tras Fase 4 ZKTeco)
-  - Botones de acción: registrar pago, editar info, suspender, asignar chip
+- [x] Página de detalle de miembro /admin/members/:id
 - [x] Gestión de planes (precios, duración editables)
 - [x] Dashboard métricas: ingresos del mes, miembros activos, vencimientos próximos
 - [x] Vista receptionist (permisos limitados)
 - [x] Configuración del gym (nombre, logo, horarios)
 - [x] Vista de miembros sin chip asignado (filtro en AdminMembers + Dashboard)
-- [x] Vista receptionist con permisos limitados
 - [x] Rutas DRY: /admin/* para super_admin, /reception/* para receptionist
-- [x] Mismo componente, diferente URL según rol
 - [x] AdminMemberDetail: botones restringidos por rol en ambas URLs
 
 ---
@@ -111,27 +104,38 @@
 ## Fase 4 — Integración ZKTeco
 **Estado: 🟡 En progreso**
 
-- [x] FastAPI local con los 4 endpoints del protocolo iClock (GET/POST /iclock/cdata, GET /iclock/getrequest, POST /iclock/devicecmd)
+- [x] FastAPI local con los 4 endpoints del protocolo iClock
 - [x] Cola de comandos SQLite (no memoria — más robusto)
-- [x] Cloudflare Tunnel configurado y probado desde PC de desarrollo
-- [x] Webhook Railway → Cloudflare Tunnel → FastAPI local funcionando
+- [x] Cloudflare Tunnel permanente: `bridge.gymplatinumcenter.com` → `localhost:8001`
+- [x] Dominio `gymplatinumcenter.com` registrado en Cloudflare (cuenta personal jsda14)
 - [x] tunnel_client.py: activate/deactivate/sync via túnel
 - [x] Simulador del inBio Pro para pruebas sin hardware
-- [ ] Panel gestión de roles en /admin/settings
-- [ ] Google OAuth configurado con Client ID real
-- [ ] Estado del chip visible en portal del miembro
-- [ ] Ajustes visuales y responsive pendientes
-- [ ] Visita presencial al gym
-- [ ] Mapeo de IDs existentes en Supabase
-- [ ] Prueba real con tarjeta física
+- [x] Panel gestión de roles en /admin/settings
+- [x] Google OAuth configurado con Client ID real
+- [x] Estado del chip visible en portal del miembro
+- [x] Landing page pública para verificación Google
+- [x] Páginas /terminos y /politica-privacidad
+- [x] Responsive mejorado en admin y portal
+- [x] AdminProfile para admin y recepcionista
+- [x] Prueba Google Auth con jsda14@gmail.com — flujo completo validado ✅
+- [x] Prueba flujo B: registro por email → confirmación → SetupProfile → pago → membresía ✅
+- [x] Fix RLS members: INSERT via endpoint Railway /members/get-or-create con service role ✅
+- [x] Fix profile.id undefined en portal de miembro ✅
+- [x] Validación un día = un descuento en member_day_passes ✅
+- [x] Formulario de registro por email en Login ✅
+- [x] Flujo reset password completo (/forgot-password + /reset-password) ✅
+- [x] Templates email Confirm + Reset con identidad Platinum Center (Brevo SMTP) ✅
+- [x] PlatinumCenterBridge.exe — ejecutable Windows con UI Tkinter + UAC admin ✅
+- [x] Fix logger.py para modo --noconsole de PyInstaller ✅
+- [x] Fix duplicate member_day_passes — cerrar activo antes de crear nuevo ✅
+- [x] Swipe simulado → bridge.gymplatinumcenter.com → Railway → Supabase ✅
+- [ ] Visita presencial al gym — conectar inBio Pro real
+- [ ] Mapeo de IDs existentes en inBio Pro con miembros en Supabase
 
 ---
 
 ## Fase 5 — Pagos + Notificaciones completas
 **Estado: ⚪ Pendiente**
-
-> Bold y notificaciones completados en Fase 2. 
-> Fase 5 ahora enfocada en membresías grupales.
 
 - [x] Bold webhook end-to-end (pago confirmed → activa membresía)
 - [x] Idempotencia: UNIQUE constraint en transaction_id
@@ -139,13 +143,7 @@
 - [x] Lógica 15_days: crear member_day_passes al confirmar pago
 - [x] Emails automáticos via Supabase Edge Functions (Brevo)
 - [x] Notificaciones in-app en tiempo real (Supabase Realtime)
-- [ ] Membresías grupales (ver specs/group-memberships.md):
-  - [ ] Schema: plan_group_pricing, group_memberships, group_membership_members
-  - [ ] Portal miembro: crear grupo, invitar personas, pago total o dividido
-  - [ ] Panel admin: registrar grupo presencial con pago manual
-  - [ ] Precios grupales configurables desde gestión de planes
-  - [ ] Email de bienvenida a cada miembro del grupo
-  - [ ] Activación de chip por cada miembro del grupo
+- [ ] Membresías grupales (ver specs/group-memberships.md)
 - [ ] Configurar precios grupales en panel admin (plan_group_pricing)
 
 ---
@@ -157,8 +155,10 @@
 - [ ] Responsive mobile-first revisado
 - [ ] Supabase PROD creado y migrado
 - [ ] Railway PROD desplegado
-- [ ] Dominio personalizado en Vercel (`main`)
+- [ ] Dominio gymplatinumcenter.com conectado a Vercel (`main`)
+- [ ] bridge.gymplatinumcenter.com ya configurado ✅
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym
+- [ ] Restaurar validación HMAC Bold webhook (comentada temporalmente)
 - [ ] Capacitación a Sevastián y recepcionistas
 - [ ] Manual de uso entregado (PDF o Notion)
 - [ ] Entrega formal ✅
@@ -166,37 +166,24 @@
 ---
 
 ## Notas y bloqueos activos
-- ZKTeco local bridge: `platinum-center-local` funcionando con SQLite
-- Tunnel client probado: Railway → Cloudflare → FastAPI local → cola SQLite
+- GYM_TUNNEL_URL fija: `https://bridge.gymplatinumcenter.com` — ya no cambia
+- PlatinumCenterBridge.exe requiere correr como Administrador (UAC configurado en build)
+- exe requiere `.env` en la misma carpeta que el ejecutable (`dist/.env`)
+- Configurar inBio Pro: ADMS/Push → Server = `bridge.gymplatinumcenter.com`, Port 443
 - SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
-- `TUNNEL_SECRET` debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
-- Fase 3 completa — lista para entrega a Sevastián
-- Cobrar $400.000 COP por Fase 3
-- Frontend: https://platinum-center.vercel.app
-- Backend: https://platinum-center-production.up.railway.app
-- Webhook Supabase configurado: `members` UPDATE → Railway `/webhooks/member-status`
-- `SUPABASE_WEBHOOK_SECRET` configurado en Railway
-- Email bloqueado temporalmente por Gmail rate limit en pruebas — no es bug, es comportamiento normal en envíos masivos de prueba (shared IP reputation)
-- PowerShell en Windows requiere `New-Item` en lugar de `mkdir -p` para crear múltiples carpetas
-- Bold integration complete: payment_intents table used for webhook reconciliation
-- Bold metadata.reference = orderId → lookup in payment_intents → member_id + plan
-- Bold webhook signature validation temporarily disabled (commented out) — restore before production
-- Edge Function send-notification desplegada en Supabase
-- Emails funcionando vía Supabase Edge Functions (Deno + Brevo)
+- TUNNEL_SECRET debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
+- Bold webhook signature validation temporalmente desactivada — restaurar en producción
 - Bold test mode: transaction_id "XXXX" guardado como null
-- URL staging Sevastián: https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app
-- Flujo completo de creación de miembro: admin crea → email bienvenida → SetupProfile → portal
-- Supabase auth.admin.generate_link usado para links de activación
-- maskClosable={false} aplicado a todos los modales del admin
-- Precios grupales: UI configurada en /admin/settings pero NO integrada 
-  en flujo de pago — se integra en Fase 5 con membresías grupales
-- LockedFeature: botones duales de contacto (WhatsApp + Email) 
-  en sub-componentes Section y Page
+- Cobrar $400.000 COP por Fase 3 a Sevastián
+- Cobrar $500.000 COP por Fase 4 al completar visita presencial
+- member_day_passes: cerrar activo antes de crear nuevo (fix aplicado)
+- Railway y Vercel están en cuenta del gym — migrar a cuenta personal en Fase 6
+- Dominio gymplatinumcenter.com registrado en cuenta personal jsda14
 
 ## Upsells implementados
 - LockedFeature componente creado y desplegado
 - Exportar reportes: LockedFeature.Button en Dashboard
 - Personalización de colores: LockedFeature.Section en Settings
-- Programar comunicados: LockedFeature.Section en Communications  
+- Programar comunicados: LockedFeature.Section en Communications
 - WhatsApp Business: LockedFeature.Badge en Settings
 - Contacto para upgrades: WhatsApp +573057532192 / jsda14@gmail.com

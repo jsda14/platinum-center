@@ -7,6 +7,8 @@ import { MemberLayout } from './ui/layouts/MemberLayout/MemberLayout';
 
 import { AdminMembers } from './ui/pages/AdminMembers/AdminMembers';
 import { Login } from './ui/pages/Login/Login';
+import { ForgotPassword } from './ui/pages/ForgotPassword/ForgotPassword';
+import { ResetPassword } from './ui/pages/ResetPassword/ResetPassword';
 import { MemberPortal } from './ui/pages/MemberPortal/MemberPortal';
 import { MemberPayments } from './ui/pages/MemberPayments/MemberPayments';
 import { MemberSuggestions } from './ui/pages/MemberSuggestions/MemberSuggestions';
@@ -24,6 +26,7 @@ import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
 import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
 import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
 import { Landing } from './ui/pages/Landing/Landing';
+import { AdminProfile } from './ui/pages/AdminProfile/AdminProfile';
 
 import { useAppSelector } from './infrastructure/store/store';
 
@@ -87,7 +90,10 @@ export function App() {
 
       {/* Public / Auth routes */}
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login defaultMode="login" />} />
+        <Route path="/register" element={<Login defaultMode="register" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/setup-profile" element={<SetupProfile />} />
       </Route>
 
@@ -144,6 +150,7 @@ export function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="communications" element={<AdminCommunications />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* Receptionist routes */}
@@ -160,6 +167,7 @@ export function App() {
         <Route path="members/:id" element={<AdminMemberDetail />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="plans" element={<AdminPlans />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* Member Portal routes */}

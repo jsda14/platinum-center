@@ -2,13 +2,21 @@ import { memberRepository } from '../../infrastructure/supabase/member.repositor
 import type { Member, MemberDayPass } from '../../domain/member/member.types';
 
 export interface MemberStatusResult {
-  member: Member;
+  member: Member | null;
   dayPass: MemberDayPass | null;
   daysRemaining: number;
 }
 
 export async function getMemberStatus(profileId: string): Promise<MemberStatusResult> {
   const member = await memberRepository.getMemberByProfileId(profileId);
+  if (!member) {
+    return {
+      member: null,
+      dayPass: null,
+      daysRemaining: 0,
+    };
+  }
+
   let dayPass: MemberDayPass | null = null;
   let daysRemaining = 0;
 

@@ -1,59 +1,72 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { z } from 'zod';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { loginWithEmail } from '../../../infrastructure/store/authSlice';
 import { supabase } from '../../../infrastructure/supabase/client';
+import { loginSchema, registerSchema, type LoginFormData } from '../../../domain/auth/auth.schema';
+import { registerUserByEmail } from '../../../application/auth/registerUser.usecase';
 import styles from './Login.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'El correo electrónico es requerido').email('Correo electrónico inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-});
+interface LoginProps {
+  defaultMode?: 'login' | 'register';
+}
 
-type LoginFormData = z.infer<typeof loginSchema>;
-
-export function Login() {
+export function Login({ defaultMode = 'login' }: LoginProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { loading, error: authError } = useAppSelector((state) => state.auth);
+  const { loading: authLoading, error: authError } = useAppSelector((state) => state.auth);
 
+  const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [formData, setFormData] = useState<LoginFormData>({
+  // Form states
+  const [loginData, setLoginData] = useState<LoginFormData>({
     email: '',
     password: '',
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerSuccess, setRegisterSuccess] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Errors
+  const [loginErrors, setLoginErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+  const [registerError, setRegisterError] = useState<string | null>(null);
+
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof LoginFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setLoginData((prev) => ({ ...prev, [name]: value }));
+    if (loginErrors[name as keyof LoginFormData]) {
+      setLoginErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRegisterEmail(e.target.value);
+    if (registerError) {
+      setRegisterError(null);
+    }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const validation = loginSchema.safeParse(formData);
+    const validation = loginSchema.safeParse(loginData);
     if (!validation.success) {
       const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
       validation.error.issues.forEach((issue) => {
         const path = issue.path[0] as keyof LoginFormData;
         fieldErrors[path] = issue.message;
       });
-      setErrors(fieldErrors);
+      setLoginErrors(fieldErrors);
       return;
     }
 
-    setErrors({});
-    const result = await dispatch(loginWithEmail(formData));
+    setLoginErrors({});
+    const result = await dispatch(loginWithEmail(loginData));
 
     if (loginWithEmail.fulfilled.match(result)) {
       const profile = result.payload.profile;
@@ -67,6 +80,30 @@ export function Login() {
     }
   };
 
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegisterError(null);
+    setRegisterSuccess(false);
+
+    const validation = registerSchema.safeParse({ email: registerEmail });
+    if (!validation.success) {
+      const msg = validation.error.issues[0]?.message || 'Correo inválido';
+      setRegisterError(msg);
+      return;
+    }
+
+    setIsRegistering(true);
+    const result = await registerUserByEmail(registerEmail);
+    setIsRegistering(false);
+
+    if (!result.success) {
+      setRegisterError(result.error || 'Error al procesar el registro');
+    } else {
+      setRegisterSuccess(true);
+      setRegisterEmail('');
+    }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -75,9 +112,9 @@ export function Login() {
           redirectTo: window.location.origin + '/portal',
           queryParams: {
             prompt: 'select_account',
-            access_type: 'offline'
-          }
-        }
+            access_type: 'offline',
+          },
+        },
       });
       if (error) throw error;
     } catch (err: unknown) {
@@ -87,10 +124,20 @@ export function Login() {
         title: 'Error de Autenticación',
         content: msg,
         okText: 'Entendido',
-        maskClosable: false
+        maskClosable: false,
       });
     }
   };
+
+  const switchMode = (newMode: 'login' | 'register') => {
+    setMode(newMode);
+    setLoginErrors({});
+    setRegisterError(null);
+    setRegisterSuccess(false);
+    navigate(newMode === 'login' ? '/login' : '/register', { replace: true });
+  };
+
+  const isLoading = authLoading || isRegistering;
 
   return (
     <div className={styles.login}>
@@ -106,73 +153,126 @@ export function Login() {
         </div>
 
         <div className={styles.login__card}>
-          <form className={styles.login__form} onSubmit={handleSubmit} noValidate>
-            {authError && (
-              <div className={styles.login__alert} role="alert">
-                {authError}
-              </div>
-            )}
-
-            <div className={styles.login__field}>
-              <label htmlFor="email" className={styles.login__label}>
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className={`${styles.login__input} ${
-                  errors.email ? styles['login__input--error'] : ''
-                }`}
-                placeholder="ejemplo@platinumcenter.com"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={loading}
-              />
-              {errors.email && (
-                <span className={styles['login__error-message']}>{errors.email}</span>
+          {mode === 'login' ? (
+            <form className={styles.login__form} onSubmit={handleLoginSubmit} noValidate>
+              {authError && (
+                <div className={styles.login__alert} role="alert">
+                  {authError}
+                </div>
               )}
-            </div>
 
-            <div className={styles.login__field}>
-              <label htmlFor="password" className={styles.login__label}>
-                Contraseña
-              </label>
-              <div className={styles['login__password-container']}>
+              <div className={styles.login__field}>
+                <label htmlFor="login-email" className={styles.login__label}>
+                  Correo electrónico
+                </label>
                 <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  id="login-email"
+                  name="email"
+                  type="email"
                   className={`${styles.login__input} ${
-                    errors.password ? styles['login__input--error'] : ''
+                    loginErrors.email ? styles['login__input--error'] : ''
                   }`}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={loading}
+                  placeholder="ejemplo@platinumcenter.com"
+                  value={loginData.email}
+                  onChange={handleLoginChange}
+                  disabled={isLoading}
                 />
+                {loginErrors.email && (
+                  <span className={styles['login__error-message']}>{loginErrors.email}</span>
+                )}
+              </div>
+
+              <div className={styles.login__field}>
+                <label htmlFor="login-password" className={styles.login__label}>
+                  Contraseña
+                </label>
+                <div className={styles['login__password-container']}>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    className={`${styles.login__input} ${
+                      loginErrors.password ? styles['login__input--error'] : ''
+                    }`}
+                    placeholder="••••••••"
+                    value={loginData.password}
+                    onChange={handleLoginChange}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    className={styles['login__password-toggle']}
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                  </button>
+                </div>
+                {loginErrors.password && (
+                  <span className={styles['login__error-message']}>{loginErrors.password}</span>
+                )}
+              </div>
+
+              <div className={styles['login__forgot-container']}>
                 <button
                   type="button"
-                  className={styles['login__password-toggle']}
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className={styles['login__forgot-button']}
+                  onClick={() => navigate('/forgot-password')}
                 >
-                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                  ¿Olvidaste tu contraseña?
                 </button>
               </div>
-              {errors.password && (
-                <span className={styles['login__error-message']}>{errors.password}</span>
-              )}
-            </div>
 
-            <button
-              type="submit"
-              className={`${styles.login__button} ${styles['login__button--primary']}`}
-              disabled={loading}
-            >
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className={`${styles.login__button} ${styles['login__button--primary']}`}
+                disabled={isLoading}
+              >
+                {authLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              </button>
+            </form>
+          ) : (
+            <form className={styles.login__form} onSubmit={handleRegisterSubmit} noValidate>
+              {registerSuccess && (
+                <div className={`${styles.login__alert} ${styles['login__alert--success']}`} role="status">
+                  ¡Correo enviado correctamente! Si este correo no está registrado, recibirás un enlace de activación en tu bandeja de entrada.
+                  Espera de 1 a 5 minutos.
+                </div>
+              )}
+
+              {registerError && (
+                <div className={styles.login__alert} role="alert">
+                  {registerError}
+                </div>
+              )}
+
+              <div className={styles.login__field}>
+                <label htmlFor="register-email" className={styles.login__label}>
+                  Correo electrónico para registro
+                </label>
+                <input
+                  id="register-email"
+                  name="email"
+                  type="email"
+                  className={`${styles.login__input} ${
+                    registerError ? styles['login__input--error'] : ''
+                  }`}
+                  placeholder="tuemail@ejemplo.com"
+                  value={registerEmail}
+                  onChange={handleRegisterChange}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className={`${styles.login__button} ${styles['login__button--primary']}`}
+                disabled={isLoading}
+              >
+                {isRegistering ? 'Enviando correo...' : 'Registrarse con Email'}
+              </button>
+            </form>
+          )}
 
           <div className={styles.login__divider}>
             <span className={styles['login__divider-text']}>o continúa con</span>
@@ -182,7 +282,7 @@ export function Login() {
             type="button"
             className={`${styles.login__button} ${styles['login__button--google']}`}
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={isLoading}
           >
             <svg
               className={styles['login__google-icon']}
@@ -210,8 +310,36 @@ export function Login() {
             </svg>
             Google
           </button>
+
+          <div className={styles.login__toggle}>
+            {mode === 'login' ? (
+              <span className={styles['login__toggle-text']}>
+                ¿No tienes cuenta?
+                <button
+                  type="button"
+                  className={styles['login__toggle-button']}
+                  onClick={() => switchMode('register')}
+                >
+                  Regístrate
+                </button>
+              </span>
+            ) : (
+              <span className={styles['login__toggle-text']}>
+                ¿Ya tienes cuenta?
+                <button
+                  type="button"
+                  className={styles['login__toggle-button']}
+                  onClick={() => switchMode('login')}
+                >
+                  Inicia sesión
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default Login;

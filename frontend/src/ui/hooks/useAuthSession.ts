@@ -16,9 +16,8 @@ export function useAuthSession() {
         
         // Si viene de Google y no tiene teléfono → setup-profile
         if (provider === 'google' && !session.user.user_metadata?.phone) {
-          // Verificar en profiles si ya completó el perfil
           supabase.from('profiles')
-            .select('phone, full_name, role')
+            .select('id, phone, full_name, role, email')
             .eq('id', session.user.id)
             .single()
             .then(({ data: profileData }) => {
@@ -65,7 +64,7 @@ export function useAuthSession() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        navigate('/setup-profile');
+        navigate('/reset-password');
         return;
       }
 

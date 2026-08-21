@@ -30,13 +30,13 @@
   gap: var(--space-4);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 576px) {
   .admin-dashboard__summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .admin-dashboard__summary-grid {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -109,10 +109,10 @@
 .admin-dashboard__charts-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .admin-dashboard__charts-grid {
     grid-template-columns: repeat(3, 1fr);
   }
