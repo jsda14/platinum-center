@@ -9,7 +9,7 @@
 ## Estado general
 **Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-08-12
+**Última actualización:** 2026-08-23
 
 ---
 
@@ -108,12 +108,15 @@
 - [x] Cola de comandos SQLite (no memoria — más robusto)
 - [x] Cloudflare Tunnel permanente: `bridge.gymplatinumcenter.com` → `localhost:8001`
 - [x] Dominio `gymplatinumcenter.com` registrado en Cloudflare (cuenta personal jsda14)
+- [x] Dominio `gymplatinumcenter.com` conectado a Vercel ✅
+- [x] Railway y Vercel migrados a cuenta personal jsda14 ✅
+- [x] Google OAuth verificado con gymplatinumcenter.com ✅
 - [x] tunnel_client.py: activate/deactivate/sync via túnel
 - [x] Simulador del inBio Pro para pruebas sin hardware
 - [x] Panel gestión de roles en /admin/settings
 - [x] Google OAuth configurado con Client ID real
 - [x] Estado del chip visible en portal del miembro
-- [x] Landing page pública para verificación Google
+- [x] Landing page pública eliminada — `/` redirige a `/login` ✅
 - [x] Páginas /terminos y /politica-privacidad
 - [x] Responsive mejorado en admin y portal
 - [x] AdminProfile para admin y recepcionista
@@ -126,10 +129,12 @@
 - [x] Flujo reset password completo (/forgot-password + /reset-password) ✅
 - [x] Templates email Confirm + Reset con identidad Platinum Center (Brevo SMTP) ✅
 - [x] PlatinumCenterBridge.exe — ejecutable Windows con UI Tkinter + UAC admin ✅
+- [x] Fix launcher.py: cloudflared espera que FastAPI esté listo antes de arrancar ✅
 - [x] Fix logger.py para modo --noconsole de PyInstaller ✅
 - [x] Fix duplicate member_day_passes — cerrar activo antes de crear nuevo ✅
+- [x] Fix Bold BTN-001: sessionStorage para reutilizar order_id ✅
 - [x] Swipe simulado → bridge.gymplatinumcenter.com → Railway → Supabase ✅
-- [ ] Visita presencial al gym — conectar inBio Pro real
+- [ ] Visita presencial al gym — conectar inBio Pro real (HOY 2026-08-23)
 - [ ] Mapeo de IDs existentes en inBio Pro con miembros en Supabase
 
 ---
@@ -155,8 +160,8 @@
 - [ ] Responsive mobile-first revisado
 - [ ] Supabase PROD creado y migrado
 - [ ] Railway PROD desplegado
-- [ ] Dominio gymplatinumcenter.com conectado a Vercel (`main`)
-- [ ] bridge.gymplatinumcenter.com ya configurado ✅
+- [x] Dominio gymplatinumcenter.com conectado a Vercel ✅
+- [x] bridge.gymplatinumcenter.com configurado ✅
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym
 - [ ] Restaurar validación HMAC Bold webhook (comentada temporalmente)
 - [ ] Capacitación a Sevastián y recepcionistas
@@ -168,17 +173,20 @@
 ## Notas y bloqueos activos
 - GYM_TUNNEL_URL fija: `https://bridge.gymplatinumcenter.com` — ya no cambia
 - PlatinumCenterBridge.exe requiere correr como Administrador (UAC configurado en build)
-- exe requiere `.env` en la misma carpeta que el ejecutable (`dist/.env`)
+- exe requiere `.env` en la misma carpeta que el ejecutable
 - Configurar inBio Pro: ADMS/Push → Server = `bridge.gymplatinumcenter.com`, Port 443
 - SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
 - TUNNEL_SECRET debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
 - Bold webhook signature validation temporalmente desactivada — restaurar en producción
 - Bold test mode: transaction_id "XXXX" guardado como null
+- Bold BTN-001: limpiar sessionStorage si persiste el error
+- VITE_API_URL en Vercel debe incluir https:// al inicio
 - Cobrar $400.000 COP por Fase 3 a Sevastián
 - Cobrar $500.000 COP por Fase 4 al completar visita presencial
 - member_day_passes: cerrar activo antes de crear nuevo (fix aplicado)
-- Railway y Vercel están en cuenta del gym — migrar a cuenta personal en Fase 6
+- Railway y Vercel migrados a cuenta personal jsda14 ✅
 - Dominio gymplatinumcenter.com registrado en cuenta personal jsda14
+- Google OAuth verification enviada — aprobada con gymplatinumcenter.com
 
 ## Upsells implementados
 - LockedFeature componente creado y desplegado
