@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppSelector } from '../../../infrastructure/store/store';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
@@ -8,6 +8,36 @@ import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymen
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import styles from './MemberRenewal.module.css';
+
+interface BoldPaymentIntentSession {
+  order_id: string;
+  signature: string;
+  plan_slug: string;
+  amount: number;
+  member_id: string;
+  created_at: number;
+}
+
+const SESSION_STORAGE_KEY = 'bold_payment_intent';
+const INTENT_VALIDITY_MS = 60 * 60 * 1000; // 1 hora de validez
+
+function getSavedPaymentIntent(): BoldPaymentIntentSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as BoldPaymentIntentSession;
+  } catch {
+    return null;
+  }
+}
+
+function savePaymentIntent(intent: BoldPaymentIntentSession): void {
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(intent));
+  } catch (e) {
+    console.error('Error saving payment intent to sessionStorage', e);
+  }
+}
 
 export function MemberRenewal() {
   const { profile } = useAppSelector((state) => state.auth);
@@ -58,16 +88,7 @@ export function MemberRenewal() {
     loadData();
   }, [profile]);
 
-  const handleSelectPlan = async (plan: Plan) => {
-    if (!profile) return;
-
-    setSelectedPlan(plan);
-    setOrderId(null);
-    setSignature(null);
-    setIsGeneratingSignature(true);
-    setIsSubmitting(true);
-    setError(null);
-
+  const scrollToCheckout = useCallback(() => {
     const isMobile = window.innerWidth < 1024;
     if (isMobile) {
       setShowScrollIndicator(true);
@@ -79,21 +100,57 @@ export function MemberRenewal() {
         checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 150);
     }
+  }, []);
+
+  const handleChangePlan = () => {
+    setSelectedPlan(null);
+    setOrderId(null);
+    setSignature(null);
+    setError(null);
+  };
+
+  const handleSelectPlan = async (plan: Plan) => {
+    if (!profile) return;
+
+    setSelectedPlan(plan);
+    setError(null);
+    scrollToCheckout();
+
+    let targetMemberId = memberId;
+    if (!targetMemberId) {
+      const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
+      targetMemberId = m.id;
+      setMemberId(m.id);
+    }
+
+    const now = Date.now();
+    const savedIntent = getSavedPaymentIntent();
+
+    // Reutilizar si existe un intent en sessionStorage que:
+    // 1. Sea del mismo plan_slug
+    // 2. Tenga menos de 1 hora de antigüedad (created_at)
+    if (
+      savedIntent &&
+      savedIntent.plan_slug === plan.slug &&
+      now - savedIntent.created_at < INTENT_VALIDITY_MS
+    ) {
+      setOrderId(savedIntent.order_id);
+      setSignature(savedIntent.signature);
+      return;
+    }
+
+    // Si no cumple -> generar nuevo intent y guardarlo en sessionStorage reemplazando el anterior
+    setOrderId(null);
+    setSignature(null);
+    setIsGeneratingSignature(true);
+    setIsSubmitting(true);
 
     try {
-      let targetMemberId = memberId;
-      if (!targetMemberId) {
-        const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
-        targetMemberId = m.id;
-        setMemberId(m.id);
-      }
-
       // 1. Generate unique order ID
-      const newOrderId = window.crypto && window.crypto.randomUUID 
-        ? window.crypto.randomUUID() 
-        : `ord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      setOrderId(newOrderId);
+      const newOrderId =
+        window.crypto && window.crypto.randomUUID
+          ? window.crypto.randomUUID()
+          : `ord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // 2. Plan price in COP pesos (e.g. 60000)
       const amountInPesos = Math.round(plan.price);
@@ -103,14 +160,14 @@ export function MemberRenewal() {
       const intentResponse = await fetch(`${apiUrl}/bold/create-payment-intent`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           order_id: newOrderId,
           member_id: targetMemberId,
           plan_slug: plan.slug,
-          amount: amountInPesos
-        })
+          amount: amountInPesos,
+        }),
       });
 
       if (!intentResponse.ok) {
@@ -127,7 +184,20 @@ export function MemberRenewal() {
       }
 
       const data = await response.json();
-      setSignature(data.signature);
+      const newSignature = data.signature;
+
+      setOrderId(newOrderId);
+      setSignature(newSignature);
+
+      // Guardar el nuevo intent en sessionStorage
+      savePaymentIntent({
+        order_id: newOrderId,
+        signature: newSignature,
+        plan_slug: plan.slug,
+        amount: amountInPesos,
+        member_id: targetMemberId,
+        created_at: Date.now(),
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar el intento de pago';
       setError(msg);
@@ -154,7 +224,7 @@ export function MemberRenewal() {
           'Acceso ilimitado por 24 horas',
           'Uso de zonas de fuerza y cardio',
           'Sin costos de inscripción',
-          'Casillero de día gratuito'
+          'Casillero de día gratuito',
         ];
       case '15_days':
         return [
@@ -162,7 +232,7 @@ export function MemberRenewal() {
           'Válido por 30 días calendario',
           'Uso de zonas de fuerza y cardio',
           'Ideal para viajeros o rutinas flexibles',
-          'Casillero de día gratuito'
+          'Casillero de día gratuito',
         ];
       case '1_month':
         return [
@@ -170,7 +240,7 @@ export function MemberRenewal() {
           'Uso de todas las zonas del gym',
           'Clases grupales incluidas',
           'Valoración física inicial',
-          'Casillero de día gratuito'
+          'Casillero de día gratuito',
         ];
       case '1_year':
         return [
@@ -179,17 +249,17 @@ export function MemberRenewal() {
           'Uso de todas las zonas del gym',
           'Clases grupales ilimitadas',
           '2 Valoraciones físicas al año',
-          '1 Invitación gratis al mes'
+          '1 Invitación gratis al mes',
         ];
       default:
         return [
           'Uso de todas las instalaciones del gimnasio',
-          'Acceso ilimitado durante la vigencia del plan'
+          'Acceso ilimitado durante la vigencia del plan',
         ];
     }
   };
 
-  const redirectionUrl = import.meta.env.VITE_APP_URL 
+  const redirectionUrl = import.meta.env.VITE_APP_URL
     ? `${import.meta.env.VITE_APP_URL}/portal/payment-result`
     : 'https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/payment-result';
 
@@ -270,6 +340,7 @@ export function MemberRenewal() {
                   className={`${styles['member-renewal__select-button']} ${
                     isSelected ? styles['member-renewal__select-button--selected'] : ''
                   }`}
+                  disabled={isGeneratingSignature}
                   onClick={() => handleSelectPlan(plan)}
                   aria-label={`Seleccionar plan ${plan.name}`}
                 >
@@ -288,10 +359,20 @@ export function MemberRenewal() {
           >
             <div className={styles['member-renewal__checkout-box']}>
               <div className={styles['member-renewal__checkout-header']}>
-                <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
-                  Resumen de Compra
-                </h2>
-                <span className={styles['member-renewal__checkout-badge']}>Paso Final</span>
+                <div className={styles['member-renewal__checkout-header-main']}>
+                  <h2 id="checkout-summary-title" className={styles['member-renewal__checkout-title']}>
+                    Resumen de Compra
+                  </h2>
+                  <span className={styles['member-renewal__checkout-badge']}>Paso Final</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles['member-renewal__change-plan-button']}
+                  onClick={handleChangePlan}
+                  aria-label="Cambiar plan seleccionado"
+                >
+                  Cambiar plan
+                </button>
               </div>
 
               <div className={styles['member-renewal__checkout-details']}>
