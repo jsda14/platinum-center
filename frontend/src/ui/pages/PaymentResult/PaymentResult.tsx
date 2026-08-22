@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircleFilled, CloseCircleFilled, ClockCircleFilled } from '@ant-design/icons';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
@@ -20,10 +21,53 @@ export function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const rawStatus = searchParams.get('bold-order-status') || 
-                    searchParams.get('bold-tx-status') || '';
-  const status = rawStatus.toUpperCase() as OrderStatus;
+  const rawStatus = (
+    searchParams.get('bold-order-status') || 
+    searchParams.get('bold-tx-status') || 
+    ''
+  ).toUpperCase();
+
+  const errorCode = (
+    searchParams.get('error') ||
+    searchParams.get('error_code') ||
+    searchParams.get('bold-error') ||
+    searchParams.get('bold-error-code') ||
+    searchParams.get('code') ||
+    ''
+  ).toUpperCase();
+
   const orderId = searchParams.get('bold-order-id') || '';
+  const searchString = searchParams.toString().toUpperCase();
+
+  // Detectar si la URL contiene un error de Bold (ej: BTN-001 o parámetros de error)
+  const isBoldError = Boolean(
+    errorCode ||
+    searchString.includes('BTN-001') ||
+    searchString.includes('BTN_001') ||
+    searchString.includes('ERROR') ||
+    rawStatus === 'REJECTED' ||
+    rawStatus === 'FAILED'
+  );
+
+  const status: OrderStatus =
+    rawStatus === 'APPROVED'
+      ? 'APPROVED'
+      : rawStatus === 'PENDING'
+      ? 'PENDING'
+      : isBoldError
+      ? 'REJECTED'
+      : (rawStatus as OrderStatus);
+
+  // Limpiar el sessionStorage tras pago exitoso
+  useEffect(() => {
+    if (status === 'APPROVED') {
+      try {
+        sessionStorage.removeItem('bold_payment_intent');
+      } catch (e) {
+        console.error('Error clearing bold_payment_intent from sessionStorage', e);
+      }
+    }
+  }, [status]);
 
   const configMap: Record<OrderStatus, StatusConfig> = {
     APPROVED: {
@@ -31,7 +75,7 @@ export function PaymentResult() {
       iconContainerClass: styles['payment-result__icon-container--approved'],
       icon: <CheckCircleFilled className={styles['payment-result__icon']} />,
       title: '¡PAGO EXITOSO!',
-      message: 'Tu membresía ha sido activada',
+      message: 'Tu membresía ha sido activada exitosamente.',
       buttonText: 'Ver mi membresía',
       buttonPath: '/portal',
       buttonClass: styles['payment-result__action--approved'],
@@ -40,8 +84,9 @@ export function PaymentResult() {
       cardClass: styles['payment-result__card--rejected'],
       iconContainerClass: styles['payment-result__icon-container--rejected'],
       icon: <CloseCircleFilled className={styles['payment-result__icon']} />,
-      title: 'PAGO RECHAZADO',
-      message: 'No pudimos procesar tu pago. Intenta de nuevo.',
+      title: 'PAGO NO PROCESADO',
+      message:
+        'El pago no pudo procesarse. Si cerraste la ventana de pago, espera un minuto e inténtalo de nuevo. Si el problema persiste, contacta a recepción.',
       buttonText: 'Reintentar',
       buttonPath: '/portal/renewal',
       buttonClass: styles['payment-result__action--rejected'],
@@ -60,8 +105,9 @@ export function PaymentResult() {
       cardClass: styles['payment-result__card--rejected'],
       iconContainerClass: styles['payment-result__icon-container--rejected'],
       icon: <CloseCircleFilled className={styles['payment-result__icon']} />,
-      title: 'PAGO FALLIDO',
-      message: 'No pudimos procesar tu pago. Intenta de nuevo.',
+      title: 'PAGO NO PROCESADO',
+      message:
+        'El pago no pudo procesarse. Si cerraste la ventana de pago, espera un minuto e inténtalo de nuevo. Si el problema persiste, contacta a recepción.',
       buttonText: 'Reintentar',
       buttonPath: '/portal/renewal',
       buttonClass: styles['payment-result__action--rejected'],
@@ -69,14 +115,15 @@ export function PaymentResult() {
   };
 
   const currentConfig = configMap[status] || {
-    cardClass: '',
-    iconContainerClass: '',
+    cardClass: styles['payment-result__card--rejected'],
+    iconContainerClass: styles['payment-result__icon-container--rejected'],
     icon: <CloseCircleFilled className={styles['payment-result__icon']} />,
-    title: 'ESTADO DESCONOCIDO',
-    message: 'No pudimos determinar el estado de tu pago. Por favor, verifica tu portal.',
-    buttonText: 'Ir al Portal',
-    buttonPath: '/portal',
-    buttonClass: '',
+    title: 'PAGO NO PROCESADO',
+    message:
+      'El pago no pudo procesarse. Si cerraste la ventana de pago, espera un minuto e inténtalo de nuevo. Si el problema persiste, contacta a recepción.',
+    buttonText: 'Reintentar',
+    buttonPath: '/portal/renewal',
+    buttonClass: styles['payment-result__action--rejected'],
   };
 
   const handleButtonClick = () => {
@@ -108,6 +155,13 @@ export function PaymentResult() {
             <div className={styles['payment-result__details']}>
               <span className={styles['payment-result__details-label']}>ID de Transacción</span>
               <span className={styles['payment-result__details-value']}>{orderId}</span>
+            </div>
+          )}
+
+          {errorCode && (
+            <div className={styles['payment-result__error-badge']}>
+              <span className={styles['payment-result__error-badge-label']}>Código de error:</span>
+              <span className={styles['payment-result__error-badge-value']}>{errorCode}</span>
             </div>
           )}
 
