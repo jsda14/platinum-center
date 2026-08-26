@@ -90,7 +90,6 @@ async def access_event(
                     .eq("id", day_pass["id"])\
                     .execute()
 
-                # Si days_used llega a days_total: encola comando de desactivación
                 if days_used >= days_total:
                     profile_id = member.get("profile_id")
                     full_name = "Miembro"
