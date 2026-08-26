@@ -70,7 +70,9 @@ async def deactivate_member(member_id: str, zkteco_user_id: str,
                 logger.error(f"[TUNNEL] Error de desactivación para miembro {member_id}. HTTP {response.status_code}: {response.text}")
                 return False
     except Exception as e:
-        logger.error(f"[TUNNEL] Excepción al desactivar miembro {member_id}: {str(e)}")
+        import traceback
+        logger.error(f"[TUNNEL] Excepción al desactivar miembro {member_id}: {type(e).__name__}: {str(e)}")
+        logger.error(f"[TUNNEL] Traceback: {traceback.format_exc()}")
         return False
 
 async def sync_member(action: str, member_id: str, card_no: str, 
