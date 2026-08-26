@@ -45,6 +45,41 @@ async def access_event(
     if member_res.data:
         member = member_res.data[0]
         member_id = member["id"]
+
+        # Verificar si el miembro está bloqueado
+        if member.get("plan") == "15_days":
+            active_pass = supabase_client.table("member_day_passes")\
+                .select("id, days_used, days_total, status")\
+                .eq("member_id", member_id)\
+                .eq("status", "active")\
+                .execute()
+
+            if not active_pass.data:
+                # No tiene pase activo — bloquear y registrar como denied
+                supabase_client.table("access_logs").insert({
+                    "member_id": member_id,
+                    "card_no": data.card_no,
+                    "event_type": "denied",
+                    "timestamp": data.timestamp,
+                    "raw_payload": json.dumps(data.dict())
+                }).execute()
+
+                # Actualizar members.status a expired
+                supabase_client.table("members")\
+                    .update({"status": "expired"})\
+                    .eq("id", member_id)\
+                    .execute()
+
+                # Llamar deactivate_member para bloquear en ZKBioSecurity
+                await deactivate_member(
+                    member_id=member_id,
+                    zkteco_user_id=member.get("zkteco_user_id"),
+                    full_name="Miembro",
+                    sn=data.sn
+                )
+
+                return {"status": "ok", "event_type": "denied"}
+
         event_type = "granted"
 
         # Extraer fecha (YYYY-MM-DD) y verificar si ya existe una entrada granted hoy
