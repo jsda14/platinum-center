@@ -42,7 +42,6 @@ async def access_event(
         .or_(f"card_no.eq.{data.card_no},card_no.eq.{normalized_card}")\
         .execute()
 
-
     if member_res.data:
         member = member_res.data[0]
         member_id = member["id"]
