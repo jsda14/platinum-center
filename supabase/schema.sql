@@ -111,6 +111,20 @@ CREATE TABLE IF NOT EXISTS public.gym_config (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. pending_commands
+CREATE TABLE IF NOT EXISTS public.pending_commands (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    member_id UUID REFERENCES public.members(id),
+    action TEXT NOT NULL CHECK (action IN ('activate', 'deactivate')),
+    card_no TEXT,
+    zkteco_user_id TEXT,
+    full_name TEXT,
+    sn TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'failed')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    executed_at TIMESTAMPTZ
+);
+
 -- Enable Row Level Security (RLS) on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
@@ -120,3 +134,4 @@ ALTER TABLE public.member_day_passes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.access_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gym_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pending_commands ENABLE ROW LEVEL SECURITY;
