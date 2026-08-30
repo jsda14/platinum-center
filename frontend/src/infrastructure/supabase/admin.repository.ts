@@ -34,6 +34,13 @@ export interface UpdateMemberData {
   zkteco_user_id?: string | null;
 }
 
+export interface AssignChipData {
+  member_id: string;
+  card_no: string;
+  full_name: string;
+  sn?: string;
+}
+
 export interface MemberDetail {
   member: MemberWithProfile;
   payments: Payment[];
@@ -561,5 +568,32 @@ export const adminRepository = {
     if (error) {
       throw new Error(`Error al actualizar el rol: ${error.message}`);
     }
+  },
+
+  async assignChip(data: AssignChipData): Promise<any> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/admin/assign-chip`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        member_id: data.member_id,
+        card_no: data.card_no,
+        full_name: data.full_name,
+        sn: data.sn || 'AJYX215160006'
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al asignar chip en el servidor.');
+    }
+
+    return response.json();
   }
 };

@@ -31,6 +31,7 @@ import { useAppSelector } from '../../../infrastructure/store/store';
 // Import use cases
 import { getMemberDetail } from '../../../application/admin/getMemberDetail.usecase';
 import { updateMember } from '../../../application/admin/updateMember.usecase';
+import { assignChip } from '../../../application/admin/assignChip.usecase';
 import { registerManualPayment } from '../../../application/admin/registerManualPayment.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 
@@ -145,8 +146,7 @@ export function AdminMemberDetail() {
   const openChipModal = () => {
     if (!detail) return;
     chipForm.setFieldsValue({
-      card_no: detail.member.card_no,
-      zkteco_user_id: detail.member.zkteco_user_id
+      card_no: detail.member.card_no
     });
     setIsChipModalOpen(true);
   };
@@ -199,15 +199,17 @@ export function AdminMemberDetail() {
   };
 
   const handleChipSubmit = async () => {
-    if (!id) return;
+    if (!id || !detail) return;
     setIsSubmitting(true);
     try {
       const values = await chipForm.validateFields();
-      await updateMember(id, {
+      await assignChip({
+        member_id: id,
         card_no: values.card_no,
-        zkteco_user_id: values.zkteco_user_id
+        full_name: detail.member.profiles?.full_name || 'Miembro',
+        sn: 'AJYX215160006'
       });
-      message.success('Chip RFID y PIN físico asignados exitosamente');
+      message.success('Chip RFID asignado exitosamente');
       setIsChipModalOpen(false);
       await loadDetail(false);
     } catch (err: unknown) {
@@ -642,14 +644,6 @@ export function AdminMemberDetail() {
               rules={[{ required: true, message: 'El número de tarjeta es obligatorio' }]}
             >
               <Input placeholder="Ej. 1234567890" allowClear />
-            </Form.Item>
-
-            <Form.Item
-              name="zkteco_user_id"
-              label="ZKTeco User ID (PIN Físico)"
-              rules={[{ required: true, message: 'El PIN de ZKTeco es obligatorio' }]}
-            >
-              <Input placeholder="Ej. 9988" allowClear />
             </Form.Item>
           </Form>
         </Modal>
