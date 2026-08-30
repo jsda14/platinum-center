@@ -9,7 +9,7 @@
 ## Estado general
 **Fase actual:** 4 — Integración ZKTeco
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-08-23
+**Última actualización:** 2026-08-30
 
 ---
 
@@ -102,40 +102,59 @@
 ---
 
 ## Fase 4 — Integración ZKTeco
-**Estado: 🟡 En progreso**
+**Estado: 🟡 En progreso (~85% completo)**
 
+### Bridge (platinum-center-local)
 - [x] FastAPI local con los 4 endpoints del protocolo iClock
 - [x] Cola de comandos SQLite (no memoria — más robusto)
 - [x] Cloudflare Tunnel permanente: `bridge.gymplatinumcenter.com` → `localhost:8001`
-- [x] Dominio `gymplatinumcenter.com` registrado en Cloudflare (cuenta personal jsda14)
-- [x] Dominio `gymplatinumcenter.com` conectado a Vercel ✅
-- [x] Railway y Vercel migrados a cuenta personal jsda14 ✅
-- [x] Google OAuth verificado con gymplatinumcenter.com ✅
-- [x] tunnel_client.py: activate/deactivate/sync via túnel
-- [x] Simulador del inBio Pro para pruebas sin hardware
-- [x] Panel gestión de roles en /admin/settings
-- [x] Google OAuth configurado con Client ID real
-- [x] Estado del chip visible en portal del miembro
-- [x] Landing page pública eliminada — `/` redirige a `/login` ✅
-- [x] Páginas /terminos y /politica-privacidad
-- [x] Responsive mejorado en admin y portal
-- [x] AdminProfile para admin y recepcionista
-- [x] Prueba Google Auth con jsda14@gmail.com — flujo completo validado ✅
-- [x] Prueba flujo B: registro por email → confirmación → SetupProfile → pago → membresía ✅
-- [x] Fix RLS members: INSERT via endpoint Railway /members/get-or-create con service role ✅
-- [x] Fix profile.id undefined en portal de miembro ✅
-- [x] Validación un día = un descuento en member_day_passes ✅
-- [x] Formulario de registro por email en Login ✅
-- [x] Flujo reset password completo (/forgot-password + /reset-password) ✅
-- [x] Templates email Confirm + Reset con identidad Platinum Center (Brevo SMTP) ✅
 - [x] PlatinumCenterBridge.exe — ejecutable Windows con UI Tkinter + UAC admin ✅
 - [x] Fix launcher.py: cloudflared espera que FastAPI esté listo antes de arrancar ✅
 - [x] Fix logger.py para modo --noconsole de PyInstaller ✅
-- [x] Fix duplicate member_day_passes — cerrar activo antes de crear nuevo ✅
-- [x] Fix Bold BTN-001: sessionStorage para reutilizar order_id ✅
-- [x] Swipe simulado → bridge.gymplatinumcenter.com → Railway → Supabase ✅
-- [ ] Visita presencial al gym — conectar inBio Pro real (HOY 2026-08-23)
-- [ ] Mapeo de IDs existentes en inBio Pro con miembros en Supabase
+- [x] tunnel_client.py: activate/deactivate/sync via túnel
+- [x] Simulador del inBio Pro para pruebas sin hardware
+- [x] **Solución B (ZKBioSecurity HTTP Pull)** — pyzk descartado (puerto 4370 no expuesto)
+  - [x] Login via `POST /authLoginAction!login.do` — validar por JSESSIONID no por HTTP status
+  - [x] Long polling `GET /accRTMonitorAction!getEventData.action` — clientId fijo por sesión, timeout 30s
+  - [x] Parser posicional de eventos: data[0]=timestamp, data[5]=card_no, data[6]=user_str, data[12]=pin
+  - [x] Filtro de eventos de salida (data[7] contiene "Salida")
+  - [x] Edición de usuarios via `POST /persPersonAction!edit.action` con payload form-data completo
+  - [x] `_get_person_id_by_pin`: busca por cardNo en `persPersonAction!getAll.action` via POST
+  - [x] `_get_card_info`: parsea cardId y logicalCardNo del HTML de `persPersonAction!getById.action`
+  - [x] `deactivate_member_zk`: endTime = "2000-01-01 00:00:00"
+  - [x] `activate_member`: endTime = "2099-12-31 23:59:59"
+- [x] Cola de pendientes `pending_commands` en Supabase — fallback cuando Bridge está apagado
+- [x] `sync_pending_commands` al arrancar con reintentos (5 intentos, 3s entre cada uno)
+- [x] `start_pending_sync_loop`: loop cada 5 minutos para ejecutar pendientes automáticamente
+- [x] Sleep de 15s al arrancar antes de sync para dar tiempo al DNS
+- [x] Webhook `/webhook/deactivate-member` responde inmediatamente (threading)
+- [x] Webhook `/webhook/lookup-member?card_no=` — busca usuario en ZKBioSecurity por card_no
+- [x] DNS del gym configurado a 8.8.8.8 / 8.8.4.4 para estabilidad
+
+### Railway (backend-cloud)
+- [x] Endpoint `POST /zkteco/access-event` — valida membresía y descuenta días
+- [x] Lógica denied: cuando member_day_passes exhausted → registra denied + llama deactivate
+- [x] `members.status` se actualiza a 'expired' cuando se agotan días
+- [x] Endpoint `POST /admin/reactivate-chip` — reactiva chip al registrar pago
+- [x] Endpoint `GET /admin/pending-commands` — devuelve comandos pendientes al Bridge
+- [x] Endpoint `POST /admin/pending-commands/{id}/done` — confirma ejecución
+- [x] `tunnel_client.py`: guarda en `pending_commands` cuando tunnel falla
+- [x] Endpoint `POST /admin/assign-chip` — asigna chip + lookup en ZKBioSecurity + guarda IDs
+
+### Supabase
+- [x] Tabla `pending_commands` creada con campos: id, member_id, action, card_no, zkteco_user_id, full_name, sn, status, created_at, executed_at
+- [x] Columna `zkteco_person_id` agregada a tabla `members`
+- [x] GRANT permissions en `pending_commands` para service_role
+
+### Validado en campo (gym presencial 2026-08-26 y 2026-08-29)
+- [x] Chip → inBio → ZKBioSecurity → Bridge → Railway → Supabase ✅
+- [x] Descuento de día al pasar chip ✅
+- [x] Denied cuando membresía exhausted ✅
+- [x] Bloqueo físico en inBio (endTime=2000) cuando días agotados ✅
+- [x] Reactivación automática al pagar (endTime=2099) ✅
+- [x] Cola de pendientes ejecutada al arrancar Bridge ✅
+- [x] Loop de 5 minutos ejecuta pendientes sin reiniciar exe ✅
+
 
 ---
 
@@ -148,6 +167,11 @@
 - [x] Lógica 15_days: crear member_day_passes al confirmar pago
 - [x] Emails automáticos via Supabase Edge Functions (Brevo)
 - [x] Notificaciones in-app en tiempo real (Supabase Realtime)
+- [ ] Validar `lookup-member` en gym con Bridge corriendo
+- [ ] Validar flujo completo `assign-chip` desde frontend con Bridge corriendo
+- [ ] Migración de ~1700 miembros existentes en ZKBioSecurity a Supabase (zkteco_person_id, zkteco_user_id) — script listo, requiere ejecución en gym
+- [ ] Normalización card_no: fix `.or_()` en Railway para chips con/sin ceros iniciales
+- [ ] Cloudflare Tunnel como servicio permanente en PC del gym (actualmente manual)
 - [ ] Membresías grupales (ver specs/group-memberships.md)
 - [ ] Configurar precios grupales en panel admin (plan_group_pricing)
 
@@ -174,19 +198,41 @@
 - GYM_TUNNEL_URL fija: `https://bridge.gymplatinumcenter.com` — ya no cambia
 - PlatinumCenterBridge.exe requiere correr como Administrador (UAC configurado en build)
 - exe requiere `.env` en la misma carpeta que el ejecutable
-- Configurar inBio Pro: ADMS/Push → Server = `bridge.gymplatinumcenter.com`, Port 443
-- SN por defecto: "PLATINUM001" hasta obtener SN real del inBio Pro
-- TUNNEL_SECRET debe coincidir en `backend-cloud/.env` y `platinum-center-local/.env`
+- SN real del inBio Pro: `AJYX215160006` (antes era PLATINUM001)
+- card_no en ZKBioSecurity viene sin ceros iniciales (ej: "13588626" no "0013588626")
+- zkteco_person_id es el ID interno de ZKBioSecurity (ej: 2900) — diferente al PIN (2564)
+- PIN en ZKBioSecurity = zkteco_user_id en Supabase
+- persPersonAction!edit requiere cardId interno + logicalCardNo para no fallar con error 400
+- DNS del gym configurado a 8.8.8.8 — resolver si vuelve a fallar
 - Bold webhook signature validation temporalmente desactivada — restaurar en producción
 - Bold test mode: transaction_id "XXXX" guardado como null
-- Bold BTN-001: limpiar sessionStorage si persiste el error
 - VITE_API_URL en Vercel debe incluir https:// al inicio
-- Cobrar $400.000 COP por Fase 3 a Sevastián
-- Cobrar $500.000 COP por Fase 4 al completar visita presencial
+- Cobrar $500.000 COP por Fase 4 al completar validación final
 - member_day_passes: cerrar activo antes de crear nuevo (fix aplicado)
 - Railway y Vercel migrados a cuenta personal jsda14 ✅
 - Dominio gymplatinumcenter.com registrado en cuenta personal jsda14
 - Google OAuth verification enviada — aprobada con gymplatinumcenter.com
+
+## Arquitectura ZKBioSecurity (Solución B — HTTP Pull)
+```
+Chip → inBio260 Pro (192.168.40.110)
+  → ZKBioSecurity (127.0.0.1:8088) registra evento
+  → Bridge hace long polling cada ~20s a getEventData
+  → Bridge detecta evento → POST a Railway /zkteco/access-event
+  → Railway valida membresía → descuenta día
+  → Si exhausted → llama Bridge /webhook/deactivate-member
+  → Bridge actualiza endTime=2000 en ZKBioSecurity via persPersonAction!edit
+  → inBio sincroniza → bloquea chip físicamente
+  → Si pago → Railway llama Bridge /webhook/activate-member
+  → Bridge actualiza endTime=2099 → inBio reactiva chip
+```
+
+## Cola de pendientes (cuando Bridge está apagado)
+```
+tunnel_client falla → inserta en pending_commands (Supabase)
+Bridge arranca → sync_pending_commands (con 5 reintentos)
+Bridge loop cada 5min → reintenta pendientes automáticamente
+```
 
 ## Upsells implementados
 - LockedFeature componente creado y desplegado
