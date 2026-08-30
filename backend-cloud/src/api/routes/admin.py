@@ -1,11 +1,14 @@
 import os
 import random
 import string
+import time
+import httpx
 from datetime import datetime, date, timedelta
 from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
+from src.infrastructure.zkteco.tunnel_client import activate_member
 
 router = APIRouter(tags=["admin"])
 
@@ -204,7 +207,83 @@ async def create_member(
             detail=f"Error al registrar miembro en el servidor: {str(e)}"
         )
 
-from src.infrastructure.zkteco.tunnel_client import activate_member
+class AssignChipRequest(BaseModel):
+    member_id: str
+    card_no: str
+    full_name: str
+    zkteco_user_id: Optional[str] = None
+    sn: Optional[str] = None
+
+@router.post("/admin/assign-chip")
+async def assign_chip(
+    data: AssignChipRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Asigna un chip a un miembro.
+    1. Busca el usuario en ZKBioSecurity via Bridge
+    2. Si existe: guarda zkteco_person_id y zkteco_user_id en members
+    3. Si no existe: crea el usuario en ZKBioSecurity via Bridge
+    """
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
+    tunnel_secret = os.getenv("TUNNEL_SECRET")
+    
+    headers = {
+        "Authorization": f"Bearer {tunnel_secret}",
+        "Content-Type": "application/json"
+    }
+
+    # 1. Buscar en ZKBioSecurity por card_no
+    try:
+        lookup_resp = httpx.get(
+            f"{gym_tunnel_url}/webhook/lookup-member?card_no={data.card_no}",
+            headers=headers,
+            timeout=10.0
+        )
+        lookup = lookup_resp.json()
+    except Exception as e:
+        lookup = {"found": False}
+
+    if lookup.get("found"):
+        # 2. Ya existe en ZKBioSecurity — guardar IDs en Supabase
+        person_id = lookup["person_id"]
+        zkteco_user_id = lookup["zkteco_user_id"]
+    else:
+        # 3. No existe — crear en ZKBioSecurity via activate
+        zkteco_user_id = data.zkteco_user_id or str(int(time.time()))[-6:]
+        person_id = None
+        
+        await activate_member(
+            member_id=data.member_id,
+            card_no=data.card_no,
+            zkteco_user_id=zkteco_user_id,
+            full_name=data.full_name,
+            sn=data.sn
+        )
+
+    # Actualizar members en Supabase
+    update_data = {
+        "card_no": data.card_no,
+        "zkteco_user_id": zkteco_user_id
+    }
+    if person_id:
+        update_data["zkteco_person_id"] = person_id
+
+    supabase_client.table("members")\
+        .update(update_data)\
+        .eq("id", data.member_id)\
+        .execute()
+
+    return {
+        "status": "ok",
+        "found_in_zkteco": lookup.get("found"),
+        "zkteco_user_id": zkteco_user_id,
+        "zkteco_person_id": person_id
+    }
 
 class ReactivateChipRequest(BaseModel):
     member_id: str
