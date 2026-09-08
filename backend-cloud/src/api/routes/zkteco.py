@@ -36,9 +36,8 @@ async def access_event(
 
     # Busca en Supabase el miembro por card_no
     normalized_card = data.card_no.lstrip("0") or "0"
-
     member_res = supabase_client.table("members")\
-        .select("id, profile_id, zkteco_user_id, plan")\
+        .select("id, profile_id, zkteco_user_id, plan, card_no")\
         .or_(f"card_no.eq.{data.card_no},card_no.eq.{normalized_card}")\
         .execute()
 
