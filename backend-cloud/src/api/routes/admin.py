@@ -4,11 +4,12 @@ import string
 import time
 import logging
 import httpx
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
+from src.infrastructure.supabase.auth import get_current_user
 from src.infrastructure.zkteco.tunnel_client import activate_member
 
 logger = logging.getLogger(__name__)
@@ -421,3 +422,308 @@ async def reactivate_chip(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error en la reactivación de chip: {str(e)}"
         )
+
+
+class UpdateMemberRequest(BaseModel):
+    status: Optional[str] = None
+    plan: Optional[str] = None
+    end_date: Optional[str] = None
+    card_no: Optional[str] = None
+    zkteco_user_id: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class RegisterPaymentRequest(BaseModel):
+    amount: float
+    method: str
+    plan: str
+
+
+@router.put("/admin/members/{member_id}")
+async def update_member(
+    member_id: str,
+    data: UpdateMemberRequest,
+    authorization: Optional[str] = Header(None)
+):
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    # Obtener profile_id del miembro
+    member_res = supabase_client.table("members")\
+        .select("profile_id")\
+        .eq("id", member_id)\
+        .execute()
+    
+    if not member_res.data:
+        raise HTTPException(status_code=404, detail="Miembro no encontrado")
+    
+    profile_id = member_res.data[0].get("profile_id")
+    
+    # Actualizar members
+    member_updates = {}
+    if data.status is not None: member_updates["status"] = data.status
+    if data.plan is not None: member_updates["plan"] = data.plan
+    if data.end_date is not None: member_updates["end_date"] = data.end_date
+    if data.card_no is not None: member_updates["card_no"] = data.card_no
+    if data.zkteco_user_id is not None: member_updates["zkteco_user_id"] = data.zkteco_user_id
+    
+    if member_updates:
+        member_updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        supabase_client.table("members").update(member_updates).eq("id", member_id).execute()
+    
+    # Actualizar profiles si hay datos de perfil
+    profile_updates = {}
+    if data.full_name is not None: profile_updates["full_name"] = data.full_name
+    if data.email is not None: profile_updates["email"] = data.email
+    if data.phone is not None: profile_updates["phone"] = data.phone
+    
+    if profile_updates and profile_id:
+        supabase_client.table("profiles").update(profile_updates).eq("id", profile_id).execute()
+    
+    return {"status": "ok"}
+
+
+@router.put("/admin/members/{member_id}/suspend")
+async def suspend_member(
+    member_id: str,
+    authorization: Optional[str] = Header(None)
+):
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    
+    supabase_client.table("members")\
+        .update({"status": "suspended", "updated_at": datetime.now(timezone.utc).isoformat()})\
+        .eq("id", member_id)\
+        .execute()
+    
+    return {"status": "ok"}
+
+
+@router.get("/admin/payments")
+async def get_payments(authorization: Optional[str] = Header(None)):
+    """Historial general de pagos con datos del miembro y perfil."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    
+    try:
+        res = supabase_client.table("payments")\
+            .select("*, members(id, profiles:profile_id(full_name, email))")\
+            .order("payment_date", desc=True)\
+            .execute()
+        
+        return {"payments": res.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Error al obtener pagos: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener pagos: {str(e)}"
+        )
+
+
+@router.get("/admin/members")
+async def get_members(
+    without_chip: bool = False,
+    authorization: Optional[str] = Header(None)
+):
+    """Listado de miembros con perfil. Filtro opcional: sin chip asignado."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    
+    try:
+        query = supabase_client.table("members")\
+            .select("*, profiles:profile_id(full_name, email, phone)")
+        
+        if without_chip:
+            query = query.is_("card_no", "null").eq("status", "active")
+        
+        res = query.order("created_at", desc=True).execute()
+        
+        return {"members": res.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Error al obtener miembros: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener miembros: {str(e)}"
+        )
+
+
+@router.get("/admin/members/{member_id}")
+async def get_member_detail(
+    member_id: str,
+    authorization: Optional[str] = Header(None)
+):
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    
+    # member + profile
+    member_res = supabase_client.table("members")\
+        .select("*, profiles:profile_id(full_name, email, phone)")\
+        .eq("id", member_id)\
+        .execute()
+    
+    if not member_res.data:
+        raise HTTPException(status_code=404, detail="Miembro no encontrado")
+    
+    member = member_res.data[0]
+    
+    # payments
+    payments_res = supabase_client.table("payments")\
+        .select("id, amount, method, plan, status, payment_date, plan_start_date, plan_end_date")\
+        .eq("member_id", member_id)\
+        .order("payment_date", desc=True)\
+        .execute()
+    
+    # day_pass más reciente
+    day_pass_res = supabase_client.table("member_day_passes")\
+        .select("id, days_used, days_total, status, valid_from, valid_until")\
+        .eq("member_id", member_id)\
+        .order("created_at", desc=True)\
+        .limit(1)\
+        .execute()
+    
+    dp = day_pass_res.data[0] if day_pass_res.data else None
+
+    return {
+        "member": member,
+        "payments": payments_res.data or [],
+        "day_pass": dp,
+        "dayPass": dp
+    }
+
+
+@router.post("/admin/members/{member_id}/payments")
+async def register_payment(
+    member_id: str,
+    data: RegisterPaymentRequest,
+    authorization: Optional[str] = Header(None)
+):
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    
+    admin_user = get_current_user(authorization)
+    admin_user_id = admin_user["id"] if admin_user else None
+    
+    # 1. Obtener duración del plan
+    plan_res = supabase_client.table("plans")\
+        .select("duration_days")\
+        .eq("slug", data.plan)\
+        .execute()
+    
+    if not plan_res.data:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+    
+    duration_days = plan_res.data[0]["duration_days"]
+    
+    # 2. Obtener estado actual del miembro
+    member_res = supabase_client.table("members")\
+        .select("status, end_date")\
+        .eq("id", member_id)\
+        .execute()
+    
+    if not member_res.data:
+        raise HTTPException(status_code=404, detail="Miembro no encontrado")
+    
+    member = member_res.data[0]
+    
+    # 3. Calcular fechas (renovación anticipada si aún está activo)
+    bogota_tz = timezone(timedelta(hours=-5))
+    now = datetime.now(bogota_tz)
+    
+    if member.get("status") == "active" and member.get("end_date"):
+        try:
+            current_end = datetime.fromisoformat(member["end_date"])
+            if current_end.tzinfo is None:
+                current_end = current_end.replace(tzinfo=bogota_tz)
+            start_date = current_end.date().isoformat()
+            end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+        except Exception:
+            start_date = now.date().isoformat()
+            end_date = (now + timedelta(days=duration_days)).date().isoformat()
+    else:
+        start_date = now.date().isoformat()
+        end_date = (now + timedelta(days=duration_days)).date().isoformat()
+    
+    # 4. Registrar pago
+    payment_res = supabase_client.table("payments").insert({
+        "member_id": member_id,
+        "amount": data.amount,
+        "method": data.method,
+        "plan": data.plan,
+        "status": "confirmed",
+        "registered_by": admin_user_id,
+        "plan_start_date": start_date,
+        "plan_end_date": end_date
+    }).execute()
+
+    if not payment_res.data:
+        raise HTTPException(status_code=500, detail="Error al registrar pago en base de datos")
+    
+    payment = payment_res.data[0]
+    
+    # 5. Actualizar member
+    supabase_client.table("members").update({
+        "status": "active",
+        "plan": data.plan,
+        "start_date": start_date,
+        "end_date": end_date,
+        "updated_at": now.isoformat()
+    }).eq("id", member_id).execute()
+    
+    # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
+    if data.plan == "15_days":
+        valid_until = (now + timedelta(days=30)).date().isoformat()
+        
+        supabase_client.table("member_day_passes")\
+            .update({"status": "exhausted"})\
+            .eq("member_id", member_id)\
+            .eq("status", "active")\
+            .execute()
+        
+        supabase_client.table("member_day_passes").insert({
+            "member_id": member_id,
+            "payment_id": payment["id"],
+            "days_total": 15,
+            "days_used": 0,
+            "valid_from": start_date,
+            "valid_until": valid_until,
+            "status": "active"
+        }).execute()
+    
+    # 7. Reactivar chip (no bloqueante)
+    try:
+        member_full = supabase_client.table("members")\
+            .select("card_no, zkteco_user_id, profile_id")\
+            .eq("id", member_id)\
+            .execute()
+        
+        if member_full.data and member_full.data[0].get("card_no"):
+            m = member_full.data[0]
+            profile = supabase_client.table("profiles")\
+                .select("full_name")\
+                .eq("id", m["profile_id"])\
+                .execute()
+            full_name = profile.data[0]["full_name"] if profile.data else "Miembro"
+            
+            await activate_member(
+                member_id=member_id,
+                card_no=m["card_no"],
+                zkteco_user_id=m["zkteco_user_id"],
+                full_name=full_name
+            )
+    except Exception as e:
+        logger.warning(f"[PAYMENT] No se pudo reactivar chip: {e}")
+    
+    return {"status": "ok", "payment_id": payment["id"]}
+
