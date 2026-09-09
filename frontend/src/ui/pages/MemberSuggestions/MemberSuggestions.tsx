@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
-import { useAppSelector } from '../../../infrastructure/store/store';
-import { getMemberSuggestions } from '../../../application/member/getMemberSuggestions.usecase';
+import { useAppDispatch, useAppSelector } from '@/infrastructure/store/store';
+import { setMember } from '@/infrastructure/store/memberSlice';
 import { createSuggestion } from '../../../application/member/createSuggestion.usecase';
 import { memberRepository } from '../../../infrastructure/supabase/member.repository';
 import type { Suggestion } from '../../../domain/member/member.types';
@@ -16,9 +16,12 @@ const suggestionFormSchema = z.object({
 
 export function MemberSuggestions() {
   const { profile } = useAppSelector((state) => state.auth);
+  const { member, isLoading: isMemberLoading } = useAppSelector((state) => state.member);
+  const dispatch = useAppDispatch();
   
   // Suggestion list states
-  const [memberId, setMemberId] = useState<string | null>(null);
+  const [createdMemberId, setCreatedMemberId] = useState<string | null>(null);
+  const memberId = member?.id || createdMemberId;
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -29,15 +32,20 @@ export function MemberSuggestions() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
-  // Fetch previous suggestions on mount
+  // Fetch previous suggestions on mount or when member changes
   useEffect(() => {
     if (!profile) return;
+    if (isMemberLoading) return;
+    if (!member) {
+      setIsHistoryLoading(false);
+      return;
+    }
 
     setIsHistoryLoading(true);
     setHistoryError(null);
-    getMemberSuggestions(profile.id)
-      .then(({ memberId: mId, suggestions: list }) => {
-        setMemberId(mId);
+    memberRepository
+      .getSuggestionsByMemberId(member.id)
+      .then((list) => {
         setSuggestions(list);
         setIsHistoryLoading(false);
       })
@@ -46,7 +54,7 @@ export function MemberSuggestions() {
         setHistoryError(msg);
         setIsHistoryLoading(false);
       });
-  }, [profile]);
+  }, [profile, member, isMemberLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +77,8 @@ export function MemberSuggestions() {
       if (!targetMemberId) {
         const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
         targetMemberId = m.id;
-        setMemberId(m.id);
+        setCreatedMemberId(m.id);
+        dispatch(setMember(m));
       }
 
       const newSuggestion = await createSuggestion(targetMemberId, message.trim());
@@ -181,7 +190,7 @@ export function MemberSuggestions() {
           Mis Sugerencias Anteriores
         </h2>
 
-        {isHistoryLoading ? (
+        {isHistoryLoading || isMemberLoading ? (
           <div className={styles['member-suggestions__loading']} role="status" aria-live="polite">
             Cargando historial...
           </div>
