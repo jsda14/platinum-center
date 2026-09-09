@@ -1,32 +1,52 @@
+import { store } from '../store/store';
 import { supabase } from './client';
 import type { Member, MemberDayPass, Payment, Suggestion } from '../../domain/member/member.types';
 
-export const memberRepository = {
-  async getMemberByProfileId(profileId: string): Promise<Member | null> {
-    const { data, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('profile_id', profileId)
-      .maybeSingle();
+async function getAuthHeaders(): Promise<HeadersInit> {
+  let token = store.getState().auth.accessToken;
+  if (!token) {
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token || null;
+  }
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
 
-    if (error) {
-      throw new Error(error.message);
+export const memberRepository = {
+  async getMemberByProfileId(_profileId?: string): Promise<Member | null> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (response.status === 404) {
+      return null;
     }
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener datos del miembro desde el servidor');
+    }
+
+    const data = await response.json();
     return (data || null) as Member | null;
   },
 
   async getOrCreateMemberByProfileId(profileId: string): Promise<Member> {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
     const response = await fetch(`${apiUrl}/members/get-or-create`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ profile_id: profileId }),
     });
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({ detail: 'Error al obtener o crear la membresía' }));
+      const errData = await response.json().catch(() => ({}));
       throw new Error(errData.detail || 'Error al obtener o crear la membresía');
     }
 
@@ -34,62 +54,87 @@ export const memberRepository = {
     return data as Member;
   },
 
-  async getActiveDayPass(memberId: string): Promise<MemberDayPass | null> {
-    const { data, error } = await supabase
-      .from('member_day_passes')
-      .select('*')
-      .eq('member_id', memberId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  async getActiveDayPass(_memberId?: string): Promise<MemberDayPass | null> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/day-passes`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (response.status === 404) {
+      return null;
     }
-    return data as MemberDayPass | null;
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al consultar pases diarios desde el servidor');
+    }
+
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      return (data[0] || null) as MemberDayPass | null;
+    }
+    return (data || null) as MemberDayPass | null;
   },
 
-  async getPaymentsByMemberId(memberId: string): Promise<Payment[]> {
-    const { data, error } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('payment_date', { ascending: false });
+  async getPaymentsByMemberId(_memberId?: string): Promise<Payment[]> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/payments`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (response.status === 404) {
+      return [];
     }
-    return (data || []) as Payment[];
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al consultar historial de pagos desde el servidor');
+    }
+
+    const data = await response.json();
+    return (Array.isArray(data) ? data : []) as Payment[];
   },
 
-  async createSuggestion(memberId: string, message: string): Promise<Suggestion> {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .insert({
-        member_id: memberId,
-        message,
-        status: 'pending',
-      })
-      .select()
-      .single();
+  async createSuggestion(_memberId: string, message: string): Promise<Suggestion> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/suggestions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message }),
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al enviar la sugerencia al servidor');
     }
+
+    const data = await response.json();
     return data as Suggestion;
   },
 
-  async getSuggestionsByMemberId(memberId: string): Promise<Suggestion[]> {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false });
+  async getSuggestionsByMemberId(_memberId?: string): Promise<Suggestion[]> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/suggestions`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (response.status === 404) {
+      return [];
     }
-    return (data || []) as Suggestion[];
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al consultar sugerencias desde el servidor');
+    }
+
+    const data = await response.json();
+    return (Array.isArray(data) ? data : []) as Suggestion[];
   }
 };

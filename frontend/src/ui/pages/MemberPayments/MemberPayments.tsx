@@ -1,21 +1,28 @@
 import { useEffect, useState } from 'react';
-import { useAppSelector } from '../../../infrastructure/store/store';
-import { getMemberPayments } from '../../../application/member/getMemberPayments.usecase';
-import type { Payment } from '../../../domain/member/member.types';
+import { useAppSelector } from '@/infrastructure/store/store';
+import { memberRepository } from '@/infrastructure/supabase/member.repository';
+import type { Payment } from '@/domain/member/member.types';
 import styles from './MemberPayments.module.css';
 
 export function MemberPayments() {
   const { profile } = useAppSelector((state) => state.auth);
+  const { member, isLoading: isMemberLoading } = useAppSelector((state) => state.member);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
+    if (isMemberLoading) return;
+    if (!member) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
-    getMemberPayments(profile.id)
+    memberRepository
+      .getPaymentsByMemberId(member.id)
       .then((res) => {
         setPayments(res);
         setIsLoading(false);
@@ -25,7 +32,7 @@ export function MemberPayments() {
         setError(message);
         setIsLoading(false);
       });
-  }, [profile]);
+  }, [profile, member, isMemberLoading]);
 
   const formatCOP = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -74,7 +81,7 @@ export function MemberPayments() {
     'failed': styles['member-payments__badge--failed'],
   };
 
-  if (isLoading) {
+  if (isLoading || isMemberLoading) {
     return (
       <div className={styles['member-payments__loading']} role="status" aria-live="polite">
         Cargando historial de pagos...

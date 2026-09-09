@@ -7,7 +7,7 @@ from src.api.routes.admin import router as admin_router
 from src.api.routes.dashboard import router as dashboard_router
 from src.api.routes.admin_communications import router as admin_comm_router
 from src.api.routes.zkteco import router as zkteco_router
-from src.api.routes.members import router as members
+from src.routers.members import router as members_router
 from src.routers.commands import router as commands_router
 from src.routers.gym import router as gym_router
 
@@ -29,7 +29,7 @@ app.include_router(admin_router)
 app.include_router(dashboard_router)
 app.include_router(admin_comm_router)
 app.include_router(zkteco_router)
-app.include_router(members)
+app.include_router(members_router)
 app.include_router(commands_router)
 app.include_router(gym_router)
 
