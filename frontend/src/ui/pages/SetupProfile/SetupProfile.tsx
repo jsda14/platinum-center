@@ -64,13 +64,21 @@ export function SetupProfile() {
         const currentUserId = session?.user?.id || user?.id;
         if (!currentUserId) return;
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, phone, email')
-          .eq('id', currentUserId)
-          .single();
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const token = session?.access_token || accessToken;
+        const res = await fetch(`${apiUrl}/profiles/me`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
 
-        if (error) throw error;
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Error al obtener perfil');
+        }
+
+        const data = await res.json();
 
         if (data) {
           setFormData((prev) => ({
@@ -134,17 +142,24 @@ export function SetupProfile() {
         }
       }
 
-      // 3. Update profile fields
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
+      // 3. Update profile fields via Railway
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = session?.access_token || accessToken;
+      const profileUpdateRes = await fetch(`${apiUrl}/profiles/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
           full_name: formData.fullName,
           phone: formData.phone
         })
-        .eq('id', currentUserId);
+      });
 
-      if (profileError) {
-        throw new Error(`Error al actualizar el perfil: ${profileError.message}`);
+      if (!profileUpdateRes.ok) {
+        const errData = await profileUpdateRes.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Error al actualizar el perfil');
       }
 
       // 4. Update Redux store

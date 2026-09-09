@@ -59,6 +59,15 @@ export interface DashboardMetrics {
   membersWithoutChip: MemberWithProfile[];
 }
 
+async function getAdminAuthHeaders(): Promise<HeadersInit> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
+
 export const adminRepository = {
   async getMembers(withoutChip?: boolean): Promise<MemberWithProfile[]> {
     let query = supabase
@@ -115,18 +124,21 @@ export const adminRepository = {
     const profileId = currentMember.profile_id;
 
     if (profileId && (data.fullName !== undefined || data.email !== undefined || data.phone !== undefined)) {
-      const profileUpdates: Partial<Profile> = {};
-      if (data.fullName !== undefined) profileUpdates.full_name = data.fullName;
-      if (data.email !== undefined) profileUpdates.email = data.email;
-      if (data.phone !== undefined) profileUpdates.phone = data.phone;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const headers = await getAdminAuthHeaders();
+      const profileRes = await fetch(`${apiUrl}/admin/profiles/${profileId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          full_name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+        }),
+      });
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('id', profileId);
-
-      if (profileError) {
-        throw new Error(`Error al actualizar perfil: ${profileError.message}`);
+      if (!profileRes.ok) {
+        const errData = await profileRes.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Error al actualizar perfil');
       }
     }
 
@@ -364,17 +376,21 @@ export const adminRepository = {
     profileId: string,
     data: { fullName: string; email: string; phone?: string | null }
   ): Promise<void> {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/profiles/${profileId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
         full_name: data.fullName,
         email: data.email,
-        phone: data.phone
-      })
-      .eq('id', profileId);
+        phone: data.phone,
+      }),
+    });
 
-    if (error) {
-      throw new Error(`Error al actualizar perfil del miembro: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar perfil del miembro');
     }
   },
 
@@ -548,25 +564,34 @@ export const adminRepository = {
   },
 
   async getAllUsers(): Promise<Profile[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('full_name', { ascending: true });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/users`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener usuarios');
     }
-    return (data || []) as Profile[];
+
+    const data = await response.json();
+    return (data.users || []) as Profile[];
   },
 
   async updateUserRole(profileId: string, newRole: UserRole): Promise<void> {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', profileId);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/profiles/${profileId}/role`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ role: newRole }),
+    });
 
-    if (error) {
-      throw new Error(`Error al actualizar el rol: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar el rol');
     }
   },
 

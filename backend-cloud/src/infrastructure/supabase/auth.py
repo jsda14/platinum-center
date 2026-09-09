@@ -78,3 +78,11 @@ def get_current_user_role(authorization: Optional[str]) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al verificar rol de usuario: {str(e)}"
         )
+
+def get_current_user(authorization: Optional[str]) -> dict:
+    """
+    Retorna el usuario actual autenticado a partir del header Authorization.
+    """
+    user_id = get_current_user_id(authorization)
+    return {"id": user_id}
+
