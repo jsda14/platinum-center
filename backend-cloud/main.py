@@ -10,6 +10,7 @@ from src.api.routes.zkteco import router as zkteco_router
 from src.routers.members import router as members_router
 from src.routers.commands import router as commands_router
 from src.routers.gym import router as gym_router
+from src.routers.plans import router as plans_router
 
 load_dotenv()
 
@@ -32,6 +33,7 @@ app.include_router(zkteco_router)
 app.include_router(members_router)
 app.include_router(commands_router)
 app.include_router(gym_router)
+app.include_router(plans_router)
 
 @app.get("/health")
 def health_check():
