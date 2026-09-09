@@ -70,20 +70,21 @@ async function getAdminAuthHeaders(): Promise<HeadersInit> {
 
 export const adminRepository = {
   async getMembers(withoutChip?: boolean): Promise<MemberWithProfile[]> {
-    let query = supabase
-      .from('members')
-      .select('*, profiles:profile_id(full_name, email, phone)');
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const queryParam = withoutChip ? '?without_chip=true' : '';
+    const response = await fetch(`${apiUrl}/admin/members${queryParam}`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (withoutChip) {
-      query = query.is('card_no', null).eq('status', 'active');
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener miembros');
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-    return (data || []) as MemberWithProfile[];
+    const data = await response.json();
+    return (data.members || []) as MemberWithProfile[];
   },
 
   async createMember(data: CreateMemberData): Promise<Member> {
@@ -111,263 +112,119 @@ export const adminRepository = {
   },
 
   async updateMember(id: string, data: UpdateMemberData): Promise<Member> {
-    const { data: currentMember, error: fetchError } = await supabase
-      .from('members')
-      .select('profile_id')
-      .eq('id', id)
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        status: data.status,
+        plan: data.plan,
+        end_date: data.end_date,
+        card_no: data.card_no,
+        zkteco_user_id: data.zkteco_user_id,
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone,
+      }),
+    });
 
-    if (fetchError) {
-      throw new Error(`Error al buscar miembro: ${fetchError.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar miembro');
     }
 
-    const profileId = currentMember.profile_id;
-
-    if (profileId && (data.fullName !== undefined || data.email !== undefined || data.phone !== undefined)) {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const headers = await getAdminAuthHeaders();
-      const profileRes = await fetch(`${apiUrl}/admin/profiles/${profileId}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          full_name: data.fullName,
-          email: data.email,
-          phone: data.phone,
-        }),
-      });
-
-      if (!profileRes.ok) {
-        const errData = await profileRes.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Error al actualizar perfil');
-      }
-    }
-
-    const memberUpdates: Partial<Member> = {};
-    if (data.status !== undefined) memberUpdates.status = data.status;
-    if (data.plan !== undefined) memberUpdates.plan = data.plan;
-    if (data.end_date !== undefined) memberUpdates.end_date = data.end_date;
-    if (data.card_no !== undefined) memberUpdates.card_no = data.card_no;
-    if (data.zkteco_user_id !== undefined) memberUpdates.zkteco_user_id = data.zkteco_user_id;
-    memberUpdates.updated_at = new Date().toISOString();
-
-    const { data: updatedMember, error: memberError } = await supabase
-      .from('members')
-      .update(memberUpdates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (memberError) {
-      throw new Error(`Error al actualizar miembro: ${memberError.message}`);
-    }
-
-    return updatedMember as Member;
+    const detail = await this.getMemberDetail(id);
+    return detail.member;
   },
 
   async suspendMember(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('members')
-      .update({ status: 'suspended', updated_at: new Date().toISOString() })
-      .eq('id', id);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/${id}/suspend`, {
+      method: 'PUT',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(`Error al suspender miembro: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al suspender miembro');
     }
   },
 
   async getMemberWithProfile(memberId: string): Promise<MemberWithProfile> {
-    const { data, error } = await supabase
-      .from('members')
-      .select('*, profiles:profile_id(full_name, email, phone)')
-      .eq('id', memberId)
-      .single();
-
-    if (error) {
-      throw new Error(`Error al buscar miembro: ${error.message}`);
-    }
-
-    return data as MemberWithProfile;
+    const detail = await this.getMemberDetail(memberId);
+    return detail.member;
   },
 
   async registerManualPayment(data: ManualPaymentData): Promise<Payment> {
-    // 1. Obtener la sesión activa para registrar quién lo hizo
-    const { data: sessionData } = await supabase.auth.getSession();
-    const adminUserId = sessionData.session?.user?.id;
-
-    // 2. Consultar la vigencia del plan en la tabla plans
-    const { data: planData, error: planError } = await supabase
-      .from('plans')
-      .select('duration_days')
-      .eq('slug', data.plan)
-      .single();
-
-    if (planError) {
-      throw new Error(`Error al buscar plan: ${planError.message}`);
-    }
-
-    const durationDays = planData.duration_days;
-
-    // 3. Consultar el estado actual del miembro
-    const { data: memberData, error: memberError } = await supabase
-      .from('members')
-      .select('status, end_date')
-      .eq('id', data.member_id)
-      .single();
-
-    if (memberError) {
-      throw new Error(`Error al buscar miembro: ${memberError.message}`);
-    }
-
-    // 4. Lógica de renovación anticipada
-    let startDate: string;
-    let endDate: string;
-
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    if (memberData.status === 'active' && memberData.end_date && memberData.end_date > todayStr) {
-      startDate = memberData.end_date;
-    } else {
-      startDate = todayStr;
-    }
-
-    // Calcular endDate sumando los durationDays a startDate
-    const parts = startDate.split('-');
-    const start = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-    start.setDate(start.getDate() + durationDays);
-
-    const year = start.getFullYear();
-    const month = String(start.getMonth() + 1).padStart(2, '0');
-    const day = String(start.getDate()).padStart(2, '0');
-    endDate = `${year}-${month}-${day}`;
-
-    // 5. Registrar el pago
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .insert({
-        member_id: data.member_id,
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/${data.member_id}/payments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
         amount: data.amount,
         method: data.method,
         plan: data.plan,
-        status: 'confirmed',
-        registered_by: adminUserId || null,
-        plan_start_date: startDate,
-        plan_end_date: endDate
-      })
-      .select()
-      .single();
+      }),
+    });
 
-    if (paymentError) {
-      throw new Error(`Error al registrar el pago: ${paymentError.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al registrar el pago');
     }
 
-    // 6. Actualizar el miembro
-    const { error: updateMemberError } = await supabase
-      .from('members')
-      .update({
-        status: 'active',
-        plan: data.plan,
-        start_date: startDate,
-        end_date: endDate,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', data.member_id);
+    const resData = await response.json();
+    return {
+      id: resData.payment_id,
+      member_id: data.member_id,
+      amount: data.amount,
+      method: data.method,
+      plan: data.plan,
+      status: 'confirmed',
+    } as Payment;
+  },
 
-    if (updateMemberError) {
-      throw new Error(`Error al actualizar membresía: ${updateMemberError.message}`);
-    }
-
-    // Cerrar cualquier day_pass activo anterior para este member_id (el nuevo plan tiene prioridad)
-    await supabase
-      .from('member_day_passes')
-      .update({ status: 'exhausted' })
-      .eq('member_id', data.member_id)
-      .eq('status', 'active');
-
-    // 7. Si es un plan de 15 días, registrar el member_day_passes
-    if (data.plan === '15_days') {
-      const partsStart = startDate.split('-');
-      const startD = new Date(Number(partsStart[0]), Number(partsStart[1]) - 1, Number(partsStart[2]));
-      startD.setDate(startD.getDate() + 30); // valid_until es valid_from + 30 días
-      const y = startD.getFullYear();
-      const m = String(startD.getMonth() + 1).padStart(2, '0');
-      const d = String(startD.getDate()).padStart(2, '0');
-      const validUntil = `${y}-${m}-${d}`;
-
-      const { error: passError } = await supabase
-        .from('member_day_passes')
-        .insert({
-          member_id: data.member_id,
-          payment_id: payment.id,
-          days_total: 15,
-          days_used: 0,
-          valid_from: startDate,
-          valid_until: validUntil,
-          status: 'active'
-        });
-
-      if (passError) {
-        throw new Error(`Error al registrar pases: ${passError.message}`);
-      }
-    }
-
-    return payment as Payment;
+  registerPayment(data: ManualPaymentData): Promise<Payment> {
+    return this.registerManualPayment(data);
   },
 
   async getPayments(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('payments')
-      .select('*, members(id, profiles:profile_id(full_name, email))')
-      .order('payment_date', { ascending: false });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/payments`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener pagos');
     }
-    return data || [];
+
+    const data = await response.json();
+    return (data.payments || []) as any[];
   },
 
   async getMemberDetail(memberId: string): Promise<MemberDetail> {
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('*, profiles:profile_id(full_name, email, phone)')
-      .eq('id', memberId)
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/${memberId}`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (memberError) {
-      throw new Error(`Error al obtener miembro: ${memberError.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener detalle del miembro');
     }
 
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('payment_date', { ascending: false });
-
-    if (paymentsError) {
-      throw new Error(`Error al obtener pagos: ${paymentsError.message}`);
-    }
-
-    let dayPass: MemberDayPass | null = null;
-    if (member && member.plan === '15_days') {
-      const { data: dayPasses, error: dayPassError } = await supabase
-        .from('member_day_passes')
-        .select('*')
-        .eq('member_id', memberId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (dayPassError) {
-        throw new Error(`Error al obtener pases de día: ${dayPassError.message}`);
-      }
-
-      if (dayPasses && dayPasses.length > 0) {
-        dayPass = dayPasses[0] as MemberDayPass;
-      }
-    }
-
+    const data = await response.json();
     return {
-      member: member as MemberWithProfile,
-      payments: (payments || []) as Payment[],
-      dayPass
+      member: data.member as MemberWithProfile,
+      payments: (data.payments || []) as Payment[],
+      dayPass: (data.day_pass || data.dayPass || null) as MemberDayPass | null,
     };
   },
 
