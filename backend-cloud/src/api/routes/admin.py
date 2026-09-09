@@ -2,6 +2,7 @@ import os
 import random
 import string
 import time
+import logging
 import httpx
 from datetime import datetime, date, timedelta
 from typing import Optional
@@ -9,6 +10,8 @@ from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
 from src.infrastructure.zkteco.tunnel_client import activate_member
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["admin"])
 
@@ -224,6 +227,10 @@ async def assign_chip(
     1. Busca el usuario en ZKBioSecurity via Bridge
     2. Si existe: guarda zkteco_person_id y zkteco_user_id en members
     3. Si no existe: crea el usuario en ZKBioSecurity via Bridge
+    4. Si el lookup al Bridge falla o el túnel no está disponible:
+       - Guarda el comando 'activate' en pending_commands
+       - Actualiza card_no y zkteco_user_id en members
+       - Retorna {"status": "queued", "found_in_zkteco": false}
     """
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
@@ -233,31 +240,100 @@ async def assign_chip(
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     
     headers = {
-        "Authorization": f"Bearer {tunnel_secret}",
+        "Authorization": f"Bearer {tunnel_secret or ''}",
+        "X-Tunnel-Secret": tunnel_secret or "",
         "Content-Type": "application/json"
     }
 
-    # 1. Buscar en ZKBioSecurity por card_no
-    try:
-        lookup_resp = httpx.get(
-            f"{gym_tunnel_url}/webhook/lookup-member?card_no={data.card_no}",
-            headers=headers,
-            timeout=10.0
-        )
-        lookup = lookup_resp.json()
-    except Exception as e:
-        lookup = {"found": False}
+    zkteco_user_id = data.zkteco_user_id or str(int(time.time()))[-6:]
+    person_id = None
+    bridge_lookup_ok = False
+    lookup = {"found": False}
 
-    if lookup.get("found"):
-        # 2. Ya existe en ZKBioSecurity — guardar IDs en Supabase
-        person_id = lookup["person_id"]
-        zkteco_user_id = lookup["zkteco_user_id"]
+    # 1. Intentar lookup al Bridge
+    if gym_tunnel_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                lookup_resp = await client.get(
+                    f"{gym_tunnel_url.rstrip('/')}/webhook/lookup-member?card_no={data.card_no}",
+                    headers=headers,
+                    timeout=10.0
+                )
+                if lookup_resp.status_code == 200:
+                    lookup = lookup_resp.json()
+                    bridge_lookup_ok = True
+                else:
+                    logger.warning(
+                        "[ASSIGN-CHIP] Lookup al Bridge falló con status %s: %s",
+                        lookup_resp.status_code,
+                        lookup_resp.text
+                    )
+        except Exception as e:
+            logger.warning("[ASSIGN-CHIP] Excepción al contactar Bridge: %s", str(e))
     else:
-        # 3. No existe — crear en ZKBioSecurity via activate
-        zkteco_user_id = data.zkteco_user_id or str(int(time.time()))[-6:]
-        person_id = None
-        
-        await activate_member(
+        logger.warning("[ASSIGN-CHIP] GYM_TUNNEL_URL no configurado")
+
+    # 2. Si el lookup al Bridge falló -> guardar activate en pending_commands + actualizar card_no en members
+    if not bridge_lookup_ok:
+        logger.info("[ASSIGN-CHIP] Bridge no disponible. Guardando activate en pending_commands para miembro %s", data.member_id)
+        try:
+            supabase_client.table("pending_commands").insert({
+                "member_id": data.member_id,
+                "action": "activate",
+                "card_no": data.card_no,
+                "zkteco_user_id": zkteco_user_id,
+                "full_name": data.full_name,
+                "sn": data.sn or "PLATINUM001",
+                "status": "pending"
+            }).execute()
+        except Exception as err:
+            logger.error("[ASSIGN-CHIP] Error al insertar en pending_commands: %s", err)
+
+        try:
+            supabase_client.table("members")\
+                .update({
+                    "card_no": data.card_no,
+                    "zkteco_user_id": zkteco_user_id
+                })\
+                .eq("id", data.member_id)\
+                .execute()
+        except Exception as err:
+            logger.error("[ASSIGN-CHIP] Error al actualizar card_no en members: %s", err)
+
+        return {
+            "status": "queued",
+            "found_in_zkteco": False,
+            "zkteco_user_id": zkteco_user_id,
+            "zkteco_person_id": None
+        }
+
+    # 3. Si el lookup al Bridge respondió:
+    if lookup.get("found"):
+        # Ya existe en ZKBioSecurity — guardar IDs en Supabase
+        person_id = lookup.get("person_id")
+        zkteco_user_id = lookup.get("zkteco_user_id") or zkteco_user_id
+
+        update_data = {
+            "card_no": data.card_no,
+            "zkteco_user_id": zkteco_user_id
+        }
+        if person_id:
+            update_data["zkteco_person_id"] = person_id
+
+        supabase_client.table("members")\
+            .update(update_data)\
+            .eq("id", data.member_id)\
+            .execute()
+
+        return {
+            "status": "ok",
+            "found_in_zkteco": True,
+            "zkteco_user_id": zkteco_user_id,
+            "zkteco_person_id": person_id
+        }
+    else:
+        # No existe en ZKBioSecurity — crear vía activate_member (maneja su propio fallback a pending_commands)
+        activated = await activate_member(
             member_id=data.member_id,
             card_no=data.card_no,
             zkteco_user_id=zkteco_user_id,
@@ -265,25 +341,21 @@ async def assign_chip(
             sn=data.sn
         )
 
-    # Actualizar members en Supabase
-    update_data = {
-        "card_no": data.card_no,
-        "zkteco_user_id": zkteco_user_id
-    }
-    if person_id:
-        update_data["zkteco_person_id"] = person_id
+        update_data = {
+            "card_no": data.card_no,
+            "zkteco_user_id": zkteco_user_id
+        }
+        supabase_client.table("members")\
+            .update(update_data)\
+            .eq("id", data.member_id)\
+            .execute()
 
-    supabase_client.table("members")\
-        .update(update_data)\
-        .eq("id", data.member_id)\
-        .execute()
-
-    return {
-        "status": "ok",
-        "found_in_zkteco": lookup.get("found"),
-        "zkteco_user_id": zkteco_user_id,
-        "zkteco_person_id": person_id
-    }
+        return {
+            "status": "ok" if activated else "queued",
+            "found_in_zkteco": False,
+            "zkteco_user_id": zkteco_user_id,
+            "zkteco_person_id": None
+        }
 
 class ReactivateChipRequest(BaseModel):
     member_id: str
