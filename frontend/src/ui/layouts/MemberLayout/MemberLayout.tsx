@@ -12,6 +12,7 @@ import { logout } from '../../../infrastructure/store/authSlice';
 import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
 import styles from './MemberLayout.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
+import { GymStatus } from '@/ui/components/GymStatus';
 
 export function MemberLayout() {
   const navigate = useNavigate();
@@ -95,6 +96,10 @@ export function MemberLayout() {
           </button>
         </div>
       </header>
+
+      <div className={styles['member-layout__status-bar']}>
+        <GymStatus />
+      </div>
 
       <main className={styles['member-layout__content']}>
         <Outlet />
