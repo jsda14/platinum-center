@@ -727,3 +727,207 @@ async def register_payment(
     
     return {"status": "ok", "payment_id": payment["id"]}
 
+
+# ----------------------------------------------------
+# ADMIN PLANS
+# ----------------------------------------------------
+class PlanRequest(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    price: Optional[float] = None
+    duration: Optional[str] = None
+    duration_days: Optional[int] = None
+    description: Optional[str] = None
+    active: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+@router.get("/admin/plans")
+async def get_plans(authorization: Optional[str] = Header(None)):
+    """Devuelve todos los planes ordenados por precio ascendente para gestión administrativa."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        res = supabase_client.table("plans")\
+            .select("*")\
+            .order("price", desc=False)\
+            .execute()
+        return {"plans": res.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al consultar planes: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener planes: {str(e)}"
+        )
+
+
+@router.post("/admin/plans")
+async def create_plan(data: PlanRequest, authorization: Optional[str] = Header(None)):
+    """Crea un nuevo plan (solo super_admin)."""
+    role = get_current_user_role(authorization)
+    if role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        plan_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        if "is_active" in plan_dict and "active" not in plan_dict:
+            plan_dict["active"] = plan_dict.pop("is_active")
+        elif "is_active" in plan_dict:
+            plan_dict.pop("is_active")
+            
+        res = supabase_client.table("plans").insert(plan_dict).execute()
+        if not res.data:
+            raise HTTPException(status_code=500, detail="Error al crear plan en base de datos")
+        return {"plan": res.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al crear plan: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear plan: {str(e)}"
+        )
+
+
+@router.put("/admin/plans/{plan_id}")
+async def update_plan(plan_id: str, data: PlanRequest, authorization: Optional[str] = Header(None)):
+    """Actualiza un plan existente (solo super_admin)."""
+    role = get_current_user_role(authorization)
+    if role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        plan_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        if "is_active" in plan_dict and "active" not in plan_dict:
+            plan_dict["active"] = plan_dict.pop("is_active")
+        elif "is_active" in plan_dict:
+            plan_dict.pop("is_active")
+            
+        res = supabase_client.table("plans").update(plan_dict).eq("id", plan_id).execute()
+        return {"status": "ok", "plan": res.data[0] if res.data else None}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al actualizar plan: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar plan: {str(e)}"
+        )
+
+
+# ----------------------------------------------------
+# ADMIN GROUP PRICING
+# ----------------------------------------------------
+class GroupPricingRequest(BaseModel):
+    min_members: int
+    max_members: Optional[int] = None
+    price_per_person: Optional[float] = None
+    discount_percentage: Optional[float] = None
+    plan_id: Optional[str] = None
+    plan_slug: Optional[str] = None
+    active: Optional[bool] = True
+
+
+@router.get("/admin/group-pricing")
+async def get_group_pricing(authorization: Optional[str] = Header(None)):
+    """Obtiene la configuración de precios grupales."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        res = supabase_client.table("plan_group_pricing")\
+            .select("*")\
+            .order("min_members", desc=False)\
+            .execute()
+        return {"pricing": res.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al consultar precios grupales: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener precios grupales: {str(e)}"
+        )
+
+
+@router.post("/admin/group-pricing")
+async def create_group_pricing(data: GroupPricingRequest, authorization: Optional[str] = Header(None)):
+    """Crea un nuevo rango de precio grupal (solo super_admin)."""
+    role = get_current_user_role(authorization)
+    if role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        pricing_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        pricing_dict.pop("discount_percentage", None)
+        pricing_dict.pop("plan_slug", None)
+        
+        res = supabase_client.table("plan_group_pricing").insert(pricing_dict).execute()
+        if not res.data:
+            raise HTTPException(status_code=500, detail="Error al crear precio grupal")
+        return {"pricing": res.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al crear precio grupal: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear precio grupal: {str(e)}"
+        )
+
+
+@router.put("/admin/group-pricing/{pricing_id}")
+async def update_group_pricing(pricing_id: str, data: GroupPricingRequest, authorization: Optional[str] = Header(None)):
+    """Actualiza un rango de precio grupal existente (solo super_admin)."""
+    role = get_current_user_role(authorization)
+    if role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        pricing_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        pricing_dict.pop("discount_percentage", None)
+        pricing_dict.pop("plan_slug", None)
+        
+        res = supabase_client.table("plan_group_pricing").update(pricing_dict).eq("id", pricing_id).execute()
+        return {"status": "ok", "pricing": res.data[0] if res.data else None}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al actualizar precio grupal: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar precio grupal: {str(e)}"
+        )
+
+
+# ----------------------------------------------------
+# ADMIN COMMUNICATIONS
+# ----------------------------------------------------
+@router.get("/admin/communications")
+async def get_communications(authorization: Optional[str] = Header(None)):
+    """Historial de comunicados enviados con el perfil del emisor."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
+    
+    try:
+        res = supabase_client.table("communications")\
+            .select("*, sent_by_profile:profiles!communications_sent_by_fkey(full_name)")\
+            .order("sent_at", desc=True)\
+            .execute()
+        return {"communications": res.data or []}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ADMIN] Error al consultar comunicaciones: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener comunicaciones: {str(e)}"
+        )
+
+
