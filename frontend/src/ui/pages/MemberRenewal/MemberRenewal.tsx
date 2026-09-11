@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useAppSelector } from '../../../infrastructure/store/store';
-import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
-import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
-import { memberRepository } from '../../../infrastructure/supabase/member.repository';
-import type { Plan } from '../../../domain/member/member.types';
+import { useAppDispatch, useAppSelector } from '@/infrastructure/store/store';
+import { setMember } from '@/infrastructure/store/memberSlice';
+import { getActivePlans } from '@/application/member/getActivePlans.usecase';
+import { memberRepository } from '@/infrastructure/supabase/member.repository';
+import type { Plan } from '@/domain/member/member.types';
 import { BoldPaymentButton } from '../../components/BoldPaymentButton/BoldPaymentButton';
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import { CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
@@ -41,9 +41,12 @@ function savePaymentIntent(intent: BoldPaymentIntentSession): void {
 
 export function MemberRenewal() {
   const { profile } = useAppSelector((state) => state.auth);
+  const { member } = useAppSelector((state) => state.member);
+  const dispatch = useAppDispatch();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [memberId, setMemberId] = useState<string | null>(null);
-  const [hasMember, setHasMember] = useState<boolean>(false);
+  const [createdMemberId, setCreatedMemberId] = useState<string | null>(null);
+  const memberId = member?.id || createdMemberId;
+  const hasMember = !!member || !!createdMemberId;
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
@@ -59,24 +62,13 @@ export function MemberRenewal() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile) return;
-
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch active plans from Supabase
+        // Fetch active plans from backend
         const activePlans = await getActivePlans();
         setPlans(activePlans);
-
-        // Fetch current member details via the application use case to get the member ID
-        const statusResult = await getMemberStatus(profile.id);
-        if (statusResult.member) {
-          setMemberId(statusResult.member.id);
-          setHasMember(true);
-        } else {
-          setHasMember(false);
-        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al cargar los planes disponibles';
         setError(msg);
@@ -86,7 +78,7 @@ export function MemberRenewal() {
     };
 
     loadData();
-  }, [profile]);
+  }, []);
 
   const scrollToCheckout = useCallback(() => {
     const isMobile = window.innerWidth < 1024;
@@ -120,7 +112,8 @@ export function MemberRenewal() {
     if (!targetMemberId) {
       const m = await memberRepository.getOrCreateMemberByProfileId(profile.id);
       targetMemberId = m.id;
-      setMemberId(m.id);
+      setCreatedMemberId(m.id);
+      dispatch(setMember(m));
     }
 
     const now = Date.now();

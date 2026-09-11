@@ -26,7 +26,7 @@ profile_id      UUID REFERENCES profiles(id) ON DELETE CASCADE
 zkteco_user_id  TEXT UNIQUE        -- PIN interno en el inBio Pro
 card_no         TEXT UNIQUE        -- Número de tarjeta RFID física
 status          TEXT NOT NULL CHECK (status IN ('active', 'expired', 'suspended'))
-plan            TEXT CHECK (plan IN ('1_day', '15_days', '1_month', '1_year'))
+plan            TEXT               -- dinámico según tabla plans (check constraint removido)
 start_date      DATE
 end_date        DATE
 created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -45,7 +45,7 @@ id                UUID PRIMARY KEY DEFAULT gen_random_uuid()
 member_id         UUID REFERENCES members(id)
 amount            NUMERIC(10,2) NOT NULL
 method            TEXT CHECK (method IN ('cash', 'nequi', 'daviplata', 'bold', 'other'))
-plan              TEXT CHECK (plan IN ('1_day', '15_days', '1_month', '1_year'))
+plan              TEXT               -- dinámico según tabla plans (check constraint removido)
 transaction_id    TEXT UNIQUE        -- ID de Bold (UNIQUE para idempotencia)
 status            TEXT CHECK (status IN ('pending', 'confirmed', 'failed'))
 registered_by     UUID REFERENCES profiles(id)

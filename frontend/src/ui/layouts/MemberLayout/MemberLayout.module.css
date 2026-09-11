@@ -20,6 +20,15 @@
   z-index: 100;
 }
 
+.member-layout__status-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-dark-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
 .member-layout__brand {
   display: flex;
   align-items: center;

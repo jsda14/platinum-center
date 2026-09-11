@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   IdcardOutlined,
@@ -9,28 +9,23 @@ import {
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
-import { getMemberStatus } from '../../../application/member/getMemberStatus.usecase';
+import { fetchMemberStatus } from '@/infrastructure/store/memberSlice';
 import styles from './MemberLayout.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
+import { GymStatus } from '@/ui/components/GymStatus';
 
 export function MemberLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { profile } = useAppSelector((state) => state.auth);
-  const [hasActiveMember, setHasActiveMember] = useState<boolean>(false);
+  const { member } = useAppSelector((state) => state.member);
+  const hasActiveMember = !!member;
 
   useEffect(() => {
-    if (!profile) return;
-
-    getMemberStatus(profile.id)
-      .then((res) => {
-        setHasActiveMember(!!res?.member);
-      })
-      .catch(() => {
-        setHasActiveMember(false);
-      });
-  }, [profile, location.pathname]);
+    if (!profile?.id) return;
+    dispatch(fetchMemberStatus(profile.id));
+  }, [profile?.id]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -95,6 +90,10 @@ export function MemberLayout() {
           </button>
         </div>
       </header>
+
+      <div className={styles['member-layout__status-bar']}>
+        <GymStatus />
+      </div>
 
       <main className={styles['member-layout__content']}>
         <Outlet />

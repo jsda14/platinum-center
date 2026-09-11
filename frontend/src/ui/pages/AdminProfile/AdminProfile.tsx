@@ -106,15 +106,24 @@ export function AdminProfile() {
         throw new Error('No se encontró una sesión activa.');
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = accessToken || (await supabase.auth.getSession()).data.session?.access_token;
+      const res = await fetch(`${apiUrl}/profiles/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
           full_name: personalInfo.fullName,
           phone: personalInfo.phone,
-        })
-        .eq('id', currentUserId);
+        }),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Error al actualizar la información');
+      }
 
       // Update Redux state
       const profileAction = await dispatch(fetchProfile(currentUserId));
