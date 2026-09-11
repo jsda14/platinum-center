@@ -4,9 +4,9 @@ import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGrou
 
 export interface ManualPaymentData {
   member_id: string;
-  plan: '1_day' | '15_days' | '1_month' | '1_year';
+  plan: string;
   amount: number;
-  method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other';
+  method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
   notes?: string;
 }
 
@@ -18,8 +18,8 @@ export interface CreateMemberData {
   fullName: string;
   email: string;
   phone?: string;
-  plan: '1_day' | '15_days' | '1_month' | '1_year';
-  paymentMethod: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other';
+  plan: string;
+  paymentMethod: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
   amount: number;
 }
 
@@ -28,7 +28,7 @@ export interface UpdateMemberData {
   email?: string;
   phone?: string | null;
   status?: 'active' | 'expired' | 'suspended';
-  plan?: '1_day' | '15_days' | '1_month' | '1_year' | null;
+  plan?: string | null;
   end_date?: string | null;
   card_no?: string | null;
   zkteco_user_id?: string | null;

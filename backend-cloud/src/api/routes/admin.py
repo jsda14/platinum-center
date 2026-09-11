@@ -617,14 +617,23 @@ async def register_payment(
     
     # 1. Obtener duración del plan
     plan_res = supabase_client.table("plans")\
-        .select("duration_days")\
+        .select("duration_days, slug")\
         .eq("slug", data.plan)\
         .execute()
     
     if not plan_res.data:
-        raise HTTPException(status_code=404, detail="Plan no encontrado")
+        # Fallback si se envía el UUID en lugar del slug
+        plan_res = supabase_client.table("plans")\
+            .select("duration_days, slug")\
+            .eq("id", data.plan)\
+            .execute()
     
-    duration_days = plan_res.data[0]["duration_days"]
+    if not plan_res.data:
+        raise HTTPException(status_code=404, detail=f"Plan '{data.plan}' no encontrado")
+    
+    plan_info = plan_res.data[0]
+    duration_days = plan_info.get("duration_days") or 30
+    plan_slug = plan_info.get("slug") or data.plan
     
     # 2. Obtener estado actual del miembro
     member_res = supabase_client.table("members")\
@@ -660,7 +669,7 @@ async def register_payment(
         "member_id": member_id,
         "amount": data.amount,
         "method": data.method,
-        "plan": data.plan,
+        "plan": plan_slug,
         "status": "confirmed",
         "registered_by": admin_user_id,
         "plan_start_date": start_date,
@@ -675,14 +684,14 @@ async def register_payment(
     # 5. Actualizar member
     supabase_client.table("members").update({
         "status": "active",
-        "plan": data.plan,
+        "plan": plan_slug,
         "start_date": start_date,
         "end_date": end_date,
         "updated_at": now.isoformat()
     }).eq("id", member_id).execute()
     
     # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
-    if data.plan == "15_days":
+    if plan_slug == "15_days":
         valid_until = (now + timedelta(days=30)).date().isoformat()
         
         supabase_client.table("member_day_passes")\

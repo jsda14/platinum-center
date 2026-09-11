@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.members (
     zkteco_user_id TEXT UNIQUE,
     card_no TEXT UNIQUE,
     status TEXT NOT NULL CHECK (status IN ('active', 'expired', 'suspended')),
-    plan TEXT CHECK (plan IN ('1_day', '15_days', '1_month', '1_year')),
+    plan TEXT, -- check constraint removido para soportar planes dinámicos
     start_date DATE,
     end_date DATE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.payments (
     member_id UUID REFERENCES public.members(id),
     amount NUMERIC(10,2) NOT NULL,
     method TEXT CHECK (method IN ('cash', 'nequi', 'daviplata', 'bold', 'other')),
-    plan TEXT CHECK (plan IN ('1_day', '15_days', '1_month', '1_year')),
+    plan TEXT, -- check constraint removido para soportar planes dinámicos
     transaction_id TEXT UNIQUE,
     status TEXT CHECK (status IN ('pending', 'confirmed', 'failed')),
     registered_by UUID REFERENCES public.profiles(id),

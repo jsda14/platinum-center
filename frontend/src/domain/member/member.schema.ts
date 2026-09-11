@@ -4,7 +4,7 @@ export const userRoleSchema = z.enum(['super_admin', 'receptionist', 'member']);
 
 export const memberStatusSchema = z.enum(['active', 'expired', 'suspended']);
 
-export const planTypeSchema = z.enum(['1_day', '15_days', '1_month', '1_year']);
+export const planTypeSchema = z.string();
 
 export const paymentMethodSchema = z.enum(['cash', 'nequi', 'daviplata', 'bold', 'other']);
 
