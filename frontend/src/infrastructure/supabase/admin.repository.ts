@@ -252,146 +252,158 @@ export const adminRepository = {
   },
 
   async getPlans(): Promise<Plan[]> {
-    const { data, error } = await supabase
-      .from('plans')
-      .select('*')
-      .order('price', { ascending: true });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/plans`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(`Error al obtener planes: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener planes');
     }
-    return (data || []) as Plan[];
+
+    const data = await response.json();
+    return (data.plans || []) as Plan[];
   },
 
   async updatePlan(id: string, data: Partial<Plan>): Promise<Plan> {
-    const { data: updated, error } = await supabase
-      .from('plans')
-      .update({
-        name: data.name,
-        price: data.price,
-        duration_days: data.duration_days,
-        active: data.active
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/plans/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
 
-    if (error) {
-      throw new Error(`Error al actualizar plan: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar plan');
     }
-    return updated as Plan;
+
+    const resData = await response.json();
+    return (resData.plan || { id, ...data }) as Plan;
   },
 
   async createPlan(data: Omit<Plan, 'id' | 'created_at'>): Promise<Plan> {
-    const { data: created, error } = await supabase
-      .from('plans')
-      .insert({
-        name: data.name,
-        slug: data.slug,
-        price: data.price,
-        duration_days: data.duration_days,
-        active: data.active
-      })
-      .select()
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/plans`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
 
-    if (error) {
-      throw new Error(`Error al crear plan: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al crear plan');
     }
-    return created as Plan;
+
+    const resData = await response.json();
+    return resData.plan as Plan;
   },
 
   async getGymConfig(): Promise<GymConfig> {
-    const { data, error } = await supabase
-      .from('gym_config')
-      .select('*')
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/gym/config`, {
+      method: 'GET',
+    });
 
-    if (error) {
-      throw new Error(`Error al obtener configuración: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener configuración');
     }
-    return data as GymConfig;
+
+    return (await response.json()) as GymConfig;
   },
 
   async updateGymConfig(data: Partial<GymConfig>): Promise<GymConfig> {
-    const { data: config } = await supabase.from('gym_config').select('id').single();
-    if (!config) {
-      const { data: inserted, error: insertError } = await supabase
-        .from('gym_config')
-        .insert(data)
-        .select()
-        .single();
-      if (insertError) {
-        throw new Error(`Error al crear configuración: ${insertError.message}`);
-      }
-      return inserted as GymConfig;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/gym/config`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar configuración');
     }
 
-    const { data: updated, error } = await supabase
-      .from('gym_config')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', config.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Error al actualizar configuración: ${error.message}`);
-    }
-    return updated as GymConfig;
+    const resData = await response.json();
+    return (resData.config || await this.getGymConfig()) as GymConfig;
   },
 
   async getGroupPricing(): Promise<PlanGroupPricing[]> {
-    const { data, error } = await supabase
-      .from('plan_group_pricing')
-      .select('*')
-      .order('min_members', { ascending: true });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/group-pricing`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(`Error al obtener precios grupales: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener precios grupales');
     }
-    return (data || []) as PlanGroupPricing[];
+
+    const data = await response.json();
+    return (data.pricing || []) as PlanGroupPricing[];
   },
 
   async updateGroupPricing(id: string, data: Partial<PlanGroupPricing>): Promise<PlanGroupPricing> {
-    const { data: updated, error } = await supabase
-      .from('plan_group_pricing')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/group-pricing/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
 
-    if (error) {
-      throw new Error(`Error al actualizar precio grupal: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar precio grupal');
     }
-    return updated as PlanGroupPricing;
+
+    const resData = await response.json();
+    return (resData.pricing || { id, ...data }) as PlanGroupPricing;
   },
 
   async createGroupPricing(data: Omit<PlanGroupPricing, 'id' | 'created_at'>): Promise<PlanGroupPricing> {
-    const { data: created, error } = await supabase
-      .from('plan_group_pricing')
-      .insert(data)
-      .select()
-      .single();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/group-pricing`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
 
-    if (error) {
-      throw new Error(`Error al crear precio grupal: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al crear precio grupal');
     }
-    return created as PlanGroupPricing;
+
+    const resData = await response.json();
+    return resData.pricing as PlanGroupPricing;
   },
 
   async getCommunications(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('communications')
-      .select('*, sent_by_profile:profiles!communications_sent_by_fkey(full_name)')
-      .order('sent_at', { ascending: false });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/communications`, {
+      method: 'GET',
+      headers,
+    });
 
-    if (error) {
-      throw new Error(`Error al obtener historial de comunicados: ${error.message}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener historial de comunicados');
     }
-    return data || [];
+
+    const data = await response.json();
+    return (data.communications || []) as any[];
   },
 
   async sendCommunication(subject: string, body: string, recipientType: string): Promise<any> {
