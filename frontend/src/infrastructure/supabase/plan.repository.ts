@@ -1,19 +1,19 @@
-import { supabase } from './client';
-import type { Plan } from '../../domain/member/member.types';
+import type { Plan } from '@/domain/member/member.types';
 
 export const planRepository = {
   async getActivePlans(): Promise<Plan[]> {
-    const { data, error } = await supabase
-      .from('plans')
-      .select('*')
-      .eq('active', true)
-      .order('price', { ascending: true });
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const res = await fetch(`${apiUrl}/plans`);
 
-    if (error) {
-      throw new Error(error.message);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al consultar planes disponibles');
     }
-    return (data || []) as Plan[];
-  }
+
+    const data = await res.json();
+    return (data.plans || []) as Plan[];
+  },
 };
 
 export default planRepository;
+

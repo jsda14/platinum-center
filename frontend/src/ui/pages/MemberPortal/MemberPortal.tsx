@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useAppSelector } from '../../../infrastructure/store/store';
-import { getMemberStatus, type MemberStatusResult } from '../../../application/member/getMemberStatus.usecase';
+import { useState, useCallback, useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
+import { updateMemberStatus } from '@/infrastructure/store/memberSlice';
 import { useMemberStatusRealtime } from '../../../ui/hooks/useMemberStatusRealtime';
 import { StatusNotification } from '../../../ui/components/StatusNotification/StatusNotification';
 import { WifiOutlined, WarningOutlined } from '@ant-design/icons';
@@ -9,43 +9,26 @@ import styles from './MemberPortal.module.css';
 
 export function MemberPortal() {
   const { profile } = useAppSelector((state) => state.auth);
-  const [data, setData] = useState<MemberStatusResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { member, dayPass, isLoading, error } = useAppSelector((state) => state.member);
+  const dispatch = useAppDispatch();
   const [toastStatus, setToastStatus] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!profile) return;
-
-    setIsLoading(true);
-    setError(null);
-    getMemberStatus(profile.id)
-      .then((res) => {
-        setData(res);
-        setIsLoading(false);
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Error al obtener el estado de la membresía';
-        setError(message);
-        setIsLoading(false);
-      });
-  }, [profile]);
-
   const handleStatusChange = useCallback((newStatus: string) => {
-    setData((prevData) => {
-      if (!prevData?.member) return prevData;
-      return {
-        ...prevData,
-        member: {
-          ...prevData.member,
-          status: newStatus as any,
-        },
-      };
-    });
+    dispatch(updateMemberStatus(newStatus));
     setToastStatus(newStatus);
-  }, []);
+  }, [dispatch]);
 
-  useMemberStatusRealtime(data?.member?.id, handleStatusChange);
+  useMemberStatusRealtime(member?.id, handleStatusChange);
+
+  const daysRemaining = useMemo(() => {
+    if (!member?.end_date) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(member.end_date);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - today.getTime();
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }, [member?.end_date]);
 
   if (isLoading) {
     return (
@@ -63,7 +46,7 @@ export function MemberPortal() {
     );
   }
 
-  if (!data || !data.member) {
+  if (!member) {
     return (
       <div className={styles['member-portal']} role="main">
         <header className={styles['member-portal__header']}>
@@ -80,7 +63,6 @@ export function MemberPortal() {
     );
   }
 
-  const { member, dayPass, daysRemaining } = data;
   const is15Days = member.plan === '15_days';
 
   // Determine status color class and label
