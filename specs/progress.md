@@ -7,9 +7,9 @@
 ---
 
 ## Estado general
-**Fase actual:** 4 — Integración ZKTeco
+**Fase actual:** 4 — Integración ZKTeco (Migración Backend 100% Completa)
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-08-30
+**Última actualización:** 2026-09-11
 
 ---
 
@@ -74,6 +74,10 @@
 - [x] Notificaciones in-app (Supabase Realtime)
 - [x] Email de bienvenida (Brevo)
 - [x] Email de vencimiento próximo — 3 días antes (Brevo)
+- [x] Migración backend Railway: `GET /members/me` desacoplado de Supabase directo ✅
+- [x] Migración backend Railway: `GET /plans` y `GET /gym/config` desacoplados de Supabase directo ✅
+- [x] Migración backend Railway: `GET/PUT /profiles/me` desacoplados de Supabase directo ✅
+- [x] Redux slice `memberSlice` para caching y optimización de estado del socio ✅
 
 ---
 
@@ -98,6 +102,18 @@
 - [x] Vista de miembros sin chip asignado (filtro en AdminMembers + Dashboard)
 - [x] Rutas DRY: /admin/* para super_admin, /reception/* para receptionist
 - [x] AdminMemberDetail: botones restringidos por rol en ambas URLs
+- [x] **Migración 100% de consultas Admin a Railway (BFF / API Gateway):**
+  - [x] `GET /admin/members` (lista de socios con filtro sin chip)
+  - [x] `GET /admin/payments` (historial consolidado de pagos)
+  - [x] `GET /admin/members/{id}` (detalle atómico: miembro + perfil + pagos + pase)
+  - [x] `PUT /admin/members/{id}` (mutación transaccional: miembro + perfil)
+  - [x] `PUT /admin/members/{id}/suspend` (suspensión server-side)
+  - [x] `POST /admin/members/{id}/payments` (registro de pago manual + extensión de vigencia + tiquetera + reactivación chip)
+  - [x] `GET/POST/PUT /admin/plans` (gestión dinámica de planes)
+  - [x] `GET/PUT /gym/config` (configuración del gym con RBAC)
+  - [x] `GET/POST/PUT /admin/group-pricing` (matriz de precios grupales)
+  - [x] `GET/POST /admin/communications` y `/admin/send-communication` (gestión de comunicados)
+  - [x] Grants de permisos RBAC documentados y aplicados en backend
 
 ---
 
@@ -140,6 +156,7 @@
 - [x] Endpoint `POST /admin/pending-commands/{id}/done` — confirma ejecución
 - [x] `tunnel_client.py`: guarda en `pending_commands` cuando tunnel falla
 - [x] Endpoint `POST /admin/assign-chip` — asigna chip + lookup en ZKBioSecurity + guarda IDs
+- [x] **Tolerancia a fallos en `assign-chip`:** Encolado automático en `pending_commands` sin error 500 cuando el túnel/bridge no responde ✅
 
 ### Supabase
 - [x] Tabla `pending_commands` creada con campos: id, member_id, action, card_no, zkteco_user_id, full_name, sn, status, created_at, executed_at
@@ -159,7 +176,7 @@
 ---
 
 ## Fase 5 — Pagos + Notificaciones completas
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso (~90% completo)**
 
 - [x] Bold webhook end-to-end (pago confirmed → activa membresía)
 - [x] Idempotencia: UNIQUE constraint en transaction_id
@@ -167,13 +184,14 @@
 - [x] Lógica 15_days: crear member_day_passes al confirmar pago
 - [x] Emails automáticos via Supabase Edge Functions (Brevo)
 - [x] Notificaciones in-app en tiempo real (Supabase Realtime)
+- [x] **Planes 100% dinámicos en pagos:** Eliminación de constraints PostgreSQL `payments_plan_check` y `members_plan_check` ✅
+- [x] Configurar precios grupales en panel admin (plan_group_pricing migrado a Railway) ✅
 - [ ] Validar `lookup-member` en gym con Bridge corriendo
 - [ ] Validar flujo completo `assign-chip` desde frontend con Bridge corriendo
 - [ ] Migración de ~1700 miembros existentes en ZKBioSecurity a Supabase (zkteco_person_id, zkteco_user_id) — script listo, requiere ejecución en gym
 - [ ] Normalización card_no: fix `.or_()` en Railway para chips con/sin ceros iniciales
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym (actualmente manual)
 - [ ] Membresías grupales (ver specs/group-memberships.md)
-- [ ] Configurar precios grupales en panel admin (plan_group_pricing)
 
 ---
 
@@ -234,10 +252,24 @@ Bridge arranca → sync_pending_commands (con 5 reintentos)
 Bridge loop cada 5min → reintenta pendientes automáticamente
 ```
 
-## Upsells implementados
-- LockedFeature componente creado y desplegado
-- Exportar reportes: LockedFeature.Button en Dashboard
-- Personalización de colores: LockedFeature.Section en Settings
-- Programar comunicados: LockedFeature.Section en Communications
-- WhatsApp Business: LockedFeature.Badge en Settings
-- Contacto para upgrades: WhatsApp +573057532192 / jsda14@gmail.com
+## Upsells y Proyecciones Implementadas (LockedFeatures)
+- [x] **Rediseño componente `LockedFeature` (Diferenciado por Rol):**
+  - **Admin:** Badge flotante permanente *"Función Premium"* + botón *"Contactar"* hacia WhatsApp + contenido 100% visible (sin overlay).
+  - **Miembro:** Banner superior amigable *"Próximamente"* + modal informativo con botón *"Entendido"* (sin WhatsApp de venta).
+- [x] **Vistas Proyectadas Admin:**
+  - `/admin/classes`: Gestión y programación de clases grupales, cupos y profesores.
+  - `/admin/store`: Catálogo e inventario de suplementos y ropa deportiva (tema oscuro sincronizado).
+  - `/admin/communications`: Bloqueo de envío de comunicados masivos con badge y modal upgrade.
+  - Dashboard: Exportar reportes (`LockedFeature.Button`).
+  - Settings: Personalización de colores de marca (`LockedFeature.Section`) y WhatsApp Business (`LockedFeature.Badge`).
+- [x] **Vistas Proyectadas Portal Miembro:**
+  - `/portal/classes`: Horarios de clases e inscripción.
+  - `/portal/trainer`: Información del entrenador, contacto y plan de entrenamiento.
+  - `/portal/progress`: Seguimiento de medidas antropométricas y evolución física.
+  - `/portal/store`: Catálogo de la tienda para socios.
+- [x] **Navegación Móvil de Miembros (Slider 2 Páginas):**
+  - Barra inferior dividida en 2 páginas de 4 pestañas cada una.
+  - Soporte de gestos universales: touch swipe, click & drag con mouse (DevTools) y rueda/trackpad horizontal.
+  - Indicadores de puntos `[ • ○ ]`, flechas animadas táctiles y auto-cambio de página según la ruta activa.
+  - Modo dock flotante automático en desktop (`≥ 768px`) con los 8 ítems visibles.
+- Contacto comercial para upgrades: WhatsApp +573057532192 / jsda14@gmail.com
