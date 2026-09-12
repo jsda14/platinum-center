@@ -1,8 +1,78 @@
 import type { ReactNode } from 'react';
-import { Button as AntdButton, Tooltip } from 'antd';
-import { LockOutlined, WhatsAppOutlined, MailOutlined } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
+import { Button as AntdButton, Tooltip, Modal } from 'antd';
+import { LockOutlined, WhatsAppOutlined, MailOutlined, RocketOutlined } from '@ant-design/icons';
 import styles from './LockedFeature.module.css';
 import platinumLogo from '../../../assets/platinum-center-logo.png';
+
+// Modal helper for admin action clicks
+export function showUpgradeModal(customMessage?: string) {
+  Modal.info({
+    icon: <LockOutlined style={{ color: 'var(--color-accent)', fontSize: '24px' }} />,
+    title: (
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', letterSpacing: '0.5px' }}>
+        Función Premium
+      </span>
+    ),
+    content: (
+      <div style={{ marginTop: '12px' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>
+          {customMessage || 'Esta función requiere un upgrade. Contáctanos para activarla.'}
+        </p>
+      </div>
+    ),
+    okText: 'Contactar por WhatsApp',
+    okButtonProps: {
+      icon: <WhatsAppOutlined />,
+      style: {
+        backgroundColor: '#25D366',
+        borderColor: '#25D366',
+        color: '#ffffff',
+        fontWeight: 600,
+        height: '36px',
+        borderRadius: '8px',
+      },
+    },
+    onOk: () => {
+      window.open('https://wa.me/573057532192', '_blank');
+    },
+    centered: true,
+    maskClosable: true,
+  });
+}
+
+// Modal helper for member action clicks (informative, no contact/upgrade required)
+export function showComingSoonModal(customMessage?: string) {
+  Modal.info({
+    icon: <RocketOutlined style={{ color: 'var(--color-accent)', fontSize: '24px' }} />,
+    title: (
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', letterSpacing: '0.5px' }}>
+        ¡Próximamente!
+      </span>
+    ),
+    content: (
+      <div style={{ marginTop: '12px' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>
+          {customMessage || 'Esta función estará disponible próximamente en tu portal de miembro. ¡Estamos trabajando para habilitarla muy pronto!'}
+        </p>
+      </div>
+    ),
+    okText: 'Entendido',
+    okButtonProps: {
+      style: {
+        backgroundColor: 'var(--color-primary)',
+        borderColor: 'var(--color-primary)',
+        color: '#ffffff',
+        fontWeight: 600,
+        height: '38px',
+        borderRadius: '8px',
+        padding: '0 24px',
+      },
+    },
+    centered: true,
+    maskClosable: true,
+  });
+}
 
 // Sub-Component 1: Button
 interface LockedFeatureButtonProps {
@@ -35,64 +105,58 @@ function LockedFeatureButton({ title, description, className, icon }: LockedFeat
 
 // Sub-Component 2: Section
 interface LockedFeatureSectionProps {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   comingSoon?: boolean;
   blur?: boolean;
   children: ReactNode;
+  showFloatingBadge?: boolean;
+  variant?: 'admin' | 'member';
 }
 
 function LockedFeatureSection({
-  title,
-  description,
-  comingSoon = true,
-  blur = true,
-  children
+  children,
+  showFloatingBadge = true,
+  variant,
 }: LockedFeatureSectionProps) {
-  const badgeText = comingSoon ? 'PRÓXIMAMENTE' : 'UPGRADE';
-  const badgeClass = comingSoon
-    ? styles['locked-feature-section__badge--soon']
-    : styles['locked-feature-section__badge--upgrade'];
+  const location = useLocation();
+  const isMember = variant ? variant === 'member' : location.pathname.startsWith('/portal');
 
   return (
     <div className={styles['locked-feature-section']}>
-      <div
-        className={`${styles['locked-feature-section__children']} ${
-          blur ? styles['locked-feature-section__children--blurred'] : ''
-        }`}
-      >
-        {children}
-      </div>
-      <div className={styles['locked-feature-section__overlay']}>
-        <div className={styles['locked-feature-section__card']}>
-          <LockOutlined className={styles['locked-feature-section__icon']} />
-          <span className={`${styles['locked-feature-section__badge']} ${badgeClass}`}>
-            {badgeText}
-          </span>
-          <h3 className={styles['locked-feature-section__title']}>{title}</h3>
-          <p className={styles['locked-feature-section__description']}>{description}</p>
-          <div className={styles['locked-feature-section__contact-actions']}>
-            <AntdButton
-              type="primary"
-              icon={<WhatsAppOutlined />}
-              href="https://wa.me/573057532192"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles['locked-feature-section__contact-btn--whatsapp']}
-            >
-              WhatsApp
-            </AntdButton>
-            <AntdButton
-              icon={<MailOutlined />}
-              href="mailto:jsda14@gmail.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles['locked-feature-section__contact-btn--email']}
-            >
-              Email
-            </AntdButton>
-          </div>
+      {showFloatingBadge && (
+        <div className={styles['locked-feature-section__badge-container']}>
+          {isMember ? (
+            <div className={styles['locked-feature-section__member-banner']}>
+              <div className={styles['locked-feature-section__badge-info']}>
+                <RocketOutlined className={styles['locked-feature-section__member-icon']} />
+                <span className={styles['locked-feature-section__member-title']}>Próximamente</span>
+                <span className={styles['locked-feature-section__member-sub']}>
+                  Estamos preparando esta sección para tu membresía
+                </span>
+              </div>
+              <span className={styles['locked-feature-section__member-pill']}>Muy pronto</span>
+            </div>
+          ) : (
+            <div className={styles['locked-feature-section__floating-badge']}>
+              <div className={styles['locked-feature-section__badge-info']}>
+                <LockOutlined className={styles['locked-feature-section__badge-icon']} />
+                <span className={styles['locked-feature-section__badge-text']}>Función Premium</span>
+              </div>
+              <a
+                href="https://wa.me/573057532192"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles['locked-feature-section__badge-btn']}
+              >
+                Contactar
+              </a>
+            </div>
+          )}
         </div>
+      )}
+      <div className={styles['locked-feature-section__children']}>
+        {children}
       </div>
     </div>
   );
@@ -184,7 +248,9 @@ export const LockedFeature = {
   Button: LockedFeatureButton,
   Section: LockedFeatureSection,
   Page: LockedFeaturePage,
-  Badge: LockedFeatureBadge
+  Badge: LockedFeatureBadge,
+  showUpgradeModal,
+  showComingSoonModal,
 };
 
 export default LockedFeature;

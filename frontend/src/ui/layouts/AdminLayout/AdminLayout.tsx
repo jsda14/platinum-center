@@ -11,6 +11,8 @@ import {
   MenuUnfoldOutlined,
   TagOutlined,
   NotificationOutlined,
+  ShopOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -87,8 +89,32 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {
         key: '/admin/communications',
         icon: <NotificationOutlined />,
-        label: 'Comunicados',
+        label: (
+          <span className={styles['admin-layout__menu-item--locked']}>
+            Comunicados <span className={styles['admin-layout__lock-badge']}>🔒</span>
+          </span>
+        ),
         onClick: () => navigate('/admin/communications'),
+      },
+      {
+        key: '/admin/classes',
+        icon: <CalendarOutlined />,
+        label: (
+          <span className={styles['admin-layout__menu-item--locked']}>
+            Clases <span className={styles['admin-layout__lock-badge']}>🔒</span>
+          </span>
+        ),
+        onClick: () => navigate('/admin/classes'),
+      },
+      {
+        key: '/admin/store',
+        icon: <ShopOutlined />,
+        label: (
+          <span className={styles['admin-layout__menu-item--locked']}>
+            Tienda <span className={styles['admin-layout__lock-badge']}>🔒</span>
+          </span>
+        ),
+        onClick: () => navigate('/admin/store'),
       },
     ] : []),
   ];
@@ -154,6 +180,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               ? '/admin/settings'
               : location.pathname.startsWith('/admin/communications')
               ? '/admin/communications'
+              : location.pathname.startsWith('/admin/classes')
+              ? '/admin/classes'
+              : location.pathname.startsWith('/admin/store')
+              ? '/admin/store'
               : basePath
           ]}
           items={menuItems}
