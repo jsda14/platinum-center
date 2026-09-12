@@ -1,3 +1,4 @@
+from typing import Optional, List
 import os
 import hashlib
 import hmac
@@ -6,6 +7,8 @@ import json
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
+from src.infrastructure.supabase.auth import get_current_member
+from src.domain.member.schemas import GroupPaymentIntentRequest
 import httpx
 from src.infrastructure.zkteco.tunnel_client import activate_member
 
@@ -62,6 +65,45 @@ def create_payment_intent(data: PaymentIntentCreate):
             detail=f"Error en base de datos: {str(e)}"
         )
 
+@router.post("/bold/create-group-payment-intent")
+async def create_group_payment_intent(
+    data: GroupPaymentIntentRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Registra la intención de pago grupal y valida precios."""
+    member = get_current_member(authorization)
+    total_members = len(data.member_ids)
+    if total_members < 2:
+        raise HTTPException(status_code=400, detail="Un pago grupal requiere al menos 2 miembros")
+
+    pricing_res = (
+        supabase_client.table("plan_group_pricing")
+        .select("price_per_person")
+        .eq("active", True)
+        .lte("min_members", total_members)
+        .gte("max_members", total_members)
+        .execute()
+    )
+
+    if not pricing_res.data:
+        raise HTTPException(status_code=400, detail="No hay precio grupal configurado para esa cantidad de miembros")
+
+    price_per_person = float(pricing_res.data[0]["price_per_person"])
+    total_amount = price_per_person * total_members
+
+    if abs(data.amount - total_amount) > 1:
+        raise HTTPException(status_code=400, detail="El monto no coincide con el precio grupal")
+
+    supabase_client.table("payment_intents").insert({
+        "order_id": data.order_id,
+        "member_id": member["id"],
+        "plan_slug": data.plan_slug,
+        "amount": total_amount,
+        "metadata": {"group_member_ids": data.member_ids, "price_per_person": price_per_person}
+    }).execute()
+
+    return {"status": "ok", "total_amount": total_amount, "price_per_person": price_per_person}
+
 @router.get("/bold/integrity-signature")
 def get_integrity_signature(order_id: str, amount: int, currency: str = "COP"):
     """
@@ -86,6 +128,72 @@ def get_integrity_signature(order_id: str, amount: int, currency: str = "COP"):
     print(f"[BOLD SIGNATURE] signature: {signature}")
     
     return {"signature": signature}
+
+async def activate_member_plan(mid: str, p_slug: str, p_amount: float, p_tx_id: Optional[str] = None):
+    """Activa el plan y reactiva el chip físico en ZKTeco para un miembro individual."""
+    duration_days = 30
+    if p_slug:
+        p_res = supabase_client.table("plans").select("duration_days").eq("slug", p_slug).execute()
+        if p_res.data:
+            duration_days = p_res.data[0].get("duration_days", 30)
+
+    start_date = date.today()
+    end_date = start_date + timedelta(days=duration_days)
+    now_iso = datetime.now().isoformat()
+
+    # 1. Actualizar estado del socio
+    supabase_client.table("members").update({
+        "status": "active",
+        "plan": p_slug,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "updated_at": now_iso
+    }).eq("id", mid).execute()
+
+    # 2. Reactivar chip en ZKTeco si tiene manilla/tarjeta asignada
+    try:
+        m_res = supabase_client.table("members").select("card_no, zkteco_user_id, profile_id").eq("id", mid).execute()
+        if m_res.data:
+            m_data = m_res.data[0]
+            card_no = m_data.get("card_no")
+            zkteco_user_id = m_data.get("zkteco_user_id")
+            profile_id = m_data.get("profile_id")
+            full_name = "Miembro"
+            if profile_id:
+                prof_res = supabase_client.table("profiles").select("full_name").eq("id", profile_id).execute()
+                if prof_res.data:
+                    full_name = prof_res.data[0].get("full_name", "Miembro")
+            if card_no:
+                await activate_member(
+                    member_id=mid,
+                    card_no=card_no,
+                    zkteco_user_id=zkteco_user_id or "",
+                    full_name=full_name,
+                    sn=None
+                )
+    except Exception as z_err:
+        print(f"[ZKTeco] Error activando miembro {mid} en hardware: {str(z_err)}")
+
+    # 3. Registrar el pago individual en payments
+    payment_data = {
+        "member_id": mid,
+        "amount": p_amount,
+        "method": "bold",
+        "plan": p_slug,
+        "transaction_id": p_tx_id,
+        "status": "confirmed",
+        "plan_start_date": start_date.isoformat(),
+        "plan_end_date": end_date.isoformat(),
+        "payment_date": now_iso
+    }
+    supabase_client.table("payments").insert(payment_data).execute()
+
+    # 4. Cerrar day passes previos
+    supabase_client.table("member_day_passes")\
+        .update({"status": "exhausted"})\
+        .eq("member_id", mid)\
+        .eq("status", "active")\
+        .execute()
 
 @router.post("/webhooks/bold-payment")
 async def bold_payment_webhook(
@@ -117,13 +225,6 @@ async def bold_payment_webhook(
     #         msg=body_bytes,
     #         digestmod=hashlib.sha256
     #     ).hexdigest()
-    #     
-    #     if not hmac.compare_digest(computed_sig, x_bold_signature):
-    #         raise HTTPException(
-    #             status_code=status.HTTP_401_UNAUTHORIZED,
-    #             detail="No autorizado: Firma del webhook inválida"
-    #         )
-            
     # Parsear payload
     try:
         payload = json.loads(body_bytes.decode('utf-8'))
@@ -152,6 +253,7 @@ async def bold_payment_webhook(
     member_id = None
     plan_slug = None
     intent_amount = None
+    intent_meta = {}
     
     if order_id:
         try:
@@ -161,7 +263,8 @@ async def bold_payment_webhook(
                 member_id = intent_data.get("member_id")
                 plan_slug = intent_data.get("plan_slug")
                 intent_amount = float(intent_data.get("amount", 0.0))
-                print(f"[BOLD WEBHOOK] Intención de pago encontrada: member_id={member_id}, plan_slug={plan_slug}, amount={intent_amount}")
+                intent_meta = intent_data.get("metadata") or {}
+                print(f"[BOLD WEBHOOK] Intención de pago encontrada: member_id={member_id}, plan_slug={plan_slug}, amount={intent_amount}, meta={intent_meta}")
         except Exception as e:
             print(f"[BOLD WEBHOOK] Error al consultar payment_intents: {str(e)}")
             
@@ -203,6 +306,34 @@ async def bold_payment_webhook(
             return {"status": "ok", "message": "Pago ya registrado anteriormente"}
             
     if event_type == "SALE_APPROVED":
+        # Verificar si es un pago grupal
+        group_member_ids = None
+        price_per_person = None
+        if intent_meta and isinstance(intent_meta, dict):
+            group_member_ids = intent_meta.get("group_member_ids")
+            price_per_person = intent_meta.get("price_per_person")
+
+        if not group_member_ids:
+            group_member_ids = metadata.get("group_member_ids")
+
+        if isinstance(group_member_ids, str):
+            group_member_ids = [x.strip() for x in group_member_ids.split(",") if x.strip()]
+
+        if group_member_ids and len(group_member_ids) > 0:
+            print(f"[BOLD WEBHOOK] Procesando pago grupal para {len(group_member_ids)} miembros: {group_member_ids}")
+            if not price_per_person:
+                price_per_person = float(amount_cop) / len(group_member_ids)
+
+            for mid in group_member_ids:
+                tx_sub = f"{tx_id}_{mid}" if tx_id and tx_id != "XXXX" else None
+                await activate_member_plan(
+                    mid=mid,
+                    p_slug=plan_slug or "1_month",
+                    p_amount=float(price_per_person),
+                    p_tx_id=tx_sub
+                )
+            return {"status": "ok", "message": f"Pago grupal aprobado para {len(group_member_ids)} miembros"}
+
         if not member_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

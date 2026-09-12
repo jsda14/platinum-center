@@ -12,6 +12,7 @@ from src.routers.commands import router as commands_router
 from src.routers.gym import router as gym_router
 from src.routers.plans import router as plans_router
 from src.routers.profiles import router as profiles_router
+from src.routers.groups import router as groups_router
 
 load_dotenv()
 
@@ -36,6 +37,7 @@ app.include_router(commands_router)
 app.include_router(gym_router)
 app.include_router(plans_router)
 app.include_router(profiles_router)
+app.include_router(groups_router)
 
 @app.get("/health")
 def health_check():

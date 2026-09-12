@@ -86,3 +86,25 @@ def get_current_user(authorization: Optional[str]) -> dict:
     user_id = get_current_user_id(authorization)
     return {"id": user_id}
 
+def get_current_member(authorization: Optional[str]) -> dict:
+    """
+    Obtiene el registro de miembro (members) asociado al usuario autenticado.
+    """
+    user_id = get_current_user_id(authorization)
+    try:
+        res = supabase_client.table("members").select("id, profile_id, status, plan, card_no").eq("profile_id", user_id).limit(1).execute()
+        if not res.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se encontró registro de socio para este usuario"
+            )
+        return res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[AUTH] Error al consultar registro de miembro: %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al verificar miembro: {str(e)}"
+        )
+
