@@ -214,3 +214,16 @@ El volumen crecerá con el tiempo — esta arquitectura lo soporta.
 **Decisión:** En pantallas móviles, agrupar las 8 pestañas de navegación del portal de miembro en un carrusel slider de 2 páginas (4 ítems por página) utilizando animación por hardware (`transform: translateX`), controlado por una capa unificada de **Pointer Events** (`pointerdown`, `pointermove`, `pointerup`), soporte de rueda/trackpad horizontal, puntos de paginación interactivos `[ • ○ ]` y flechas direccionales.
 **Razón:** El espacio horizontal en smartphones (360px - 390px) impedía acomodar 8 iconos con etiquetas legibles sin truncar el texto o desbordar la pantalla. El uso de eventos de puntero reemplaza a `overflow-x: auto` nativo, permitiendo arrastre fluido tanto con los dedos en pantallas táctiles reales como con el mouse durante el desarrollo y pruebas en DevTools.
 
+---
+
+## [2026-09] Flujo integral de Membresías Grupales con pago unificado y activación multi-usuario simultánea
+**Decisión:** Implementar la modalidad de Membresías Grupales (de 2 a 4 miembros) exclusivamente para planes mensuales (`1_month`), donde una sola persona (el organizador/pagador) realiza el abono total con descuento progresivo por persona definido dinámicamente en la tabla `plan_group_pricing`. Los IDs de todos los integrantes se vinculan a través de `payment_intents.metadata` y de los metadatos de la transacción en Bold. Tanto el webhook de aprobación (`POST /webhooks/bold-payment`) como el registro manual de recepción (`POST /admin/members/group-payment`) activan en cascada el plan mensual de 30 días para cada miembro y reprograman su chip en hardware ZKTeco.
+**Razón:** Aumentar los ingresos y la retención de socios promoviendo el entrenamiento en pareja o grupo de amigos/familiares sin requerir micro-transacciones individuales fragmentadas ni intervención manual del recepcionista para activar a cada amigo.
+
+---
+
+## [2026-09] Centralización DRY de reglas de precios y límites grupales en la capa de Dominio
+**Decisión:** Crear el módulo de dominio `src/domain/member/groupPricing.utils.ts` con funciones puras (`getGroupPricingBounds`, `findGroupPricingTier`, `calculateGroupPricingSummary`) consumidas tanto por el portal del miembro (`MemberRenewal.tsx`) como por el panel administrativo (`AdminPayments.tsx`).
+**Razón:** Principio DRY (Don't Repeat Yourself) y Clean Architecture. Evita la duplicación de cálculos de límites dinámicos (`minPersons`, `maxPersons`), búsqueda de rangos de precio activos, cálculos de totales y validaciones en múltiples vistas de usuario, garantizando una única fuente de verdad y permitiendo pruebas unitarias desacopladas sin depender de la UI o de componentes React.
+
+
