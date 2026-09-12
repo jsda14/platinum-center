@@ -1,6 +1,6 @@
 import { store } from '../store/store';
 import { supabase } from './client';
-import type { Member, MemberDayPass, Payment, Suggestion } from '../../domain/member/member.types';
+import type { Member, MemberDayPass, Payment, Suggestion, GroupPricing, MemberGroup, ValidateEmailResponse } from '../../domain/member/member.types';
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   let token = store.getState().auth.accessToken;
@@ -136,5 +136,74 @@ export const memberRepository = {
 
     const data = await response.json();
     return (Array.isArray(data) ? data : []) as Suggestion[];
+  },
+
+  async getGroupPricing(): Promise<GroupPricing[]> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/group-pricing`);
+    if (!response.ok) {
+      throw new Error('Error al consultar precios grupales');
+    }
+    const data = await response.json();
+    return (data.pricing || []) as GroupPricing[];
+  },
+
+  async getMyGroups(): Promise<MemberGroup[]> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/groups`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener tus grupos');
+    }
+    const data = await response.json();
+    return (data.groups || []) as MemberGroup[];
+  },
+
+  async createGroup(groupData: { name?: string; emails: string[] }): Promise<{ group_id: string; total_members: number }> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/groups`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(groupData),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al crear el grupo');
+    }
+    return await response.json();
+  },
+
+  async validateMemberEmail(email: string): Promise<ValidateEmailResponse> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/validate-email?email=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) {
+      return { valid: false };
+    }
+    return (await response.json()) as ValidateEmailResponse;
+  },
+
+  async createGroupPaymentIntent(intentData: { order_id: string; plan_slug: string; amount: number; member_ids: string[] }): Promise<{ status: string; total_amount: number; price_per_person: number }> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/bold/create-group-payment-intent`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(intentData),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al registrar la intención de pago grupal');
+    }
+    return await response.json();
   }
 };
+
