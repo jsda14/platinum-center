@@ -1,1 +1,1 @@
-export { LockedFeature } from './LockedFeature';
+export { LockedFeature, showUpgradeModal, showComingSoonModal } from './LockedFeature';

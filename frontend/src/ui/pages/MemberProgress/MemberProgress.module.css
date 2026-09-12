@@ -1,0 +1,148 @@
+.member-progress {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+@media (min-width: 768px) {
+  .member-progress {
+    padding: var(--space-6);
+  }
+}
+
+.member-progress__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-progress__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.member-progress__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.member-progress__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.member-progress__card {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.member-progress__card-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.member-progress__form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .member-progress__form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .member-progress__form-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.member-progress__form-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-progress__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.member-progress__submit-btn {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  transition: background-color var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+.member-progress__submit-btn:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  transform: translateY(-1px);
+}
+
+.member-progress__chart-wrapper {
+  width: 100%;
+  height: 260px;
+  margin-top: var(--space-2);
+}
+
+.member-progress__table-container {
+  overflow-x: auto;
+}
+
+.member-progress__table-container :global(.ant-table) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.member-progress__table-container :global(.ant-table-thead > tr > th) {
+  background: var(--color-dark-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+}
+
+.member-progress__table-container :global(.ant-table-tbody > tr > td) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.member-progress__table-container :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.member-progress__date-badge {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.member-progress__metric-highlight {
+  font-weight: 700;
+  color: var(--color-accent);
+}

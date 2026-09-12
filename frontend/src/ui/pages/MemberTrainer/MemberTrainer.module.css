@@ -1,0 +1,182 @@
+.member-trainer {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+@media (min-width: 768px) {
+  .member-trainer {
+    padding: var(--space-6);
+  }
+}
+
+.member-trainer__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-trainer__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.member-trainer__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.member-trainer__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.member-trainer__coach-card {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .member-trainer__coach-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.member-trainer__coach-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.member-trainer__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-dark-surface);
+  border: 2px solid var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-3xl);
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.member-trainer__coach-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-trainer__coach-name {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.member-trainer__coach-specialty {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.member-trainer__coach-hours {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.member-trainer__contact-btn {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  cursor: pointer !important;
+  transition: background-color var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+.member-trainer__contact-btn:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  transform: translateY(-1px);
+}
+
+.member-trainer__routine-card {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.member-trainer__routine-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.member-trainer__table-container {
+  overflow-x: auto;
+}
+
+.member-trainer__table-container :global(.ant-table) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.member-trainer__table-container :global(.ant-table-thead > tr > th) {
+  background: var(--color-dark-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+}
+
+.member-trainer__table-container :global(.ant-table-tbody > tr > td) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.member-trainer__table-container :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.member-trainer__day-tag {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.member-trainer__muscle-tag {
+  background-color: var(--color-dark-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  display: inline-block;
+}
