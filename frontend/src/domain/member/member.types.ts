@@ -40,3 +40,41 @@ export type GymConfig = z.infer<typeof gymConfigSchema>;
 export type PlanGroupPricing = z.infer<typeof planGroupPricingSchema>;
 export type Communication = z.infer<typeof communicationSchema>;
 
+export interface GroupPricing {
+  min_members: number;
+  max_members: number;
+  price_per_person: number;
+}
+
+export interface MemberGroupMember {
+  id?: string;
+  member_id: string;
+  members?: {
+    id: string;
+    profiles?: {
+      full_name: string;
+      email: string;
+    };
+  };
+}
+
+export interface MemberGroup {
+  id: string;
+  name: string;
+  created_at?: string;
+  member_group_members?: MemberGroupMember[];
+}
+
+export interface ValidateEmailResponse {
+  valid: boolean;
+  full_name?: string;
+  member_id?: string;
+}
+
+export interface RegisterGroupPaymentData {
+  member_ids: string[];
+  plan_slug: string;
+  method: string;
+}
+
+

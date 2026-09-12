@@ -60,3 +60,19 @@ class SuggestionResponse(BaseModel):
 
 class GetOrCreateMemberRequest(BaseModel):
     profile_id: str
+
+class CreateGroupRequest(BaseModel):
+    name: Optional[str] = None
+    emails: List[str]
+
+class GroupPaymentIntentRequest(BaseModel):
+    order_id: str
+    plan_slug: str
+    amount: float
+    member_ids: List[str]
+
+class GroupPaymentAdminRequest(BaseModel):
+    member_ids: List[str]
+    plan_slug: str
+    method: str  # cash, nequi, daviplata
+

@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGroupPricing, UserRole } from '../../domain/member/member.types';
+import type { Member, Profile, Payment, MemberDayPass, Plan, GymConfig, PlanGroupPricing, UserRole, RegisterGroupPaymentData } from '../../domain/member/member.types';
 
 
 export interface ManualPaymentData {
@@ -188,6 +188,23 @@ export const adminRepository = {
 
   registerPayment(data: ManualPaymentData): Promise<Payment> {
     return this.registerManualPayment(data);
+  },
+
+  async registerGroupPayment(data: RegisterGroupPaymentData): Promise<{ status: string; total_members: number; price_per_person: number; total_amount: number }> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/group-payment`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al registrar el pago grupal');
+    }
+
+    return await response.json();
   },
 
   async getPayments(): Promise<any[]> {

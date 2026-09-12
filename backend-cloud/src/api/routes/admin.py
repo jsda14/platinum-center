@@ -5,12 +5,13 @@ import time
 import logging
 import httpx
 from datetime import datetime, date, timedelta, timezone
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
 from src.infrastructure.supabase.auth import get_current_user
 from src.infrastructure.zkteco.tunnel_client import activate_member
+from src.domain.member.schemas import GroupPaymentAdminRequest
 
 logger = logging.getLogger(__name__)
 
@@ -736,6 +737,114 @@ async def register_payment(
     
     return {"status": "ok", "payment_id": payment["id"]}
 
+@router.post("/admin/members/group-payment")
+async def register_group_payment(
+    data: GroupPaymentAdminRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Registra un pago grupal manual y activa el plan mensual para todos los miembros incluidos."""
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    total_members = len(data.member_ids)
+    if total_members < 2:
+        raise HTTPException(status_code=400, detail="Un pago grupal requiere al menos 2 miembros")
+
+    pricing_res = (
+        supabase_client.table("plan_group_pricing")
+        .select("price_per_person")
+        .eq("active", True)
+        .lte("min_members", total_members)
+        .gte("max_members", total_members)
+        .execute()
+    )
+
+    if not pricing_res.data:
+        raise HTTPException(status_code=400, detail="No hay precio grupal configurado para esa cantidad de miembros")
+
+    price_per_person = float(pricing_res.data[0]["price_per_person"])
+
+    admin_user = get_current_user(authorization)
+    admin_user_id = admin_user["id"] if admin_user else None
+
+    bogota_tz = timezone(timedelta(hours=-5))
+    now = datetime.now(bogota_tz)
+    duration_days = 30
+
+    plan_res = (
+        supabase_client.table("plans")
+        .select("duration_days, slug")
+        .eq("slug", data.plan_slug)
+        .execute()
+    )
+    if plan_res.data:
+        duration_days = plan_res.data[0].get("duration_days") or 30
+
+    for mid in data.member_ids:
+        member_res = supabase_client.table("members").select("status, end_date").eq("id", mid).execute()
+        member_info = member_res.data[0] if member_res.data else {}
+
+        if member_info.get("status") == "active" and member_info.get("end_date"):
+            try:
+                current_end = datetime.fromisoformat(member_info["end_date"])
+                if current_end.tzinfo is None:
+                    current_end = current_end.replace(tzinfo=bogota_tz)
+                start_date = current_end.date().isoformat()
+                end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+            except Exception:
+                start_date = now.date().isoformat()
+                end_date = (now + timedelta(days=duration_days)).date().isoformat()
+        else:
+            start_date = now.date().isoformat()
+            end_date = (now + timedelta(days=duration_days)).date().isoformat()
+
+        supabase_client.table("payments").insert({
+            "member_id": mid,
+            "amount": price_per_person,
+            "method": data.method,
+            "plan": data.plan_slug,
+            "status": "confirmed",
+            "registered_by": admin_user_id,
+            "plan_start_date": start_date,
+            "plan_end_date": end_date
+        }).execute()
+
+        supabase_client.table("members").update({
+            "status": "active",
+            "plan": data.plan_slug,
+            "start_date": start_date,
+            "end_date": end_date,
+            "updated_at": now.isoformat()
+        }).eq("id", mid).execute()
+
+        try:
+            member_full = (
+                supabase_client.table("members")
+                .select("card_no, zkteco_user_id, profile_id")
+                .eq("id", mid)
+                .execute()
+            )
+            if member_full.data and member_full.data[0].get("card_no"):
+                m_item = member_full.data[0]
+                prof = supabase_client.table("profiles").select("full_name").eq("id", m_item["profile_id"]).execute()
+                fname = prof.data[0]["full_name"] if prof.data else "Miembro"
+                await activate_member(
+                    member_id=mid,
+                    card_no=m_item["card_no"],
+                    zkteco_user_id=m_item["zkteco_user_id"],
+                    full_name=fname
+                )
+        except Exception as e:
+            logger.warning(f"[GROUP PAYMENT] No se pudo reactivar chip para {mid}: {e}")
+
+    return {
+        "status": "ok",
+        "total_members": total_members,
+        "price_per_person": price_per_person,
+        "total_amount": price_per_person * total_members
+    }
+
 
 # ----------------------------------------------------
 # ADMIN PLANS
@@ -832,13 +941,11 @@ async def update_plan(plan_id: str, data: PlanRequest, authorization: Optional[s
 # ADMIN GROUP PRICING
 # ----------------------------------------------------
 class GroupPricingRequest(BaseModel):
-    min_members: int
+    min_members: Optional[int] = None
     max_members: Optional[int] = None
     price_per_person: Optional[float] = None
-    discount_percentage: Optional[float] = None
-    plan_id: Optional[str] = None
+    active: Optional[bool] = None
     plan_slug: Optional[str] = None
-    active: Optional[bool] = True
 
 
 @router.get("/admin/group-pricing")
@@ -873,8 +980,12 @@ async def create_group_pricing(data: GroupPricingRequest, authorization: Optiona
     
     try:
         pricing_dict = {k: v for k, v in data.model_dump().items() if v is not None}
-        pricing_dict.pop("discount_percentage", None)
-        pricing_dict.pop("plan_slug", None)
+        if "plan_slug" in pricing_dict:
+            plan_slug = pricing_dict.pop("plan_slug")
+            if plan_slug:
+                p_res = supabase_client.table("plans").select("id").eq("slug", plan_slug).execute()
+                if p_res.data:
+                    pricing_dict["plan_id"] = p_res.data[0]["id"]
         
         res = supabase_client.table("plan_group_pricing").insert(pricing_dict).execute()
         if not res.data:
@@ -898,11 +1009,18 @@ async def update_group_pricing(pricing_id: str, data: GroupPricingRequest, autho
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
     
     try:
-        pricing_dict = {k: v for k, v in data.model_dump().items() if v is not None}
-        pricing_dict.pop("discount_percentage", None)
-        pricing_dict.pop("plan_slug", None)
-        
-        res = supabase_client.table("plan_group_pricing").update(pricing_dict).eq("id", pricing_id).execute()
+        updates = {k: v for k, v in data.model_dump().items() if v is not None}
+        if "plan_slug" in updates:
+            plan_slug = updates.pop("plan_slug")
+            if plan_slug:
+                p_res = supabase_client.table("plans").select("id").eq("slug", plan_slug).execute()
+                if p_res.data:
+                    updates["plan_id"] = p_res.data[0]["id"]
+
+        res = supabase_client.table("plan_group_pricing")\
+            .update(updates)\
+            .eq("id", pricing_id)\
+            .execute()
         return {"status": "ok", "pricing": res.data[0] if res.data else None}
     except HTTPException:
         raise
