@@ -191,7 +191,7 @@
 - [ ] Migración de ~1700 miembros existentes en ZKBioSecurity a Supabase (zkteco_person_id, zkteco_user_id) — script listo, requiere ejecución en gym
 - [ ] Normalización card_no: fix `.or_()` en Railway para chips con/sin ceros iniciales
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym (actualmente manual)
-- [ ] Membresías grupales (ver specs/group-memberships.md)
+- [x] Membresías grupales — flujo completo (portal + admin + Bold webhook) ✅
 
 ---
 
@@ -273,3 +273,23 @@ Bridge loop cada 5min → reintenta pendientes automáticamente
   - Indicadores de puntos `[ • ○ ]`, flechas animadas táctiles y auto-cambio de página según la ruta activa.
   - Modo dock flotante automático en desktop (`≥ 768px`) con los 8 ítems visibles.
 - Contacto comercial para upgrades: WhatsApp +573057532192 / jsda14@gmail.com
+
+---
+
+## Membresías Grupales (Flujo Completo End-to-End) ✅
+- **Base de Datos & Esquema:**
+  - Tablas creadas: `member_groups` (`id`, `name`, `created_by`, `created_at`) y `member_group_members` (`id`, `grupo_id`, `member_id`, `created_at`).
+  - Matriz `plan_group_pricing` activa: 2 personas ($67.000/persona, total $134.000), 3 personas ($65.000/persona, total $195.000), 4 personas ($50.000/persona, total $200.000).
+  - Columna `metadata jsonb` en tabla `payment_intents` para asociar `group_member_ids` y `price_per_person`.
+- **Backend Cloud (Railway / BFF):**
+  - `GET /group-pricing`: Consulta pública del tarifario grupal activo.
+  - `GET /members/validate-email?email=`: Validación en tiempo real del correo de socios registrados.
+  - `GET /members/me/groups` y `POST /members/me/groups`: Consulta y guardado de grupos de amigos creados por el socio.
+  - `POST /bold/create-group-payment-intent`: Creación de intención de pago grupal y validación estricta del monto total contra la base de datos.
+  - `PUT /admin/group-pricing/{id}`: Actualización parcial con schema `GroupPricingRequest` (todos los campos opcionales).
+  - `POST /admin/members/group-payment`: Registro de pagos grupales manuales desde recepción (efectivo, nequi, daviplata u otro) con activación y extensión de 30 días para todos los integrantes.
+  - `POST /webhooks/bold-payment`: Activación multi-usuario simultánea al recibir `SALE_APPROVED` de Bold, registrando pagos individuales de su cuota proporcional y reactivando hardware ZKTeco.
+- **Frontend (Arquitectura Hexagonal + DRY):**
+  - Dominio: `src/domain/member/groupPricing.utils.ts` con funciones puras compartidas (`getGroupPricingBounds`, `findGroupPricingTier`, `calculateGroupPricingSummary`).
+  - Portal del Miembro (`MemberRenewal.tsx`): Toggle de modalidad Individual vs Grupal, tarifario dinámico sincronizado con backend, selección de grupos guardados, inputs con debounce (450ms) y badges verde/rojo de validación, checkout integrado con Bold.
+  - Panel Admin (`AdminPayments.tsx`): Modal de pago con selector dinámico Individual vs Grupal, selección de 2 a 4 socios, desglose automático del total y registro server-side.
