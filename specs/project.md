@@ -25,8 +25,10 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 | `15_days` | 15 días de acceso consumibles dentro de un mes calendario |
 | `1_month` | 30 días corridos desde el pago |
 | `1_year` | 365 días corridos desde el pago |
+| `Grupal (1_month)` | 30 días corridos para grupos de 2 a 4 personas con pago único y tarifa progresiva por persona (`plan_group_pricing`) |
 
 > ⚠️ El plan `15_days` usa la tabla `member_day_passes` como contador de días consumidos. Ver `schema.md`.
+> ⚠️ Las membresías grupales aplican sobre el plan mensual (`1_month`), asignando 30 días y reactivando hardware a todos los integrantes simultáneamente.
 
 ## Stack tecnológico
 
@@ -44,12 +46,13 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 ### Arquitectura hexagonal — estructura `src/`
 ```
 src/
-├── domain/           # Entidades, tipos TS, Zod schemas — sin dependencias externas
-│   ├── member/
+├── domain/           # Entidades, tipos TS, Zod schemas, domain utils — sin dependencias externas
+│   ├── member/       # member.types.ts, member.schema.ts, groupPricing.utils.ts
 │   ├── payment/
 │   └── plan/
 ├── application/      # Casos de uso — orquestan el dominio
-│   ├── member/
+│   ├── member/       # getActivePlans, etc.
+│   ├── admin/        # registerManualPayment, registerGroupPayment, etc.
 │   └── payment/
 ├── infrastructure/   # Implementaciones externas
 │   ├── supabase/     # client.ts (Exclusivo para Auth y Realtime)
