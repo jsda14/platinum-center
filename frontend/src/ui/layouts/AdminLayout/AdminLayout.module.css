@@ -44,6 +44,21 @@
   margin-top: var(--space-4);
 }
 
+.admin-layout__menu-item--locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.admin-layout__lock-badge {
+  font-size: var(--font-size-xs);
+  margin-left: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.9;
+}
+
 .admin-layout__main {
   background-color: var(--color-dark);
 }

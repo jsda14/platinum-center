@@ -25,10 +25,9 @@ import dayjs from 'dayjs';
 
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 import {
-  getCommunicationsHistory,
-  sendBulkCommunication
+  getCommunicationsHistory
 } from '../../../application/admin/manageCommunications.usecase';
-import LockedFeature from '@/ui/components/LockedFeature/LockedFeature';
+import { LockedFeature, showUpgradeModal } from '@/ui/components/LockedFeature';
 import styles from './AdminCommunications.module.css';
 
 const RECIPIENT_LABELS: Record<string, string> = {
@@ -48,7 +47,7 @@ const RECIPIENT_COLORS: Record<string, string> = {
 export function AdminCommunications() {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Preview modal state
@@ -91,40 +90,7 @@ export function AdminCommunications() {
   };
 
   const handleSend = async () => {
-    try {
-      const values = await form.validateFields();
-      
-      Modal.confirm({
-        title: '¿Confirmar envío masivo?',
-        content: `Vas a enviar este comunicado a: ${RECIPIENT_LABELS[values.recipient_type]}. Esta acción no se puede deshacer.`,
-        okText: 'Enviar ahora',
-        cancelText: 'Cancelar',
-        okButtonProps: { danger: false },
-        maskClosable: false,
-        onOk: async () => {
-          setIsSubmitting(true);
-          try {
-            const result = await sendBulkCommunication(
-              values.subject,
-              values.body,
-              values.recipient_type
-            );
-            
-            message.success(`Comunicado enviado exitosamente a ${result.recipients_count || 0} destinatarios`);
-            form.resetFields();
-            setIsPreviewOpen(false);
-            await loadHistory(false);
-          } catch (err: any) {
-            console.error(err);
-            message.error(err.message || 'Ocurrió un error al enviar el comunicado');
-          } finally {
-            setIsSubmitting(false);
-          }
-        }
-      });
-    } catch {
-      message.error('Completa todos los campos obligatorios antes de enviar');
-    }
+    showUpgradeModal('El envío masivo de comunicados requiere un upgrade. Contáctanos para activarlo.');
   };
 
   if (isLoading) {
@@ -204,43 +170,44 @@ export function AdminCommunications() {
       {isSubmitting && <LoadingScreen message="Enviando comunicado masivo..." />}
 
       <main className={styles['admin-comm']} role="main">
-        <header className={styles['admin-comm__header']}>
-          <h1 className={styles['admin-comm__title']}>Comunicados Masivos</h1>
-        </header>
+        <LockedFeature.Section>
+          <header className={styles['admin-comm__header']}>
+            <h1 className={styles['admin-comm__title']}>Comunicados Masivos</h1>
+          </header>
 
-        <div className={styles['admin-comm__grid']}>
-          {/* Section: Redactar */}
-          <Card className={styles['admin-comm__card']} title="Redactar Comunicado">
-            <Form form={form} layout="vertical" initialValues={{ recipient_type: 'all' }}>
-              <Form.Item
-                name="subject"
-                label="Asunto del mensaje"
-                rules={[{ required: true, message: 'El asunto es obligatorio' }]}
-              >
-                <Input placeholder="Ej. ¡Mantenimiento de torniquetes programado!" />
-              </Form.Item>
+          <div className={styles['admin-comm__grid']}>
+            {/* Section: Redactar */}
+            <Card className={styles['admin-comm__card']} title="Redactar Comunicado">
+              <Form form={form} layout="vertical" initialValues={{ recipient_type: 'all' }}>
+                <Form.Item
+                  name="subject"
+                  label="Asunto del mensaje"
+                  rules={[{ required: true, message: 'El asunto es obligatorio' }]}
+                >
+                  <Input placeholder="Ej. ¡Mantenimiento de torniquetes programado!" />
+                </Form.Item>
 
-              <Form.Item
-                name="recipient_type"
-                label="Destinatarios"
-                rules={[{ required: true, message: 'Selecciona los destinatarios' }]}
-              >
-                <Select
-                  suffixIcon={<UsergroupAddOutlined />}
-                  options={[
-                    { label: 'Todos los miembros', value: 'all' },
-                    { label: 'Solo miembros activos', value: 'active' },
-                    { label: 'Solo miembros vencidos', value: 'expired' },
-                    { label: 'Solo miembros próximos a vencer (7 días)', value: 'expiring_soon' }
-                  ]}
-                />
-              </Form.Item>
+                <Form.Item
+                  name="recipient_type"
+                  label="Destinatarios"
+                  rules={[{ required: true, message: 'Selecciona los destinatarios' }]}
+                >
+                  <Select
+                    suffixIcon={<UsergroupAddOutlined />}
+                    options={[
+                      { label: 'Todos los miembros', value: 'all' },
+                      { label: 'Solo miembros activos', value: 'active' },
+                      { label: 'Solo miembros vencidos', value: 'expired' },
+                      { label: 'Solo miembros próximos a vencer (7 días)', value: 'expiring_soon' }
+                    ]}
+                  />
+                </Form.Item>
 
-              <LockedFeature.Section
-                title="Programar comunicado"
-                description="Programa tus comunicados para que se envíen automáticamente en la fecha y hora que elijas."
-                blur={false}
-              >
+                <LockedFeature.Section
+                  title="Programar comunicado"
+                  description="Programa tus comunicados para que se envíen automáticamente en la fecha y hora que elijas."
+                  showFloatingBadge={false}
+                >
                 <div className={styles['admin-comm__schedule-container']}>
                   <Form.Item label="Fecha de envío" className={styles['admin-comm__schedule-item']}>
                     <DatePicker disabled placeholder="Seleccionar fecha" className={styles['admin-comm__full-width']} />
@@ -362,7 +329,7 @@ export function AdminCommunications() {
             </div>
           </div>
         </Modal>
-
+        </LockedFeature.Section>
       </main>
     </ConfigProvider>
   );
