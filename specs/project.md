@@ -32,11 +32,10 @@ Desarrollador: Jhon Sebastián Delgado (Papacho).
 
 ### Frontend
 - **Vite + React + TypeScript** — base del proyecto
-- **Pydantic** — validación estricta en el backend (equivalente a Zod)
-- **Redux Toolkit** — estado global
-- **Ant Design** — componentes UI
-- **React Router DOM** — navegación
-- **Zod** — validación estricta de schemas y formularios
+- **Redux Toolkit** — estado global y caching
+- **Ant Design** — componentes UI (tablas, formularios, modales con soporte dark theme)
+- **React Router DOM** — navegación protegida por roles
+- **Zod** — validación estricta de schemas y formularios en frontend
 - **CSS Modules + BEM estricto** — estilos encapsulados por componente
 - **Arquitectura hexagonal** — domain / application / infrastructure / ui
 - Deploy: Vercel
@@ -53,13 +52,14 @@ src/
 │   ├── member/
 │   └── payment/
 ├── infrastructure/   # Implementaciones externas
-│   ├── supabase/     # client.ts + repositories
-│   ├── api/          # llamadas a Railway
-│   └── store/        # Redux slices
+│   ├── supabase/     # client.ts (Exclusivo para Auth y Realtime)
+│   ├── api/          # cliente HTTP hacia Railway (Token Bearer auth)
+│   ├── repositories/ # Repositories que consumen Railway (admin, member, plan, profile)
+│   └── store/        # Redux slices (auth, member)
 └── ui/               # React
     ├── components/   # Componentes reutilizables (cada uno con .module.css)
-    ├── pages/
-    ├── layouts/
+    ├── pages/        # Vistas de Admin, Reception y Member (incluyendo LockedFeatures)
+    ├── layouts/      # AdminLayout (sidebar), MemberLayout (slider responsive)
     └── hooks/
 ```
 
@@ -71,8 +71,10 @@ src/
 .component-name__element--modifier { }
 ```
 
-### Backend cloud
+### Backend cloud (BFF / API Gateway)
 - FastAPI (Python) en Railway
+- Orquesta 100% de la lógica de negocio, cálculos de vigencia, RBAC y transacciones.
+- Se conecta a Supabase mediante `service_role` para persistencia blindada.
 - Dos servicios: `fastapi-test` y `fastapi-prod`
 
 ### Base de datos

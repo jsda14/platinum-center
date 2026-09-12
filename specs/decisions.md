@@ -179,3 +179,38 @@ backend-cloud/src/
 las agregaciones directamente, el frontend solo renderiza.
 El volumen crecerá con el tiempo — esta arquitectura lo soporta.
 
+---
+
+## [2026-09] Migración completa de consultas cliente a Railway (BFF / API Gateway)
+**Decisión:** Desacoplar el frontend de consultas directas a PostgreSQL/Supabase. El 100% de las consultas y mutaciones de datos de negocio (`members`, `payments`, `plans`, `profiles`, `gym_config`, `communications`) se ejecutan a través de endpoints en Railway utilizando autenticación Bearer token con roles verificados.
+**Razón:** 
+- **Seguridad:** Las políticas RLS de Supabase en cliente aumentan el vector de ataque si una regla se desconfigura. Un backend centralizado valida esquemas con Pydantic y aplica RBAC estricto.
+- **Transaccionalidad atómica:** Operaciones críticas como registrar pagos manuales requieren consultar el plan, calcular fechas en UTC-5, crear el pago, actualizar el socio, renovar pases y encolar comandos de hardware en un solo ciclo server-side.
+- **Separación de Responsabilidades:** El cliente solo renderiza; la inteligencia y reglas de negocio residen en el backend.
+
+---
+
+## [2026-09] Resiliencia y tolerancia a fallos en asignación física de chips RFID
+**Decisión:** El endpoint `POST /admin/assign-chip` no retorna error HTTP 500 cuando el túnel local hacia el gimnasio (`bridge.gymplatinumcenter.com`) está caído o desconectado. En su lugar, guarda el comando en `pending_commands` de Supabase y responde exitosamente con estado `"queued"` y advertencia.
+**Razón:** Evita que el recepcionista quede bloqueado o que el sistema impida entregar una tarjeta/manilla al socio si hay un corte de luz o microcorte de internet en el gimnasio. Cuando la PC local y el bridge vuelven a estar en línea, procesan la cola automáticamente.
+
+---
+
+## [2026-09] Eliminación de Check Constraints estáticos para Planes
+**Decisión:** Eliminar las restricciones de base de datos PostgreSQL `payments_plan_check` y `members_plan_check` que limitaban los nombres de planes a valores fijos (`'1_day'`, `'15_days'`, `'1_month'`, `'1_year'`).
+**Razón:** El gimnasio requiere crear planes dinámicos (trimestrales, semestrales, planes de pareja, promociones festivas) desde el panel administrativo sin requerir migraciones DDL manuales en la base de datos. La validación de existencia y vigencia de días se delega a la tabla relacional `plans` y al backend.
+
+---
+
+## [2026-09] Patrón LockedFeature diferenciado: Upsell Comercial (Admin) vs. Expectativa (Miembro)
+**Decisión:** Rediseñar `LockedFeature` eliminando el overlay frosted glass borroso y diferenciando radicalmente la experiencia según el rol:
+- **Admin:** Contenido 100% visible (tablas, calendarios) con badge flotante fijo dorado *"Función Premium"* y botones interactivos que despliegan modal con enlace directo a WhatsApp para cotizar la activación del módulo.
+- **Miembro:** Banner amigable *"Próximamente"* y modales informativos de cortesía con botón *"Entendido"*, sin botones de WhatsApp comercial.
+**Razón:** El administrador es el cliente comprador de la plataforma a quien se le ofrece un upsell de software de forma no invasiva pero persuasiva (ver el módulo terminado genera deseo de compra). Los miembros son socios del gimnasio que no deben ser direccionados al WhatsApp de ventas del desarrollador.
+
+---
+
+## [2026-09] Slider de navegación móvil segmentado con gestos universales de puntero
+**Decisión:** En pantallas móviles, agrupar las 8 pestañas de navegación del portal de miembro en un carrusel slider de 2 páginas (4 ítems por página) utilizando animación por hardware (`transform: translateX`), controlado por una capa unificada de **Pointer Events** (`pointerdown`, `pointermove`, `pointerup`), soporte de rueda/trackpad horizontal, puntos de paginación interactivos `[ • ○ ]` y flechas direccionales.
+**Razón:** El espacio horizontal en smartphones (360px - 390px) impedía acomodar 8 iconos con etiquetas legibles sin truncar el texto o desbordar la pantalla. El uso de eventos de puntero reemplaza a `overflow-x: auto` nativo, permitiendo arrastre fluido tanto con los dedos en pantallas táctiles reales como con el mouse durante el desarrollo y pruebas en DevTools.
+
