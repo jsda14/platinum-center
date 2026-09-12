@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+import httpx
+import asyncio
 from src.api.routes.webhooks import router as webhooks_router
 from src.api.routes.bold import router as bold_router
 from src.api.routes.admin import router as admin_router
@@ -25,6 +28,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def retry_on_connection_terminated(request: Request, call_next):
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            response = await call_next(request)
+            return response
+        except httpx.RemoteProtocolError:
+            if attempt < max_retries:
+                await asyncio.sleep(0.5)
+                continue
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "Servicio temporalmente no disponible. Por favor intenta de nuevo."}
+            )
+        except Exception as e:
+            raise e
 
 app.include_router(webhooks_router)
 app.include_router(bold_router)
