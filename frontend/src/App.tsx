@@ -26,6 +26,12 @@ import { TermsOfService } from './ui/pages/TermsOfService/TermsOfService';
 import { PrivacyPolicy } from './ui/pages/PrivacyPolicy/PrivacyPolicy';
 import { CookieBanner } from './ui/components/CookieBanner/CookieBanner';
 import { AdminProfile } from './ui/pages/AdminProfile/AdminProfile';
+import { AdminStore } from './ui/pages/AdminStore/AdminStore';
+import { AdminClasses } from './ui/pages/AdminClasses/AdminClasses';
+import { MemberStore } from './ui/pages/MemberStore/MemberStore';
+import { MemberProgress } from './ui/pages/MemberProgress/MemberProgress';
+import { MemberClasses } from './ui/pages/MemberClasses/MemberClasses';
+import { MemberTrainer } from './ui/pages/MemberTrainer/MemberTrainer';
 
 import { useAppSelector } from './infrastructure/store/store';
 
@@ -149,6 +155,8 @@ export function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="communications" element={<AdminCommunications />} />
+        <Route path="classes" element={<AdminClasses />} />
+        <Route path="store" element={<AdminStore />} />
         <Route path="profile" element={<AdminProfile />} />
       </Route>
 
@@ -179,6 +187,10 @@ export function App() {
         }
       >
         <Route index element={<MemberPortal />} />
+        <Route path="classes" element={<MemberClasses />} />
+        <Route path="trainer" element={<MemberTrainer />} />
+        <Route path="progress" element={<MemberProgress />} />
+        <Route path="store" element={<MemberStore />} />
         <Route path="payments" element={<MemberPayments />} />
         <Route path="suggestions" element={<MemberSuggestions />} />
         <Route path="renewal" element={<MemberRenewal />} />
