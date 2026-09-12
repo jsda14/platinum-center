@@ -11,7 +11,9 @@ import {
   InputNumber,
   ConfigProvider,
   theme,
-  Input
+  Input,
+  Segmented,
+  Alert
 } from 'antd';
 import {
   PlusOutlined,
@@ -19,9 +21,15 @@ import {
 } from '@ant-design/icons';
 import { adminRepository, type MemberWithProfile } from '../../../infrastructure/supabase/admin.repository';
 import { registerManualPayment } from '../../../application/admin/registerManualPayment.usecase';
+import { registerGroupPayment } from '../../../application/admin/registerGroupPayment.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
-import type { Plan, Payment } from '../../../domain/member/member.types';
+import type { Plan, Payment, PlanGroupPricing } from '../../../domain/member/member.types';
+import {
+  getGroupPricingBounds,
+  findGroupPricingTier,
+  calculateGroupPricingSummary
+} from '../../../domain/member/groupPricing.utils';
 import styles from './AdminPayments.module.css';
 
 // Methods and status mapping
@@ -44,6 +52,7 @@ export function AdminPayments() {
   const [payments, setPayments] = useState<any[]>([]);
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [activePlans, setActivePlans] = useState<Plan[]>([]);
+  const [groupPricing, setGroupPricing] = useState<PlanGroupPricing[]>([]);
   
   // Loading & submit states
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -56,6 +65,8 @@ export function AdminPayments() {
 
   // Modal
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
+  const [paymentMode, setPaymentMode] = useState<'individual' | 'group'>('individual');
+  const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<string[]>([]);
   const [registerForm] = Form.useForm();
 
   // Success details modal
@@ -65,14 +76,16 @@ export function AdminPayments() {
     setIsLoading(true);
     setError(null);
     try {
-      const [paymentsData, membersData, plansData] = await Promise.all([
+      const [paymentsData, membersData, plansData, pricingData] = await Promise.all([
         adminRepository.getPayments(),
         adminRepository.getMembers(),
-        getActivePlans()
+        getActivePlans(),
+        adminRepository.getGroupPricing()
       ]);
       setPayments(paymentsData);
       setMembers(membersData);
       setActivePlans(plansData);
+      setGroupPricing(pricingData);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al cargar los datos';
       setError(msg);
@@ -85,6 +98,11 @@ export function AdminPayments() {
     loadData();
   }, []);
 
+  const { minPersons, maxPersons } = getGroupPricingBounds(groupPricing);
+  const groupSummary = calculateGroupPricingSummary(groupPricing, selectedGroupMemberIds.length);
+  const activeGroupTier = groupSummary.tier;
+  const totalGroupAmount = groupSummary.totalAmount;
+
   const handlePlanChange = (val: string) => {
     const plan = activePlans.find(p => p.slug === val);
     const price = plan ? plan.price : 0;
@@ -96,19 +114,44 @@ export function AdminPayments() {
     try {
       const values = await registerForm.validateFields();
       
-      const paymentResult = await registerManualPayment({
-        member_id: values.member_id,
-        plan: values.plan,
-        amount: values.amount,
-        method: values.method,
-        notes: values.notes
-      });
+      if (paymentMode === 'group') {
+        const memberIds: string[] = values.group_member_ids || [];
+        if (memberIds.length < minPersons || memberIds.length > maxPersons) {
+          message.error(`Un pago grupal requiere entre ${minPersons} y ${maxPersons} miembros`);
+          return;
+        }
+        const pricingTier = findGroupPricingTier(groupPricing, memberIds.length);
+        if (!pricingTier) {
+          message.error('No hay tarifa grupal configurada para esa cantidad de miembros');
+          return;
+        }
 
-      message.success('Pago manual registrado con éxito');
-      setSuccessPayment(paymentResult);
-      setIsRegisterModalOpen(false);
-      registerForm.resetFields();
-      await loadData();
+        const groupResult = await registerGroupPayment({
+          member_ids: memberIds,
+          plan_slug: '1_month',
+          method: values.method
+        });
+
+        message.success(`Pago grupal registrado con éxito para ${groupResult.total_members} miembros ($${groupResult.total_amount.toLocaleString('es-CO')} COP)`);
+        setIsRegisterModalOpen(false);
+        registerForm.resetFields();
+        setSelectedGroupMemberIds([]);
+        await loadData();
+      } else {
+        const paymentResult = await registerManualPayment({
+          member_id: values.member_id,
+          plan: values.plan,
+          amount: values.amount,
+          method: values.method,
+          notes: values.notes
+        });
+
+        message.success('Pago manual registrado con éxito');
+        setSuccessPayment(paymentResult);
+        setIsRegisterModalOpen(false);
+        registerForm.resetFields();
+        await loadData();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al registrar el pago';
       message.error(msg);
@@ -324,64 +367,149 @@ export function AdminPayments() {
 
         {/* Modal: Register Manual Payment */}
         <Modal
-          title="Registrar Pago Manual"
+          title={paymentMode === 'group' ? 'Registrar Pago Grupal' : 'Registrar Pago Manual'}
           open={isRegisterModalOpen}
           onOk={handleRegisterSubmit}
           onCancel={() => {
             setIsRegisterModalOpen(false);
             registerForm.resetFields();
+            setSelectedGroupMemberIds([]);
           }}
           okText="Registrar"
           cancelText="Cancelar"
           destroyOnClose
           maskClosable={false}
+          confirmLoading={isSubmitting}
         >
-          <Form form={registerForm} layout="vertical">
-            <Form.Item
-              name="member_id"
-              label="Buscar Miembro"
-              rules={[{ required: true, message: 'Selecciona un miembro' }]}
-            >
-              <Select
-                showSearch
-                placeholder="Buscar por nombre o email..."
-                optionFilterProp="label"
-                options={members.map((m) => ({
-                  value: m.id,
-                  label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})`
-                }))}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="plan"
-              label="Plan Adquirido"
-              rules={[{ required: true, message: 'Selecciona un plan' }]}
-            >
-              <Select placeholder="Selecciona un plan" onChange={handlePlanChange}>
-                {activePlans.map((plan) => (
-                  <Select.Option key={plan.id} value={plan.slug}>
-                    {plan.name} (${plan.price.toLocaleString('es-CO')})
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="amount"
-              label="Monto Recibido ($ COP)"
-              rules={[
-                { required: true, message: 'Ingresa el monto' },
-                { type: 'number', min: 0, message: 'El monto debe ser positivo' }
+          <div style={{ marginBottom: 16 }}>
+            <Segmented
+              block
+              value={paymentMode}
+              onChange={(val) => {
+                setPaymentMode(val as 'individual' | 'group');
+                registerForm.resetFields();
+                setSelectedGroupMemberIds([]);
+              }}
+              options={[
+                { label: 'Pago Individual', value: 'individual' },
+                { label: `Pago Grupal (${minPersons} - ${maxPersons} personas)`, value: 'group' }
               ]}
-            >
-              <InputNumber
-                formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => (value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0)}
-                style={{ width: '100%' }}
-                placeholder="Monto"
-              />
-            </Form.Item>
+            />
+          </div>
+
+          <Form form={registerForm} layout="vertical">
+            {paymentMode === 'individual' ? (
+              <>
+                <Form.Item
+                  name="member_id"
+                  label="Buscar Miembro"
+                  rules={[{ required: true, message: 'Selecciona un miembro' }]}
+                >
+                  <Select
+                    showSearch
+                    placeholder="Buscar por nombre o email..."
+                    optionFilterProp="label"
+                    options={members.map((m) => ({
+                      value: m.id,
+                      label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})`
+                    }))}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="plan"
+                  label="Plan Adquirido"
+                  rules={[{ required: true, message: 'Selecciona un plan' }]}
+                >
+                  <Select placeholder="Selecciona un plan" onChange={handlePlanChange}>
+                    {activePlans.map((plan) => (
+                      <Select.Option key={plan.id} value={plan.slug}>
+                        {plan.name} (${plan.price.toLocaleString('es-CO')})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="amount"
+                  label="Monto Recibido ($ COP)"
+                  rules={[
+                    { required: true, message: 'Ingresa el monto' },
+                    { type: 'number', min: 0, message: 'El monto debe ser positivo' }
+                  ]}
+                >
+                  <InputNumber
+                    formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={(value) => (value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0)}
+                    style={{ width: '100%' }}
+                    placeholder="Monto"
+                  />
+                </Form.Item>
+              </>
+            ) : (
+              <>
+                <Form.Item
+                  name="group_member_ids"
+                  label={`Seleccionar Miembros del Grupo (${minPersons} a ${maxPersons})`}
+                  rules={[
+                    { required: true, message: `Selecciona de ${minPersons} a ${maxPersons} miembros` },
+                    {
+                      validator: async (_, value) => {
+                        if (!value || value.length < minPersons) {
+                          return Promise.reject(new Error(`Debes seleccionar al menos ${minPersons} miembros`));
+                        }
+                        if (value.length > maxPersons) {
+                          return Promise.reject(new Error(`Máximo ${maxPersons} miembros por grupo`));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
+                >
+                  <Select
+                    mode="multiple"
+                    placeholder={`Buscar y seleccionar de ${minPersons} a ${maxPersons} miembros...`}
+                    optionFilterProp="label"
+                    maxCount={maxPersons}
+                    onChange={(vals: string[]) => setSelectedGroupMemberIds(vals)}
+                    options={members.map((m) => ({
+                      value: m.id,
+                      label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})`
+                    }))}
+                  />
+                </Form.Item>
+
+                <div style={{ marginBottom: 16 }}>
+                  {selectedGroupMemberIds.length < minPersons ? (
+                    <Alert
+                      type="info"
+                      showIcon
+                      message={`Selecciona de ${minPersons} a ${maxPersons} miembros para calcular la tarifa grupal mensual.`}
+                    />
+                  ) : activeGroupTier ? (
+                    <Alert
+                      type="success"
+                      showIcon
+                      message={
+                        <div>
+                          <div><strong>Tarifa Grupal Aplicada (Plan 1 Mes):</strong></div>
+                          <div>{selectedGroupMemberIds.length} personas × ${activeGroupTier.price_per_person.toLocaleString('es-CO')} COP/persona</div>
+                          <div style={{ fontSize: '15px', marginTop: 4 }}>
+                            <strong>Total a cobrar: ${totalGroupAmount.toLocaleString('es-CO')} COP</strong>
+                          </div>
+                        </div>
+                      }
+                    />
+                  ) : (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="No se encontró una tarifa grupal activa configurada para esta cantidad de personas."
+                    />
+                  )}
+                </div>
+              </>
+            )}
 
             <Form.Item
               name="method"
