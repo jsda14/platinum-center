@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import base64
 import json
+import logging
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from src.infrastructure.supabase import supabase_client
@@ -11,6 +12,8 @@ from src.infrastructure.supabase.auth import get_current_member
 from src.domain.member.schemas import GroupPaymentIntentRequest
 import httpx
 from src.infrastructure.zkteco.tunnel_client import activate_member
+
+logger = logging.getLogger(__name__)
 
 async def invoke_send_notification(payload: dict):
     supabase_url = os.getenv("SUPABASE_URL")
@@ -203,31 +206,29 @@ async def bold_payment_webhook(
     """
     Recibe eventos de pago de Bold (venta aprobada/rechazada) y actualiza la base de datos
     """
-    secret = os.getenv("BOLD_WEBHOOK_SECRET")
+    secret = os.getenv("BOLD_WEBHOOK_SECRET", "")
     
     # Leer el cuerpo de la petición crudo
     body_bytes = await request.body()
     
-    print(f"[BOLD WEBHOOK] Headers recibidos: {dict(request.headers)}")
-    print(f"[BOLD WEBHOOK] Body completo: {body_bytes.decode('utf-8')}")
-    
-    # Validar firma si el secreto del webhook está configurado
-    # if secret:
-    #     if not x_bold_signature:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_401_UNAUTHORIZED,
-    #             detail="No autorizado: Falta firma x-bold-signature"
-    #         )
-    #         
-    #     # Calcular HMAC-SHA256
-    #     computed_sig = hmac.new(
-    #         key=secret.encode('utf-8'),
-    #         msg=body_bytes,
-    #         digestmod=hashlib.sha256
-    #     ).hexdigest()
+    # En pruebas, Bold usa llave vacía. En producción usa la llave real.
+    str_message = body_bytes.decode(encoding="utf-8")
+    encoded = base64.b64encode(str_message.encode("utf-8"))
+    computed_sig = hmac.new(
+        key=secret.encode("utf-8"),
+        msg=encoded,
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(computed_sig.encode(), (x_bold_signature or "").encode()):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autorizado: Firma inválida"
+        )
+
     # Parsear payload
     try:
-        payload = json.loads(body_bytes.decode('utf-8'))
+        payload = json.loads(str_message)
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -235,6 +236,7 @@ async def bold_payment_webhook(
         )
         
     event_type = payload.get("type")
+    logger.info(f"[BOLD WEBHOOK] Evento recibido: {event_type}")
     data = payload.get("data", {})
     
     # Obtener metadatos
