@@ -203,13 +203,19 @@ export function AdminMemberDetail() {
     setIsSubmitting(true);
     try {
       const values = await chipForm.validateFields();
-      await assignChip({
+      const response = await assignChip({
         member_id: id,
         card_no: values.card_no,
         full_name: detail.member.profiles?.full_name || 'Miembro',
         sn: 'AJYX215160006'
       });
-      message.success('Chip RFID asignado exitosamente');
+
+      if (response.found_in_zkteco === true) {
+        message.success('Chip asignado y sincronizado con el torniquete');
+      } else {
+        message.warning('Chip asignado. Se sincronizará con el torniquete cuando el Bridge esté disponible');
+      }
+
       setIsChipModalOpen(false);
       await loadDetail(false);
     } catch (err: unknown) {

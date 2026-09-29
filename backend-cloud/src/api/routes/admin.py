@@ -238,6 +238,19 @@ async def assign_chip(
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
 
+    # Validar que el card_no no esté asignado a otro miembro
+    existing = supabase_client.table("members")\
+        .select("id")\
+        .eq("card_no", data.card_no)\
+        .neq("id", data.member_id)\
+        .execute()
+
+    if existing.data:
+        raise HTTPException(
+            status_code=400,
+            detail="Este chip ya está asignado a otro miembro"
+        )
+
     gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     
