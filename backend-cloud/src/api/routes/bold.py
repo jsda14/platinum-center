@@ -326,6 +326,7 @@ async def bold_payment_webhook(
             if not price_per_person:
                 price_per_person = float(amount_cop) / len(group_member_ids)
 
+            # Activar planes para todos los miembros del grupo
             for mid in group_member_ids:
                 tx_sub = f"{tx_id}_{mid}" if tx_id and tx_id != "XXXX" else None
                 await activate_member_plan(
@@ -334,6 +335,38 @@ async def bold_payment_webhook(
                     p_amount=float(price_per_person),
                     p_tx_id=tx_sub
                 )
+
+            # Enviar emails de confirmación a cada miembro del grupo
+            print(f"[NOTIFY] Enviando confirmaciones a {len(group_member_ids)} miembros del grupo")
+            for mid in group_member_ids:
+                try:
+                    # Obtener profile_id desde members
+                    member_res = supabase_client.table("members").select("profile_id").eq("id", mid).execute()
+                    if member_res.data:
+                        profile_id = member_res.data[0].get("profile_id")
+                        if profile_id:
+                            # Obtener email y nombre desde profiles
+                            profile_res = supabase_client.table("profiles").select("email", "full_name").eq("id", profile_id).execute()
+                            if profile_res.data:
+                                profile_data = profile_res.data[0]
+                                member_email = profile_data.get("email")
+                                member_name = profile_data.get("full_name") or "Miembro"
+
+                                if member_email:
+                                    print(f"[NOTIFY] Invocando Edge Function PAYMENT_CONFIRMED para {mid}...")
+                                    # Enviar correo al miembro del grupo
+                                    await invoke_send_notification({
+                                        'type': 'PAYMENT_CONFIRMED',
+                                        'member_email': member_email,
+                                        'member_name': member_name,
+                                        'plan': plan_slug,
+                                        'amount': price_per_person,
+                                        'end_date': (date.today() + timedelta(days=30)).isoformat()
+                                    })
+                                    print(f"[NOTIFY] Confirmación enviada a {member_email}")
+                except Exception as notify_err:
+                    print(f"[NOTIFY] Error enviando confirmación a {mid}: {str(notify_err)}")
+
             return {"status": "ok", "message": f"Pago grupal aprobado para {len(group_member_ids)} miembros"}
 
         if not member_id:
