@@ -68,6 +68,8 @@ export function AdminPayments() {
   const [paymentMode, setPaymentMode] = useState<'individual' | 'group'>('individual');
   const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<string[]>([]);
   const [registerForm] = Form.useForm();
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Success details modal
   const [successPayment, setSuccessPayment] = useState<Payment | null>(null);
@@ -109,6 +111,25 @@ export function AdminPayments() {
     registerForm.setFieldsValue({ amount: price });
   };
 
+  const handleSearchMembers = async (searchValue: string) => {
+    if (!searchValue || searchValue.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await adminRepository.searchMembersAndProfiles(searchValue);
+      setSearchResults(results);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al buscar';
+      message.error(msg);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleRegisterSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -138,18 +159,23 @@ export function AdminPayments() {
         setSelectedGroupMemberIds([]);
         await loadData();
       } else {
+        // Si es un perfil sin membresía, usar member_id "new"
+        const actualMemberId = values.member_id.startsWith('profile_') ? 'new' : values.member_id;
+
         const paymentResult = await registerManualPayment({
-          member_id: values.member_id,
+          member_id: actualMemberId,
           plan: values.plan,
           amount: values.amount,
           method: values.method,
-          notes: values.notes
+          notes: values.notes,
+          ...(values.profile_id ? { profile_id: values.profile_id } : {})
         });
 
         message.success('Pago manual registrado con éxito');
         setSuccessPayment(paymentResult);
         setIsRegisterModalOpen(false);
         registerForm.resetFields();
+        setSearchResults([]);
         await loadData();
       }
     } catch (err: unknown) {
@@ -402,18 +428,46 @@ export function AdminPayments() {
               <>
                 <Form.Item
                   name="member_id"
-                  label="Buscar Miembro"
-                  rules={[{ required: true, message: 'Selecciona un miembro' }]}
+                  label="Buscar Miembro o Perfil"
+                  rules={[{ required: true, message: 'Selecciona un miembro o perfil' }]}
                 >
                   <Select
                     showSearch
                     placeholder="Buscar por nombre o email..."
-                    optionFilterProp="label"
-                    options={members.map((m) => ({
-                      value: m.id,
-                      label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})`
+                    filterOption={false}
+                    onSearch={handleSearchMembers}
+                    loading={isSearching}
+                    notFoundContent={isSearching ? 'Buscando...' : 'Sin resultados'}
+                    options={searchResults.map((result) => ({
+                      value: result.member_id || `profile_${result.profile_id}`,
+                      label: (
+                        <div>
+                          <div style={{ fontWeight: 500 }}>
+                            {result.full_name || 'Sin nombre'}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#888' }}>
+                            {result.email || 'Sin email'}
+                            {result.member_id ? ` • ${result.member_status || 'Sin estado'}` : ' • Sin membresía'}
+                          </div>
+                        </div>
+                      ),
+                      extra: {
+                        profile_id: result.profile_id,
+                        member_id: result.member_id,
+                        full_name: result.full_name,
+                        email: result.email,
+                      }
                     }))}
+                    onChange={(_value, option: any) => {
+                      const selected = option?.extra || {};
+                      registerForm.setFieldsValue({
+                        profile_id: selected.profile_id
+                      });
+                    }}
                   />
+                </Form.Item>
+                <Form.Item name="profile_id" noStyle hidden>
+                  <Input type="hidden" />
                 </Form.Item>
 
                 <Form.Item
