@@ -11,13 +11,13 @@ async def get_pending_commands(authorization: Optional[str] = Header(None)):
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     if not authorization or authorization != f"Bearer {tunnel_secret}":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado")
-    
+
     res = supabase_client.table("pending_commands")\
-        .select("*")\
+        .select("id, member_id, action, card_no, zkteco_user_id, zkteco_person_id, full_name, sn, status, created_at, executed_at")\
         .eq("status", "pending")\
         .order("created_at")\
         .execute()
-    
+
     return {"commands": res.data or []}
 
 @router.post("/pending-commands/{command_id}/done")
