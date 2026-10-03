@@ -8,10 +8,23 @@ export interface ManualPaymentData {
   amount: number;
   method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
   notes?: string;
+  profile_id?: string;
 }
 
 export interface MemberWithProfile extends Member {
   profiles: Pick<Profile, 'full_name' | 'email' | 'phone'> | null;
+}
+
+export interface SearchResult {
+  profile_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  member_id: string | null;
+  member_status: string | null;
+  member_plan: string | null;
+  card_no: string | null;
+  end_date: string | null;
 }
 
 export interface CreateMemberData {
@@ -85,6 +98,23 @@ export const adminRepository = {
 
     const data = await response.json();
     return (data.members || []) as MemberWithProfile[];
+  },
+
+  async searchMembersAndProfiles(query: string): Promise<SearchResult[]> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/members/search?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al buscar miembros');
+    }
+
+    const result = await response.json();
+    return (result.results || []) as SearchResult[];
   },
 
   async createMember(data: CreateMemberData): Promise<Member> {
@@ -167,6 +197,7 @@ export const adminRepository = {
         amount: data.amount,
         method: data.method,
         plan: data.plan,
+        ...(data.profile_id ? { profile_id: data.profile_id } : {}),
       }),
     });
 

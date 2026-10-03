@@ -453,6 +453,7 @@ class RegisterPaymentRequest(BaseModel):
     amount: float
     method: str
     plan: str
+    profile_id: Optional[str] = None
 
 
 @router.put("/admin/members/{member_id}")
@@ -571,6 +572,71 @@ async def get_members(
         )
 
 
+@router.get("/admin/members/search")
+async def search_members_and_profiles(
+    q: str,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Busca miembros y perfiles por nombre o email.
+    Incluye perfiles sin membresía asociada (member_id será null).
+    """
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    if not q or len(q.strip()) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El término de búsqueda debe tener al menos 2 caracteres"
+        )
+
+    try:
+        # Buscar en profiles por full_name o email
+        query_term = f"%{q}%"
+        profiles_res = supabase_client.table("profiles")\
+            .select("id, full_name, email, phone")\
+            .or_(f"full_name.ilike.{query_term},email.ilike.{query_term}")\
+            .limit(50)\
+            .execute()
+
+        if not profiles_res.data:
+            return {"results": []}
+
+        # Para cada perfil, obtener su miembro asociado (si existe)
+        results = []
+        for profile in profiles_res.data:
+            profile_id = profile.get("id")
+            member_res = supabase_client.table("members")\
+                .select("id, status, plan, card_no, zkteco_user_id, end_date")\
+                .eq("profile_id", profile_id)\
+                .execute()
+
+            member_data = member_res.data[0] if member_res.data else None
+
+            results.append({
+                "profile_id": profile_id,
+                "full_name": profile.get("full_name"),
+                "email": profile.get("email"),
+                "phone": profile.get("phone"),
+                "member_id": member_data.get("id") if member_data else None,
+                "member_status": member_data.get("status") if member_data else None,
+                "member_plan": member_data.get("plan") if member_data else None,
+                "card_no": member_data.get("card_no") if member_data else None,
+                "end_date": member_data.get("end_date") if member_data else None
+            })
+
+        return {"results": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] Error al buscar miembros/perfiles: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al buscar: {str(e)}"
+        )
+
+
 @router.get("/admin/members/{member_id}")
 async def get_member_detail(
     member_id: str,
@@ -625,36 +691,63 @@ async def register_payment(
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
-    
+
     admin_user = get_current_user(authorization)
     admin_user_id = admin_user["id"] if admin_user else None
-    
+
+    # Si no hay member_id en la URL pero sí profile_id, crear el miembro
+    actual_member_id = member_id
+    if member_id == "new" and data.profile_id:
+        try:
+            logger.info(f"[ADMIN] Creando miembro para profile_id={data.profile_id}")
+            member_create_res = supabase_client.table("members").insert({
+                "profile_id": data.profile_id,
+                "status": "active"
+            }).execute()
+
+            if not member_create_res.data:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No se pudo crear el miembro automáticamente"
+                )
+
+            actual_member_id = member_create_res.data[0].get("id")
+            logger.info(f"[ADMIN] Miembro creado exitosamente: {actual_member_id}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ADMIN] Error al crear miembro: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al crear miembro: {str(e)}"
+            )
+
     # 1. Obtener duración del plan
     plan_res = supabase_client.table("plans")\
         .select("duration_days, slug")\
         .eq("slug", data.plan)\
         .execute()
-    
+
     if not plan_res.data:
         # Fallback si se envía el UUID en lugar del slug
         plan_res = supabase_client.table("plans")\
             .select("duration_days, slug")\
             .eq("id", data.plan)\
             .execute()
-    
+
     if not plan_res.data:
         raise HTTPException(status_code=404, detail=f"Plan '{data.plan}' no encontrado")
-    
+
     plan_info = plan_res.data[0]
     duration_days = plan_info.get("duration_days") or 30
     plan_slug = plan_info.get("slug") or data.plan
-    
+
     # 2. Obtener estado actual del miembro
     member_res = supabase_client.table("members")\
         .select("status, end_date")\
-        .eq("id", member_id)\
+        .eq("id", actual_member_id)\
         .execute()
-    
+
     if not member_res.data:
         raise HTTPException(status_code=404, detail="Miembro no encontrado")
     
@@ -680,7 +773,7 @@ async def register_payment(
     
     # 4. Registrar pago
     payment_res = supabase_client.table("payments").insert({
-        "member_id": member_id,
+        "member_id": actual_member_id,
         "amount": data.amount,
         "method": data.method,
         "plan": plan_slug,
@@ -692,9 +785,9 @@ async def register_payment(
 
     if not payment_res.data:
         raise HTTPException(status_code=500, detail="Error al registrar pago en base de datos")
-    
+
     payment = payment_res.data[0]
-    
+
     # 5. Actualizar member
     supabase_client.table("members").update({
         "status": "active",
@@ -702,20 +795,20 @@ async def register_payment(
         "start_date": start_date,
         "end_date": end_date,
         "updated_at": now.isoformat()
-    }).eq("id", member_id).execute()
-    
+    }).eq("id", actual_member_id).execute()
+
     # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
     if plan_slug == "15_days":
         valid_until = (now + timedelta(days=30)).date().isoformat()
-        
+
         supabase_client.table("member_day_passes")\
             .update({"status": "exhausted"})\
-            .eq("member_id", member_id)\
+            .eq("member_id", actual_member_id)\
             .eq("status", "active")\
             .execute()
-        
+
         supabase_client.table("member_day_passes").insert({
-            "member_id": member_id,
+            "member_id": actual_member_id,
             "payment_id": payment["id"],
             "days_total": 15,
             "days_used": 0,
@@ -723,12 +816,12 @@ async def register_payment(
             "valid_until": valid_until,
             "status": "active"
         }).execute()
-    
+
     # 7. Reactivar chip (no bloqueante)
     try:
         member_full = supabase_client.table("members")\
             .select("card_no, zkteco_user_id, profile_id")\
-            .eq("id", member_id)\
+            .eq("id", actual_member_id)\
             .execute()
         
         if member_full.data and member_full.data[0].get("card_no"):
