@@ -458,7 +458,7 @@ export function AdminPayments() {
                         email: result.email,
                       }
                     }))}
-                    onChange={(value, option: any) => {
+                    onChange={(_value, option: any) => {
                       const selected = option?.extra || {};
                       registerForm.setFieldsValue({
                         profile_id: selected.profile_id
