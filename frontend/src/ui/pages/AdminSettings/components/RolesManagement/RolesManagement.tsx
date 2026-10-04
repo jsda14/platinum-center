@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Select, Avatar, message, Tooltip, Form } from 'antd';
-import { EditOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Select, Avatar, message, Tooltip, Form, Input } from 'antd';
+import { EditOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAppSelector } from '@/infrastructure/store/store';
 import { getAllUsers, updateUserRole } from '@/application/admin/manageRoles.usecase';
 import type { Profile, UserRole } from '@/domain/member/member.types';
@@ -40,6 +40,9 @@ export function RolesManagement() {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [newRole, setNewRole] = useState<UserRole>('member');
+
+  // Search filter
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -132,6 +135,15 @@ export function RolesManagement() {
     );
   }
 
+  const filteredUsers = users.filter((user) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      (user.full_name?.toLowerCase().includes(q) ?? false) ||
+      (user.email?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
   const columns = [
     {
       title: 'Avatar',
@@ -214,9 +226,20 @@ export function RolesManagement() {
         </p>
       </header>
 
+      <div className={styles['roles-management__search-bar']}>
+        <Input
+          placeholder="Buscar por nombre o correo..."
+          prefix={<SearchOutlined />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          allowClear
+          className={styles['roles-management__search-input']}
+        />
+      </div>
+
       <div className={styles['roles-management__table-wrapper']}>
         <Table
-          dataSource={users}
+          dataSource={filteredUsers}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10, showSizeChanger: false }}
