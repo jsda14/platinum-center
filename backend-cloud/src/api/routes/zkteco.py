@@ -74,7 +74,8 @@ async def access_event(
                     member_id=member_id,
                     zkteco_user_id=member.get("zkteco_user_id"),
                     full_name="Miembro",
-                    sn=data.sn
+                    sn=data.sn,
+                    card_no=member.get("card_no", "")
                 )
 
                 return {"status": "ok", "event_type": "denied"}
@@ -139,7 +140,8 @@ async def access_event(
                         member_id=member_id,
                         zkteco_user_id=member.get("zkteco_user_id"),
                         full_name=full_name,
-                        sn=data.sn
+                        sn=data.sn,
+                        card_no=member.get("card_no", "")
                     )
     else:
         event_type = "unknown"
