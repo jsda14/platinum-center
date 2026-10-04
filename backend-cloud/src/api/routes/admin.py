@@ -358,13 +358,15 @@ async def assign_chip(
         }
     else:
         # No existe en ZKBioSecurity — crear vía activate_member (maneja su propio fallback a pending_commands)
+        # Si no existe en ZKBio, pasar person_id="" para que Bridge cree persona nueva
+        # (distinto de None que significaría "lookup falló, abortar")
         activated = await activate_member(
             member_id=data.member_id,
             card_no=data.card_no,
             zkteco_user_id=zkteco_user_id,
             full_name=data.full_name,
             sn=data.sn,
-            person_id=existing_person_id
+            person_id=existing_person_id or ""
         )
 
         update_data = {
