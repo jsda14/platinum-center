@@ -218,6 +218,7 @@ class AssignChipRequest(BaseModel):
     full_name: str
     zkteco_user_id: Optional[str] = None
     sn: Optional[str] = None
+    zkteco_person_id: Optional[str] = None
 
 @router.post("/admin/assign-chip")
 async def assign_chip(
@@ -251,6 +252,15 @@ async def assign_chip(
             detail="Este chip ya está asignado a otro miembro"
         )
 
+    member_res = supabase_client.table("members")\
+        .select("zkteco_user_id, zkteco_person_id")\
+        .eq("id", data.member_id)\
+        .single()\
+        .execute()
+    
+    existing_person_id = member_res.data.get("zkteco_person_id") if member_res.data else None
+    existing_zkteco_user_id = member_res.data.get("zkteco_user_id") if member_res.data else None
+
     gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     
@@ -260,7 +270,7 @@ async def assign_chip(
         "Content-Type": "application/json"
     }
 
-    zkteco_user_id = data.zkteco_user_id or str(int(time.time()))[-6:]
+    zkteco_user_id = data.zkteco_user_id or existing_zkteco_user_id or str(int(time.time()))[-6:]
     person_id = None
     bridge_lookup_ok = False
     lookup = {"found": False}
@@ -353,7 +363,8 @@ async def assign_chip(
             card_no=data.card_no,
             zkteco_user_id=zkteco_user_id,
             full_name=data.full_name,
-            sn=data.sn
+            sn=data.sn,
+            person_id=existing_person_id
         )
 
         update_data = {
