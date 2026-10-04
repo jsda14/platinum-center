@@ -5,6 +5,7 @@ import { setMember } from '@/infrastructure/store/memberSlice';
 import { createSuggestion } from '../../../application/member/createSuggestion.usecase';
 import { memberRepository } from '../../../infrastructure/supabase/member.repository';
 import type { Suggestion } from '../../../domain/member/member.types';
+import { formatDateLong } from '@/utils/date';
 import styles from './MemberSuggestions.module.css';
 
 const suggestionFormSchema = z.object({
@@ -98,15 +99,6 @@ export function MemberSuggestions() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('es-CO', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
   };
 
   const statusLabels: Record<string, string> = {
@@ -214,7 +206,7 @@ export function MemberSuggestions() {
                 <article key={suggestion.id} className={styles['member-suggestions__card']}>
                   <div className={styles['member-suggestions__card-header']}>
                     <span className={styles['member-suggestions__date']}>
-                      {formatDate(suggestion.created_at)}
+                      {formatDateLong(suggestion.created_at)}
                     </span>
                     <span className={`${styles['member-suggestions__badge']} ${statusClasses[statusVal] || ''}`}>
                       {statusLabels[statusVal] || statusVal}

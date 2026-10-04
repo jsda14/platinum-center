@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/infrastructure/store/store';
 import { memberRepository } from '@/infrastructure/supabase/member.repository';
 import type { Payment } from '@/domain/member/member.types';
+import { formatDateTime } from '@/utils/date';
 import styles from './MemberPayments.module.css';
 
 export function MemberPayments() {
@@ -41,17 +42,6 @@ export function MemberPayments() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('es-CO', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const planNames: Record<string, string> = {
@@ -147,7 +137,7 @@ export function MemberPayments() {
                 <div className={styles['member-payments__detail-item']}>
                   <span className={styles['member-payments__detail-label']}>Fecha de Pago</span>
                   <span className={styles['member-payments__detail-value']}>
-                    {formatDate(payment.payment_date)}
+                    {formatDateTime(payment.payment_date)}
                   </span>
                 </div>
                 <div className={styles['member-payments__detail-item']}>

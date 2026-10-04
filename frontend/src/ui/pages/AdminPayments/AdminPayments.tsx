@@ -30,6 +30,7 @@ import {
   findGroupPricingTier,
   calculateGroupPricingSummary
 } from '../../../domain/member/groupPricing.utils';
+import { formatDate, formatDateTime } from '@/utils/date';
 import styles from './AdminPayments.module.css';
 
 // Methods and status mapping
@@ -281,13 +282,7 @@ export function AdminPayments() {
       title: 'Fecha de Registro',
       dataIndex: 'payment_date',
       key: 'payment_date',
-      render: (val: string) => new Date(val).toLocaleString('es-CO', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      render: (val: string) => formatDateTime(val)
     }
   ];
 
@@ -610,10 +605,10 @@ export function AdminPayments() {
                   <strong>Plan:</strong> {PLAN_LABELS[successPayment.plan || ''] || successPayment.plan}
                 </p>
                 <p style={{ margin: '4px 0' }}>
-                  <strong>Inicio de Vigencia:</strong> {successPayment.plan_start_date ? new Date(successPayment.plan_start_date).toLocaleDateString('es-CO') : 'Inmediato'}
+                  <strong>Inicio de Vigencia:</strong> {successPayment.plan_start_date ? formatDate(successPayment.plan_start_date) : 'Inmediato'}
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '15px', color: 'var(--color-accent)' }}>
-                  <strong>Nueva Fecha de Vencimiento:</strong> {successPayment.plan_end_date ? new Date(successPayment.plan_end_date).toLocaleDateString('es-CO') : 'No especificada'}
+                  <strong>Nueva Fecha de Vencimiento:</strong> {successPayment.plan_end_date ? formatDate(successPayment.plan_end_date) : 'No especificada'}
                 </p>
               </div>
             </div>
