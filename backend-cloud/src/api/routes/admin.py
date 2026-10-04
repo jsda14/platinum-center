@@ -309,7 +309,8 @@ async def assign_chip(
                 "zkteco_user_id": zkteco_user_id,
                 "full_name": data.full_name,
                 "sn": data.sn or "PLATINUM001",
-                "status": "pending"
+                "status": "pending",
+                "zkteco_person_id": existing_person_id or None
             }).execute()
         except Exception as err:
             logger.error("[ASSIGN-CHIP] Error al insertar en pending_commands: %s", err)
