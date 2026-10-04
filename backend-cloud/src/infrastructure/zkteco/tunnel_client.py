@@ -74,7 +74,7 @@ async def activate_member(member_id: str, card_no: str, zkteco_user_id: str,
         return False
 
 async def deactivate_member(member_id: str, zkteco_user_id: str, 
-                            full_name: str, sn: str = None) -> bool:
+                            full_name: str, sn: str = None, card_no: str = "") -> bool:
     gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     
@@ -87,6 +87,7 @@ async def deactivate_member(member_id: str, zkteco_user_id: str,
                 "zkteco_user_id": zkteco_user_id,
                 "full_name": full_name,
                 "sn": sn,
+                "card_no": card_no,
                 "status": "pending"
             }).execute()
         except Exception as err:
@@ -102,7 +103,8 @@ async def deactivate_member(member_id: str, zkteco_user_id: str,
         "member_id": member_id,
         "zkteco_user_id": zkteco_user_id,
         "full_name": full_name,
-        "sn": sn
+        "sn": sn,
+        "card_no": card_no
     }
     
     try:
@@ -119,6 +121,7 @@ async def deactivate_member(member_id: str, zkteco_user_id: str,
                     "zkteco_user_id": zkteco_user_id,
                     "full_name": full_name,
                     "sn": sn,
+                    "card_no": card_no,
                     "status": "pending"
                 }).execute()
                 return False
@@ -132,6 +135,7 @@ async def deactivate_member(member_id: str, zkteco_user_id: str,
             "zkteco_user_id": zkteco_user_id,
             "full_name": full_name,
             "sn": sn,
+            "card_no": card_no,
             "status": "pending"
         }).execute()
         return False
@@ -141,7 +145,7 @@ async def sync_member(action: str, member_id: str, card_no: str,
     if action == "activate":
         return await activate_member(member_id, card_no, zkteco_user_id, full_name, sn)
     elif action == "deactivate":
-        return await deactivate_member(member_id, zkteco_user_id, full_name, sn)
+        return await deactivate_member(member_id, zkteco_user_id, full_name, sn, card_no)
     else:
         logger.error(f"[TUNNEL] Acción desconocida: {action}")
         return False
