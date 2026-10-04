@@ -84,7 +84,8 @@ async def member_status_webhook(
                             member_id=member_id,
                             zkteco_user_id=zkteco_user_id,
                             full_name=full_name,
-                            sn=sn
+                            sn=sn,
+                            card_no=m_data.get("card_no", "")
                         )
             except Exception as z_err:
                 print(f"[ZKTeco] Error al desactivar miembro expirado: {str(z_err)}")
