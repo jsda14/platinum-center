@@ -37,7 +37,7 @@ async def activate_member(member_id: str, card_no: str, zkteco_user_id: str,
         "zkteco_user_id": zkteco_user_id,
         "full_name": full_name,
         "sn": sn or "PLATINUM001",
-        "person_id": person_id
+        "person_id": person_id if person_id is not None else ""
     }
     
     try:
