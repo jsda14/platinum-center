@@ -112,6 +112,22 @@
   font-weight: 600;
 }
 
+.roles-management__search-bar {
+  margin-bottom: var(--space-3);
+}
+
+.roles-management__search-input {
+  max-width: 400px;
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.roles-management__search-input input {
+  background-color: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
 /* Mobile responsive fixes */
 @media (max-width: 768px) {
   .roles-management {
