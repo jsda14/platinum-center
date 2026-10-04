@@ -6,7 +6,7 @@ from src.infrastructure.supabase import supabase_client
 logger = logging.getLogger(__name__)
 
 async def activate_member(member_id: str, card_no: str, zkteco_user_id: str, 
-                          full_name: str, sn: str = None) -> bool:
+                          full_name: str, sn: str = None, person_id: str = None) -> bool:
     gym_tunnel_url = os.getenv("GYM_TUNNEL_URL")
     tunnel_secret = os.getenv("TUNNEL_SECRET")
     
@@ -36,7 +36,8 @@ async def activate_member(member_id: str, card_no: str, zkteco_user_id: str,
         "card_no": card_no,
         "zkteco_user_id": zkteco_user_id,
         "full_name": full_name,
-        "sn": sn or "PLATINUM001"  
+        "sn": sn or "PLATINUM001",
+        "person_id": person_id
     }
     
     try:
