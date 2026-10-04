@@ -7,9 +7,9 @@
 ---
 
 ## Estado general
-**Fase actual:** 4 — Integración ZKTeco (Migración Backend 100% Completa)
+**Fase actual:** 6 — QA + Deploy + Capacitación (En progreso)
 **Inicio del proyecto:** 2026-07
-**Última actualización:** 2026-09-11
+**Última actualización:** 2026-10-04
 
 ---
 
@@ -118,7 +118,7 @@
 ---
 
 ## Fase 4 — Integración ZKTeco
-**Estado: 🟡 En progreso (~85% completo)**
+**Estado: ✅ Completada**
 
 ### Bridge (platinum-center-local)
 - [x] FastAPI local con los 4 endpoints del protocolo iClock
@@ -163,7 +163,7 @@
 - [x] Columna `zkteco_person_id` agregada a tabla `members`
 - [x] GRANT permissions en `pending_commands` para service_role
 
-### Validado en campo (gym presencial 2026-08-26 y 2026-08-29)
+### Validado en campo (gym presencial 2026-08-26, 2026-08-29 y 2026-10-04)
 - [x] Chip → inBio → ZKBioSecurity → Bridge → Railway → Supabase ✅
 - [x] Descuento de día al pasar chip ✅
 - [x] Denied cuando membresía exhausted ✅
@@ -171,12 +171,18 @@
 - [x] Reactivación automática al pagar (endTime=2099) ✅
 - [x] Cola de pendientes ejecutada al arrancar Bridge ✅
 - [x] Loop de 5 minutos ejecuta pendientes sin reiniciar exe ✅
+- [x] `card_no` incluido en `pending_commands` — fix error 400 ZKBio ✅
+- [x] `_lookup_person_by_pin`: resuelve `person_id` en ZKBio cuando no viene en el comando ✅
+- [x] Trigger Supabase `member_status_change` → webhook Railway → deactivate ZKBio ✅
+- [x] Cron job diario `POST /admin/expire-members` (cron-job.org, 6AM UTC / 1AM Bogotá) ✅
+- [x] Expiración automática por `end_date` validada end-to-end (2026-10-04) ✅
+- [x] Capacitación inicial a Sevastián (2026-10-04) ✅
 
 
 ---
 
 ## Fase 5 — Pagos + Notificaciones completas
-**Estado: 🟡 En progreso (~90% completo)**
+**Estado: ✅ Completada**
 
 - [x] Bold webhook end-to-end (pago confirmed → activa membresía)
 - [x] Idempotencia: UNIQUE constraint en transaction_id
@@ -186,8 +192,8 @@
 - [x] Notificaciones in-app en tiempo real (Supabase Realtime)
 - [x] **Planes 100% dinámicos en pagos:** Eliminación de constraints PostgreSQL `payments_plan_check` y `members_plan_check` ✅
 - [x] Configurar precios grupales en panel admin (plan_group_pricing migrado a Railway) ✅
-- [ ] Validar `lookup-member` en gym con Bridge corriendo
-- [ ] Validar flujo completo `assign-chip` desde frontend con Bridge corriendo
+- [x] Validar `lookup-member` en gym con Bridge corriendo ✅
+- [x] Validar flujo completo `assign-chip` desde frontend con Bridge corriendo ✅
 - [ ] Migración de ~1700 miembros existentes en ZKBioSecurity a Supabase (zkteco_person_id, zkteco_user_id) — script listo, requiere ejecución en gym
 - [ ] Normalización card_no: fix `.or_()` en Railway para chips con/sin ceros iniciales
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym (actualmente manual)
@@ -196,7 +202,7 @@
 ---
 
 ## Fase 6 — QA + Deploy + Capacitación
-**Estado: ⚪ Pendiente**
+**Estado: 🟡 En progreso**
 
 - [ ] Pruebas end-to-end de todos los flujos
 - [ ] Responsive mobile-first revisado
@@ -206,9 +212,18 @@
 - [x] bridge.gymplatinumcenter.com configurado ✅
 - [ ] Cloudflare Tunnel como servicio permanente en PC del gym
 - [ ] Restaurar validación HMAC Bold webhook (comentada temporalmente)
-- [ ] Capacitación a Sevastián y recepcionistas
+- [x] Capacitación inicial a Sevastián (2026-10-04) ✅
+- [ ] Capacitación a recepcionistas
 - [ ] Manual de uso entregado (PDF o Notion)
-- [ ] Entrega formal ✅
+- [ ] Entrega formal
+
+### Mejoras graduales (post-capacitación)
+- [ ] Depuración: eliminar usuarios de prueba en ZKBioSecurity (múltiples "Jhon Delgado")
+- [ ] Depuración: limpiar registros de prueba en Supabase (payments, access_logs, members test)
+- [ ] Estandarizar display de fechas en frontend (`DD/MM/YYYY` en UI, `YYYY-MM-DD` en BD)
+- [ ] Campos `start_date` / `end_date` editables al crear/editar miembro desde admin (para casos a mitad de mes)
+- [ ] Filtro de pagos por método (cash / nequi / daviplata / bold)
+- [ ] Filtro por nombre o correo en panel de asignación de roles
 
 ---
 
