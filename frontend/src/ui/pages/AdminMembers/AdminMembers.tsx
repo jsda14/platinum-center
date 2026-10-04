@@ -31,6 +31,7 @@ import { getActivePlans } from '../../../application/member/getActivePlans.useca
 import { adminRepository } from '../../../infrastructure/supabase/admin.repository';
 import type { MemberWithProfile } from '../../../infrastructure/supabase/admin.repository';
 import type { Plan } from '../../../domain/member/member.types';
+import { formatDate } from '@/utils/date';
 
 // Import CSS
 import styles from './AdminMembers.module.css';
@@ -201,7 +202,7 @@ export function AdminMembers() {
       dataIndex: 'end_date',
       key: 'endDate',
       responsive: ['md'] as any,
-      render: (date: string) => date || <span className={styles['admin-members__secondary-text']}>Sin asignar</span>,
+      render: (date?: string) => date ? formatDate(date) : <span className={styles['admin-members__secondary-text']}>Sin asignar</span>,
     },
     {
       title: 'Chip Asignado',

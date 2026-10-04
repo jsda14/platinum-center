@@ -34,6 +34,7 @@ import { getDashboardMetrics } from '../../../application/admin/getDashboardMetr
 import type { DashboardMetrics } from '../../../infrastructure/supabase/admin.repository';
 import { LockedFeature } from '@/ui/components/LockedFeature/LockedFeature';
 
+import { formatDate, formatDateTime } from '@/utils/date';
 import styles from './AdminDashboard.module.css';
 
 // Mappings & Constants
@@ -65,11 +66,6 @@ const METHOD_COLORS: Record<string, string> = {
   daviplata: '#EF4444', // rojo
   bold: '#8B5CF6',      // morado
   other: '#F59E0B'      // naranja
-};
-
-const formatDate = (dateStr?: string | null) => {
-  if (!dateStr) return 'Sin fecha';
-  return dateStr.split('T')[0];
 };
 
 const formatCOP = (amount: number) => {
@@ -394,7 +390,7 @@ export function AdminDashboard() {
                           {payment.members?.profiles?.full_name || 'Miembro Registrado'}
                         </span>
                         <span className={styles['dashboard-list__secondary']}>
-                          {formatDate(payment.payment_date)}
+                          {formatDateTime(payment.payment_date)}
                         </span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>

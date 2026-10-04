@@ -5,6 +5,7 @@ import { useMemberStatusRealtime } from '../../../ui/hooks/useMemberStatusRealti
 import { StatusNotification } from '../../../ui/components/StatusNotification/StatusNotification';
 import { WifiOutlined, WarningOutlined } from '@ant-design/icons';
 import { Tooltip, Button } from 'antd';
+import { formatDate, parseLocal } from '@/utils/date';
 import styles from './MemberPortal.module.css';
 
 export function MemberPortal() {
@@ -24,7 +25,7 @@ export function MemberPortal() {
     if (!member?.end_date) return 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const end = new Date(member.end_date);
+    const end = parseLocal(member.end_date);
     end.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
@@ -118,11 +119,11 @@ export function MemberPortal() {
         <div className={styles['member-portal__info-grid']}>
           <div className={styles['member-portal__info-item']}>
             <span className={styles['member-portal__info-label']}>Fecha de Inicio</span>
-            <span className={styles['member-portal__info-value']}>{member.start_date || 'N/A'}</span>
+            <span className={styles['member-portal__info-value']}>{formatDate(member.start_date)}</span>
           </div>
           <div className={styles['member-portal__info-item']}>
             <span className={styles['member-portal__info-label']}>Fecha de Vencimiento</span>
-            <span className={styles['member-portal__info-value']}>{member.end_date || 'N/A'}</span>
+            <span className={styles['member-portal__info-value']}>{formatDate(member.end_date)}</span>
           </div>
         </div>
 
@@ -144,7 +145,7 @@ export function MemberPortal() {
                 aria-label={`Días consumidos: ${daysUsed} de ${daysTotal}`}
               />
               <p className={styles['member-portal__daypass-hint']}>
-                Tienes hasta el {member.end_date || 'N/A'} para consumir tus días restantes.
+                Tienes hasta el {formatDate(member.end_date)} para consumir tus días restantes.
               </p>
             </div>
           ) : (

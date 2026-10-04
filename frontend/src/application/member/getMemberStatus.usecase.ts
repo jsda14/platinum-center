@@ -1,5 +1,6 @@
 import { memberRepository } from '../../infrastructure/supabase/member.repository';
 import type { Member, MemberDayPass } from '../../domain/member/member.types';
+import { parseLocal } from '../../utils/date';
 
 export interface MemberStatusResult {
   member: Member | null;
@@ -28,7 +29,7 @@ export async function getMemberStatus(profileId: string): Promise<MemberStatusRe
   if (member.end_date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const end = new Date(member.end_date);
+    const end = parseLocal(member.end_date);
     end.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
     daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));

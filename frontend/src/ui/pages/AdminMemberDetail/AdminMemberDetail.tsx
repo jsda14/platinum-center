@@ -38,6 +38,7 @@ import { getActivePlans } from '../../../application/member/getActivePlans.useca
 // Import repository for direct profile updates
 import { adminRepository, type MemberDetail } from '../../../infrastructure/supabase/admin.repository';
 import type { Plan } from '../../../domain/member/member.types';
+import { formatDate, formatDateTime, parseLocal } from '@/utils/date';
 
 // Import CSS Modules style
 import styles from './AdminMemberDetail.module.css';
@@ -69,11 +70,6 @@ const getInitials = (name?: string) => {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-};
-
-const formatDate = (dateStr?: string | null) => {
-  if (!dateStr) return 'Sin fecha';
-  return dateStr.split('T')[0];
 };
 
 const formatCOP = (amount: number) => {
@@ -279,7 +275,7 @@ export function AdminMemberDetail() {
     if (!endDateStr) return 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const end = new Date(endDateStr);
+    const end = parseLocal(endDateStr);
     end.setHours(0, 0, 0, 0);
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -351,7 +347,7 @@ export function AdminMemberDetail() {
       title: 'Fecha',
       dataIndex: 'payment_date',
       key: 'payment_date',
-      render: (val: string) => formatDate(val)
+      render: (val: string) => formatDateTime(val)
     },
     {
       title: 'Plan',
