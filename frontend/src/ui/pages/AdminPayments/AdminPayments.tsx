@@ -13,7 +13,8 @@ import {
   theme,
   Input,
   Segmented,
-  Alert
+  Alert,
+  DatePicker
 } from 'antd';
 import {
   PlusOutlined,
@@ -169,7 +170,9 @@ export function AdminPayments() {
           amount: values.amount,
           method: values.method,
           notes: values.notes,
-          ...(values.profile_id ? { profile_id: values.profile_id } : {})
+          ...(values.profile_id ? { profile_id: values.profile_id } : {}),
+          start_date: values.pay_start_date ? values.pay_start_date.format('YYYY-MM-DD') : null,
+          end_date: values.pay_end_date ? values.pay_end_date.format('YYYY-MM-DD') : null,
         });
 
         message.success('Pago manual registrado con éxito');
@@ -571,6 +574,30 @@ export function AdminPayments() {
                 <Select.Option value="daviplata">DaviPlata</Select.Option>
                 <Select.Option value="other">Otro</Select.Option>
               </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="pay_start_date"
+              label="Fecha de Inicio (opcional)"
+              extra="Vacío = calcula automáticamente (hoy o desde vencimiento actual)"
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="DD/MM/YYYY"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="pay_end_date"
+              label="Fecha de Vencimiento (opcional)"
+              extra="Vacío = calcula automáticamente según el plan"
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="DD/MM/YYYY"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
 
             <Form.Item name="notes" label="Notas / Observación (Opcional)">

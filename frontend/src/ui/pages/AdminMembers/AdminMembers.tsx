@@ -12,7 +12,8 @@ import {
   Empty,
   InputNumber,
   ConfigProvider,
-  theme
+  theme,
+  DatePicker
 } from 'antd';
 import {
   PlusOutlined,
@@ -127,7 +128,9 @@ export function AdminMembers() {
         phone: values.phone,
         plan: values.plan,
         paymentMethod: values.paymentMethod,
-        amount: values.amount
+        amount: values.amount,
+        start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
+        end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
       });
       message.success('Miembro registrado y activado exitosamente');
       setIsCreateModalOpen(false);
@@ -479,6 +482,30 @@ export function AdminMembers() {
                 parser={value => value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0}
                 className={styles['admin-members__input-number-full']}
                 placeholder="Monto pagado"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="start_date"
+              label="Fecha de Inicio (opcional)"
+              extra="Déjalo vacío para usar la fecha de hoy"
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="DD/MM/YYYY"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="end_date"
+              label="Fecha de Vencimiento (opcional)"
+              extra="Déjalo vacío para calcular automáticamente según el plan"
+            >
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="DD/MM/YYYY"
+                style={{ width: '100%' }}
               />
             </Form.Item>
           </Form>

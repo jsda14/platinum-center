@@ -24,6 +24,8 @@ class CreateMemberRequest(BaseModel):
     plan: str
     paymentMethod: str
     amount: float
+    start_date: Optional[str] = None   # YYYY-MM-DD; si no se envía, usa hoy
+    end_date: Optional[str] = None     # YYYY-MM-DD; si no se envía, se calcula por plan
 
 def get_current_user_role(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -109,19 +111,33 @@ async def create_member(
                 detail="No se pudo crear el perfil del usuario"
             )
             
-        # Calcular fechas del plan
-        start_date = date.today()
-        if data.plan == '1_day':
-            end_date = start_date + timedelta(days=1)
-        elif data.plan == '15_days':
-            end_date = start_date + timedelta(days=30)
-        elif data.plan == '1_month':
-            end_date = start_date + timedelta(days=30)
-        elif data.plan == '1_year':
-            end_date = start_date + timedelta(days=365)
+        # start_date: usa el enviado por el admin, o hoy si no viene
+        if data.start_date:
+            try:
+                start_date = date.fromisoformat(data.start_date)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="start_date inválido, usa formato YYYY-MM-DD")
         else:
-            end_date = start_date + timedelta(days=30)
-            
+            start_date = date.today()
+
+        # end_date: usa el enviado por el admin, o calcula por plan
+        if data.end_date:
+            try:
+                end_date = date.fromisoformat(data.end_date)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="end_date inválido, usa formato YYYY-MM-DD")
+        else:
+            if data.plan == '1_day':
+                end_date = start_date + timedelta(days=1)
+            elif data.plan == '15_days':
+                end_date = start_date + timedelta(days=30)
+            elif data.plan == '1_month':
+                end_date = start_date + timedelta(days=30)
+            elif data.plan == '1_year':
+                end_date = start_date + timedelta(days=365)
+            else:
+                end_date = start_date + timedelta(days=30)
+
         start_date_str = start_date.isoformat()
         end_date_str = end_date.isoformat()
         
@@ -455,6 +471,7 @@ async def reactivate_chip(
 class UpdateMemberRequest(BaseModel):
     status: Optional[str] = None
     plan: Optional[str] = None
+    start_date: Optional[str] = None
     end_date: Optional[str] = None
     card_no: Optional[str] = None
     zkteco_user_id: Optional[str] = None
@@ -468,6 +485,8 @@ class RegisterPaymentRequest(BaseModel):
     method: str
     plan: str
     profile_id: Optional[str] = None
+    start_date: Optional[str] = None   # YYYY-MM-DD; sobreescribe la lógica de renovación
+    end_date: Optional[str] = None     # YYYY-MM-DD; sobreescribe el cálculo automático
 
 
 @router.put("/admin/members/{member_id}")
@@ -495,6 +514,7 @@ async def update_member(
     member_updates = {}
     if data.status is not None: member_updates["status"] = data.status
     if data.plan is not None: member_updates["plan"] = data.plan
+    if data.start_date is not None: member_updates["start_date"] = data.start_date
     if data.end_date is not None: member_updates["end_date"] = data.end_date
     if data.card_no is not None: member_updates["card_no"] = data.card_no
     if data.zkteco_user_id is not None: member_updates["zkteco_user_id"] = data.zkteco_user_id
@@ -767,11 +787,19 @@ async def register_payment(
     
     member = member_res.data[0]
     
-    # 3. Calcular fechas (renovación anticipada si aún está activo)
+    # 3. Calcular fechas
     bogota_tz = timezone(timedelta(hours=-5))
     now = datetime.now(bogota_tz)
-    
-    if member.get("status") == "active" and member.get("end_date"):
+
+    # Si el admin envió fechas manuales, usarlas directamente
+    if data.start_date or data.end_date:
+        try:
+            start_date = date.fromisoformat(data.start_date).isoformat() if data.start_date else now.date().isoformat()
+            end_date = date.fromisoformat(data.end_date).isoformat() if data.end_date else (date.fromisoformat(start_date) + timedelta(days=duration_days)).isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
+    elif member.get("status") == "active" and member.get("end_date"):
+        # Renovación anticipada: empieza desde donde termina el plan actual
         try:
             current_end = datetime.fromisoformat(member["end_date"])
             if current_end.tzinfo is None:

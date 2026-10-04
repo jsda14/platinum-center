@@ -14,8 +14,10 @@ import {
   Progress,
   Table,
   InputNumber,
-  Avatar
+  Avatar,
+  DatePicker
 } from 'antd';
+import dayjs from 'dayjs';
 import {
   ArrowLeftOutlined,
   EditOutlined,
@@ -134,7 +136,9 @@ export function AdminMemberDetail() {
     editForm.setFieldsValue({
       fullName: detail.member.profiles?.full_name,
       email: detail.member.profiles?.email,
-      phone: detail.member.profiles?.phone
+      phone: detail.member.profiles?.phone,
+      start_date: detail.member.start_date ? dayjs(detail.member.start_date) : null,
+      end_date: detail.member.end_date ? dayjs(detail.member.end_date) : null,
     });
     setIsEditModalOpen(true);
   };
@@ -183,7 +187,15 @@ export function AdminMemberDetail() {
         email: values.email,
         phone: values.phone
       });
-      message.success('Información de contacto actualizada exitosamente');
+      const newStartDate = values.start_date ? values.start_date.format('YYYY-MM-DD') : null;
+      const newEndDate = values.end_date ? values.end_date.format('YYYY-MM-DD') : null;
+      if (newStartDate !== undefined || newEndDate !== undefined) {
+        await adminRepository.updateMember(id, {
+          start_date: newStartDate,
+          end_date: newEndDate,
+        });
+      }
+      message.success('Información de miembro actualizada exitosamente');
       setIsEditModalOpen(false);
       await loadDetail(false);
     } catch (err: unknown) {
@@ -624,6 +636,22 @@ export function AdminMemberDetail() {
 
             <Form.Item name="phone" label="Teléfono">
               <Input placeholder="Ej. 3001234567" />
+            </Form.Item>
+
+            <Form.Item name="start_date" label="Fecha de Inicio del Plan (opcional)">
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="Selecciona fecha de inicio"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+
+            <Form.Item name="end_date" label="Fecha de Vencimiento del Plan (opcional)">
+              <DatePicker
+                format="DD/MM/YYYY"
+                placeholder="Selecciona fecha de vencimiento"
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Form>
         </Modal>

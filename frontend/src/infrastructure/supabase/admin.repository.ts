@@ -9,6 +9,8 @@ export interface ManualPaymentData {
   method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
   notes?: string;
   profile_id?: string;
+  start_date?: string | null;   // YYYY-MM-DD
+  end_date?: string | null;     // YYYY-MM-DD
 }
 
 export interface MemberWithProfile extends Member {
@@ -34,6 +36,8 @@ export interface CreateMemberData {
   plan: string;
   paymentMethod: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
   amount: number;
+  start_date?: string | null;  // YYYY-MM-DD
+  end_date?: string | null;    // YYYY-MM-DD
 }
 
 export interface UpdateMemberData {
@@ -43,6 +47,7 @@ export interface UpdateMemberData {
   status?: 'active' | 'expired' | 'suspended';
   plan?: string | null;
   end_date?: string | null;
+  start_date?: string | null;
   card_no?: string | null;
   zkteco_user_id?: string | null;
 }
@@ -151,6 +156,7 @@ export const adminRepository = {
         status: data.status,
         plan: data.plan,
         end_date: data.end_date,
+        start_date: data.start_date,
         card_no: data.card_no,
         zkteco_user_id: data.zkteco_user_id,
         full_name: data.fullName,
@@ -198,6 +204,8 @@ export const adminRepository = {
         method: data.method,
         plan: data.plan,
         ...(data.profile_id ? { profile_id: data.profile_id } : {}),
+        ...(data.start_date ? { start_date: data.start_date } : {}),
+        ...(data.end_date ? { end_date: data.end_date } : {}),
       }),
     });
 
