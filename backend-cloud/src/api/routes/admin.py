@@ -148,7 +148,9 @@ async def create_member(
             "status": "active",
             "plan": data.plan,
             "start_date": start_date_str,
-            "end_date": end_date_str
+            "end_date": end_date_str,
+            "renewal_reminder_sent": False,
+            "expiration_day_notified": False
         }).execute()
         
         if not member_res.data:
@@ -521,7 +523,10 @@ async def update_member(
     if data.status is not None: member_updates["status"] = data.status
     if data.plan is not None: member_updates["plan"] = data.plan
     if data.start_date is not None: member_updates["start_date"] = data.start_date
-    if data.end_date is not None: member_updates["end_date"] = data.end_date
+    if data.end_date is not None: 
+        member_updates["end_date"] = data.end_date
+        member_updates["renewal_reminder_sent"] = False
+        member_updates["expiration_day_notified"] = False
     if data.card_no is not None: member_updates["card_no"] = data.card_no
     if data.zkteco_user_id is not None: member_updates["zkteco_user_id"] = data.zkteco_user_id
     
@@ -842,7 +847,9 @@ async def register_payment(
         "plan": plan_slug,
         "start_date": start_date,
         "end_date": end_date,
-        "updated_at": now.isoformat()
+        "updated_at": now.isoformat(),
+        "renewal_reminder_sent": False,
+        "expiration_day_notified": False
     }).eq("id", actual_member_id).execute()
 
     # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
@@ -972,7 +979,9 @@ async def register_group_payment(
             "plan": data.plan_slug,
             "start_date": start_date,
             "end_date": end_date,
-            "updated_at": now.isoformat()
+            "updated_at": now.isoformat(),
+            "renewal_reminder_sent": False,
+            "expiration_day_notified": False
         }).eq("id", mid).execute()
 
         try:

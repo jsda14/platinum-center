@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails, recovery_link, custom_subject, custom_body, recipients } = await req.json();
+    const { type, member_email, member_name, plan, amount, end_date, days_remaining, admin_emails, recovery_link, custom_subject, custom_body, recipients, days_used, days_total } = await req.json();
 
     if (!BREVO_API_KEY) {
       throw new Error("Missing BREVO_API_KEY environment variable");
@@ -125,6 +125,45 @@ Deno.serve(async (req) => {
         
         <div style="text-align: center;">
           <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
+        </div>
+        ${emailFooterHtml}
+      `;
+    } else if (type === 'EXPIRATION_TODAY') {
+      subject = "🚨 ¡Tu membresía vence HOY!";
+      htmlContent = `
+        ${emailHeaderHtml}
+        <h2 style="color: #C41E3A; font-size: 20px; margin-top: 0; text-transform: uppercase;">¡Hola, ${toName}!</h2>
+        <p style="font-size: 15px; color: #FFFFFF;">Tu membresía en <strong>Platinum Center</strong> vence <strong>hoy</strong>. No te quedes sin entrenar.</p>
+    
+        <div style="background-color: #1A1A1A; border: 1px solid #3A3A3A; border-left: 4px solid #C41E3A; padding: 15px; margin: 24px 0; border-radius: 6px;">
+          <h3 style="color: #C41E3A; margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Vence hoy</h3>
+          <p style="margin: 6px 0; color: #FFFFFF; font-size: 14px;"><strong>Fecha de vencimiento:</strong> ${formatDate(end_date)}</p>
+        </div>
+    
+        <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">Renueva ahora mismo para no perder el acceso.</p>
+    
+        <div style="text-align: center;">
+          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
+        </div>
+        ${emailFooterHtml}
+      `;
+    } else if (type === 'DAY_PASS_LOW_WARNING') {
+      subject = "⚠️ Te quedan pocos días en tu plan de 15 días";
+      htmlContent = `
+        ${emailHeaderHtml}
+        <h2 style="color: #D4A017; font-size: 20px; margin-top: 0; text-transform: uppercase;">¡Hola, ${toName}!</h2>
+        <p style="font-size: 15px; color: #FFFFFF;">Te quedan pocos días de uso en tu plan de 15 días consumibles.</p>
+    
+        <div style="background-color: #1A1A1A; border: 1px solid #3A3A3A; border-left: 4px solid #D4A017; padding: 15px; margin: 24px 0; border-radius: 6px;">
+          <h3 style="color: #D4A017; margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Días restantes</h3>
+          <p style="margin: 6px 0; color: #FFFFFF; font-size: 14px;"><strong>Días usados:</strong> ${days_used} / ${days_total}</p>
+          <p style="margin: 6px 0; color: #FFFFFF; font-size: 14px;"><strong>Días restantes:</strong> ${days_remaining}</p>
+        </div>
+    
+        <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">Renueva a tiempo para no quedarte sin cupos disponibles.</p>
+    
+        <div style="text-align: center;">
+          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #D4A017; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(212, 160, 23, 0.4);">Renovar ahora</a>
         </div>
         ${emailFooterHtml}
       `;
