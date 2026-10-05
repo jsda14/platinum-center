@@ -13,7 +13,9 @@ import {
   InputNumber,
   ConfigProvider,
   theme,
-  DatePicker
+  DatePicker,
+  Switch,
+  Alert
 } from 'antd';
 import {
   PlusOutlined,
@@ -71,6 +73,7 @@ export function AdminMembers() {
 
   // Modals states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isSplitPayment, setIsSplitPayment] = useState<boolean>(false);
 
   // Form hooks
   const [createForm] = Form.useForm();
@@ -124,19 +127,42 @@ export function AdminMembers() {
     setIsSubmitting(true);
     try {
       const values = await createForm.validateFields();
+
+      // Validación de splits
+      let finalMethod = values.paymentMethod;
+      let finalSplits = undefined;
+
+      if (isSplitPayment && values.splits) {
+        if (values.splits.length < 2) {
+          message.error('Un pago dividido requiere al menos 2 métodos');
+          setIsSubmitting(false);
+          return;
+        }
+        const splitsTotal = values.splits.reduce((acc: number, curr: any) => acc + (Number(curr?.amount) || 0), 0);
+        if (Math.abs(splitsTotal - values.amount) > 1) {
+          message.error(`La suma de los pagos (${splitsTotal}) no coincide con el total (${values.amount})`);
+          setIsSubmitting(false);
+          return;
+        }
+        finalMethod = 'mixed';
+        finalSplits = values.splits.map((s: any) => ({ method: s.method, amount: Number(s.amount) }));
+      }
+
       await createMember({
         fullName: values.fullName,
         email: values.email,
         phone: values.phone,
         plan: values.plan,
-        paymentMethod: values.paymentMethod,
+        paymentMethod: finalMethod,
         amount: values.amount,
         start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
         end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
         initial_days_used: values.initial_days_used !== undefined ? values.initial_days_used : null,
+        splits: finalSplits
       });
       message.success('Miembro registrado y activado exitosamente');
       setIsCreateModalOpen(false);
+      setIsSplitPayment(false);
       createForm.resetFields();
       await loadData();
     } catch (err: unknown) {
@@ -408,6 +434,7 @@ export function AdminMembers() {
           onOk={handleCreateSubmit}
           onCancel={() => {
             setIsCreateModalOpen(false);
+            setIsSplitPayment(false);
             createForm.resetFields();
           }}
           okText="Registrar"
@@ -468,19 +495,75 @@ export function AdminMembers() {
               </Select>
             </Form.Item>
 
-            <Form.Item
-              name="paymentMethod"
-              label="Método de Pago"
-              rules={[{ required: true, message: 'Selecciona un método de pago' }]}
-            >
-              <Select>
-                <Select.Option value="cash">Efectivo</Select.Option>
-                <Select.Option value="nequi">Nequi</Select.Option>
-                <Select.Option value="daviplata">DaviPlata</Select.Option>
-                <Select.Option value="bold">Bold (Tarjetas/PSE)</Select.Option>
-                <Select.Option value="other">Otro</Select.Option>
-              </Select>
+            <Form.Item label="¿Pago dividido en varios métodos?">
+              <Switch checked={isSplitPayment} onChange={setIsSplitPayment} />
             </Form.Item>
+
+            {isSplitPayment ? (
+              <Form.List name="splits" initialValue={[{ method: undefined, amount: undefined }, { method: undefined, amount: undefined }]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field) => (
+                      <div key={field.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'method']}
+                          rules={[{ required: true, message: 'Falta método' }]}
+                          style={{ flex: 1, marginBottom: 0 }}
+                        >
+                          <Select placeholder="Método">
+                            <Select.Option value="cash">Efectivo</Select.Option>
+                            <Select.Option value="nequi">Nequi</Select.Option>
+                            <Select.Option value="daviplata">DaviPlata</Select.Option>
+                            <Select.Option value="bold">Bold</Select.Option>
+                            <Select.Option value="other">Otro</Select.Option>
+                          </Select>
+                        </Form.Item>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'amount']}
+                          rules={[{ required: true, message: 'Falta monto' }]}
+                          style={{ flex: 1, marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            placeholder="Monto"
+                            style={{ width: '100%' }}
+                            formatter={val => `$ ${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={val => val ? parseFloat(val.replace(/\$\s?|(,*)/g, '')) : 0}
+                          />
+                        </Form.Item>
+                        {fields.length > 2 && (
+                          <Button danger onClick={() => remove(field.name)} style={{ marginBottom: 0 }}>X</Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                      Agregar otro método
+                    </Button>
+                    <Alert
+                      message="Importante: La suma de los montos debe coincidir con el 'Monto Pagado' debajo."
+                      type="info"
+                      showIcon
+                      style={{ marginTop: 8 }}
+                    />
+                  </>
+                )}
+              </Form.List>
+            ) : (
+              <Form.Item
+                name="paymentMethod"
+                label="Método de Pago"
+                rules={[{ required: !isSplitPayment, message: 'Selecciona un método de pago' }]}
+              >
+                <Select>
+                  <Select.Option value="cash">Efectivo</Select.Option>
+                  <Select.Option value="nequi">Nequi</Select.Option>
+                  <Select.Option value="daviplata">DaviPlata</Select.Option>
+                  <Select.Option value="bold">Bold (Tarjetas/PSE)</Select.Option>
+                  <Select.Option value="other">Otro</Select.Option>
+                </Select>
+              </Form.Item>
+            )}
 
             <Form.Item
               name="amount"
