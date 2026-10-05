@@ -28,6 +28,7 @@ class CreateMemberRequest(BaseModel):
     start_date: Optional[str] = None   # YYYY-MM-DD; si no se envía, usa hoy
     end_date: Optional[str] = None     # YYYY-MM-DD; si no se envía, se calcula por plan
     initial_days_used: Optional[int] = None
+    splits: Optional[list[dict]] = None
 
 def get_current_user_role(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -175,6 +176,16 @@ async def create_member(
             
         member_data = member_res.data[0]
         
+        # Validar split payment si viene
+        if data.splits:
+            if len(data.splits) < 2:
+                raise HTTPException(status_code=400, detail="Un pago dividido requiere al menos 2 métodos")
+            splits_total = sum(float(s.get("amount", 0)) for s in data.splits)
+            if abs(splits_total - data.amount) > 1:
+                raise HTTPException(status_code=400, detail=f"La suma de los pagos divididos ({splits_total}) no coincide con el total ({data.amount})")
+            if data.paymentMethod != 'mixed':
+                data.paymentMethod = 'mixed'
+
         # 4. Registrar el pago
         payment_res = supabase_client.table("payments").insert({
             "member_id": member_data["id"],
@@ -185,6 +196,18 @@ async def create_member(
             "plan_start_date": start_date_str,
             "plan_end_date": end_date_str
         }).execute()
+        
+        # 4.5 Insertar splits si aplica
+        if data.splits and payment_res.data:
+            payment_id = payment_res.data[0]["id"]
+            splits_to_insert = []
+            for s in data.splits:
+                splits_to_insert.append({
+                    "payment_id": payment_id,
+                    "method": s["method"],
+                    "amount": float(s["amount"])
+                })
+            supabase_client.table("payment_splits").insert(splits_to_insert).execute()
         
         # 5. Si es plan 15_days, registrar pase diario
         if data.plan == '15_days' and payment_res.data:
@@ -510,6 +533,7 @@ class RegisterPaymentRequest(BaseModel):
     start_date: Optional[str] = None   # YYYY-MM-DD; sobreescribe la lógica de renovación
     end_date: Optional[str] = None     # YYYY-MM-DD; sobreescribe el cálculo automático
     initial_days_used: Optional[int] = None
+    splits: Optional[list[dict]] = None
 
 
 @router.put("/admin/members/{member_id}")
@@ -852,11 +876,22 @@ async def register_payment(
         start_date = now.date().isoformat()
         end_date = (now + timedelta(days=duration_days)).date().isoformat()
     
+    # Validar split payment si viene
+    if data.splits:
+        if len(data.splits) < 2:
+            raise HTTPException(status_code=400, detail="Un pago dividido requiere al menos 2 métodos")
+        splits_total = sum(float(s.get("amount", 0)) for s in data.splits)
+        if abs(splits_total - data.amount) > 1:
+            raise HTTPException(status_code=400, detail="La suma de los métodos no coincide con el monto total")
+        for s in data.splits:
+            if s.get("method") not in ("cash", "nequi", "daviplata", "other"):
+                raise HTTPException(status_code=400, detail=f"Método inválido en split: {s.get('method')}")
+
     # 4. Registrar pago
     payment_res = supabase_client.table("payments").insert({
         "member_id": actual_member_id,
         "amount": data.amount,
-        "method": data.method,
+        "method": "mixed" if data.splits else data.method,
         "plan": plan_slug,
         "status": "confirmed",
         "registered_by": admin_user_id,
@@ -868,6 +903,17 @@ async def register_payment(
         raise HTTPException(status_code=500, detail="Error al registrar pago en base de datos")
 
     payment = payment_res.data[0]
+
+    # Insertar el detalle del split si aplica
+    if data.splits:
+        supabase_client.table("payment_splits").insert([
+            {
+                "payment_id": payment["id"],
+                "method": s["method"],
+                "amount": s["amount"]
+            }
+            for s in data.splits
+        ]).execute()
 
     # 5. Actualizar member
     supabase_client.table("members").update({
