@@ -6,12 +6,13 @@ export interface ManualPaymentData {
   member_id: string;
   plan: string;
   amount: number;
-  method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | string;
+  method: 'cash' | 'nequi' | 'daviplata' | 'bold' | 'other' | 'mixed' | string;
   notes?: string;
   profile_id?: string;
   start_date?: string | null;   // YYYY-MM-DD
   end_date?: string | null;     // YYYY-MM-DD
   initial_days_used?: number | null;
+  splits?: { method: string; amount: number }[];
 }
 
 export interface MemberWithProfile extends Member {
@@ -40,6 +41,7 @@ export interface CreateMemberData {
   start_date?: string | null;  // YYYY-MM-DD
   end_date?: string | null;    // YYYY-MM-DD
   initial_days_used?: number | null;
+  splits?: { method: string; amount: number }[];
 }
 
 export interface UpdateMemberData {
@@ -209,6 +211,7 @@ export const adminRepository = {
         ...(data.start_date ? { start_date: data.start_date } : {}),
         ...(data.end_date ? { end_date: data.end_date } : {}),
         ...(data.initial_days_used !== undefined && data.initial_days_used !== null ? { initial_days_used: data.initial_days_used } : {}),
+        ...(data.splits && data.splits.length > 0 ? { splits: data.splits } : {}),
       }),
     });
 
