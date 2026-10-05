@@ -91,28 +91,8 @@ async def member_status_webhook(
                 print(f"[ZKTeco] Error al desactivar miembro expirado: {str(z_err)}")
         return {"status": "expired_processed"}
 
-    if status_val == "active" and 0 < days_remaining <= 3:
-        # Fetch profile info
-        profile_res = supabase_client.table("profiles").select("*").eq("id", profile_id).execute()
-        if not profile_res.data:
-            return {"status": "skipped", "reason": "No se encontró el perfil correspondiente"}
-            
-        profile = profile_res.data[0]
-        email = profile.get("email")
-        full_name = profile.get("full_name") or "Miembro"
-        
-        if email:
-            try:
-                await invoke_send_notification({
-                    'type': 'EXPIRATION_WARNING',
-                    'member_email': email,
-                    'member_name': full_name,
-                    'days_remaining': days_remaining,
-                    'end_date': end_date_str
-                })
-                print("[SUPABASE FUNCTIONS] Email de advertencia de vencimiento enviado exitosamente")
-            except Exception as e:
-                print(f"[SUPABASE FUNCTIONS] Error al enviar email de vencimiento: {str(e)}")
-            return {"status": "email_sent"}
-            
+    # Nota: el envío del correo EXPIRATION_WARNING se movió al cron diario
+    # /admin/send-expiration-reminders (cron.py), que tiene control de banderas
+    # para evitar reenvíos duplicados. Este webhook ya no envía ese correo.
+
     return {"status": "ok", "message": "Procesado sin envío de email"}
