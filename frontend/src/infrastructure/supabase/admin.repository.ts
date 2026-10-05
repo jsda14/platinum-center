@@ -11,6 +11,7 @@ export interface ManualPaymentData {
   profile_id?: string;
   start_date?: string | null;   // YYYY-MM-DD
   end_date?: string | null;     // YYYY-MM-DD
+  initial_days_used?: number | null;
 }
 
 export interface MemberWithProfile extends Member {
@@ -38,6 +39,7 @@ export interface CreateMemberData {
   amount: number;
   start_date?: string | null;  // YYYY-MM-DD
   end_date?: string | null;    // YYYY-MM-DD
+  initial_days_used?: number | null;
 }
 
 export interface UpdateMemberData {
@@ -206,6 +208,7 @@ export const adminRepository = {
         ...(data.profile_id ? { profile_id: data.profile_id } : {}),
         ...(data.start_date ? { start_date: data.start_date } : {}),
         ...(data.end_date ? { end_date: data.end_date } : {}),
+        ...(data.initial_days_used !== undefined && data.initial_days_used !== null ? { initial_days_used: data.initial_days_used } : {}),
       }),
     });
 
@@ -545,5 +548,25 @@ export const adminRepository = {
     }
 
     return response.json();
+  },
+
+  async updateMemberDayPass(memberId: string, daysUsed: number): Promise<void> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    
+    const response = await fetch(`${apiUrl}/admin/members/${memberId}/day-pass`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ days_used: daysUsed }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar días consumidos');
+    }
   }
 };

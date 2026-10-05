@@ -15,7 +15,8 @@ import {
   Table,
   InputNumber,
   Avatar,
-  DatePicker
+  DatePicker,
+  Popconfirm
 } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -100,6 +101,7 @@ export function AdminMemberDetail() {
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isChipModalOpen, setIsChipModalOpen] = useState<boolean>(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+  const [daysUsedVal, setDaysUsedVal] = useState<number>(0);
 
   // Forms hooks
   const [editForm] = Form.useForm();
@@ -556,8 +558,44 @@ export function AdminMemberDetail() {
               {member.plan === '15_days' && dayPass && (
                 <div className={styles['admin-member-detail__progress-container']}>
                   <div className={styles['admin-member-detail__progress-label']}>
-                    <span>Días consumidos</span>
-                    <span className={styles['admin-member-detail__progress-text']}>{dayPass.days_used} / 15</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>Días consumidos</span>
+                      <Popconfirm
+                        title="Ajustar días consumidos"
+                        description={
+                          <InputNumber
+                            min={0}
+                            max={dayPass.days_total}
+                            value={daysUsedVal}
+                            onChange={(val) => setDaysUsedVal(val || 0)}
+                            style={{ marginTop: 8 }}
+                          />
+                        }
+                        onConfirm={async () => {
+                          if (!id) return;
+                          try {
+                            setIsSubmitting(true);
+                            await adminRepository.updateMemberDayPass(id, daysUsedVal);
+                            message.success('Días consumidos actualizados');
+                            await loadDetail(false);
+                          } catch (err: unknown) {
+                            const msg = err instanceof Error ? err.message : 'Error al actualizar';
+                            message.error(msg);
+                          } finally {
+                            setIsSubmitting(false);
+                          }
+                        }}
+                      >
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<EditOutlined />} 
+                          onClick={() => setDaysUsedVal(dayPass.days_used)}
+                          style={{ color: 'var(--color-text-secondary)' }}
+                        />
+                      </Popconfirm>
+                    </div>
+                    <span className={styles['admin-member-detail__progress-text']}>{dayPass.days_used} / {dayPass.days_total}</span>
                   </div>
                   <Progress
                     percent={Math.round((dayPass.days_used / 15) * 100)}

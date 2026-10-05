@@ -74,6 +74,7 @@ export function AdminMembers() {
 
   // Form hooks
   const [createForm] = Form.useForm();
+  const selectedPlan = Form.useWatch('plan', createForm);
 
   // Load members data
   const loadData = async () => {
@@ -131,6 +132,7 @@ export function AdminMembers() {
         amount: values.amount,
         start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
         end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
+        initial_days_used: values.initial_days_used !== undefined ? values.initial_days_used : null,
       });
       message.success('Miembro registrado y activado exitosamente');
       setIsCreateModalOpen(false);
@@ -484,6 +486,21 @@ export function AdminMembers() {
                 placeholder="Monto pagado"
               />
             </Form.Item>
+
+            {selectedPlan === '15_days' && (
+              <Form.Item
+                name="initial_days_used"
+                label="Días ya consumidos (opcional)"
+                rules={[{ type: 'number', min: 0, max: 15, message: 'Debe ser entre 0 y 15' }]}
+              >
+                <InputNumber
+                  min={0}
+                  max={15}
+                  style={{ width: '100%' }}
+                  placeholder="Ej. 5"
+                />
+              </Form.Item>
+            )}
 
             <Form.Item
               name="start_date"

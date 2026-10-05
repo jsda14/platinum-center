@@ -26,6 +26,7 @@ class CreateMemberRequest(BaseModel):
     amount: float
     start_date: Optional[str] = None   # YYYY-MM-DD; si no se envía, usa hoy
     end_date: Optional[str] = None     # YYYY-MM-DD; si no se envía, se calcula por plan
+    initial_days_used: Optional[int] = None
 
 def get_current_user_role(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -171,6 +172,10 @@ async def create_member(
         
         # 5. Si es plan 15_days, registrar pase diario
         if data.plan == '15_days' and payment_res.data:
+            days_used = data.initial_days_used if data.initial_days_used is not None else 0
+            if days_used < 0 or days_used > 15:
+                raise HTTPException(status_code=400, detail="initial_days_used no puede ser negativo ni mayor a 15")
+
             # Cerrar cualquier day_pass activo anterior para este member_id
             supabase_client.table("member_day_passes")\
                 .update({"status": "exhausted"})\
@@ -182,7 +187,7 @@ async def create_member(
                 "member_id": member_data["id"],
                 "payment_id": payment_res.data[0]["id"],
                 "days_total": 15,
-                "days_used": 0,
+                "days_used": days_used,
                 "valid_from": start_date_str,
                 "valid_until": end_date_str,
                 "status": "active"
@@ -487,6 +492,7 @@ class RegisterPaymentRequest(BaseModel):
     profile_id: Optional[str] = None
     start_date: Optional[str] = None   # YYYY-MM-DD; sobreescribe la lógica de renovación
     end_date: Optional[str] = None     # YYYY-MM-DD; sobreescribe el cálculo automático
+    initial_days_used: Optional[int] = None
 
 
 @router.put("/admin/members/{member_id}")
@@ -842,6 +848,9 @@ async def register_payment(
     # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
     if plan_slug == "15_days":
         valid_until = (now + timedelta(days=30)).date().isoformat()
+        days_used = data.initial_days_used if data.initial_days_used is not None else 0
+        if days_used < 0 or days_used > 15:
+            raise HTTPException(status_code=400, detail="initial_days_used no puede ser negativo ni mayor a 15")
 
         supabase_client.table("member_day_passes")\
             .update({"status": "exhausted"})\
@@ -853,7 +862,7 @@ async def register_payment(
             "member_id": actual_member_id,
             "payment_id": payment["id"],
             "days_total": 15,
-            "days_used": 0,
+            "days_used": days_used,
             "valid_from": start_date,
             "valid_until": valid_until,
             "status": "active"
@@ -1204,5 +1213,45 @@ async def get_communications(authorization: Optional[str] = Header(None)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener comunicaciones: {str(e)}"
         )
+
+
+class UpdateDayPassRequest(BaseModel):
+    days_used: int
+
+@router.put("/admin/members/{member_id}/day-pass")
+async def update_member_day_pass(
+    member_id: str,
+    data: UpdateDayPassRequest,
+    authorization: Optional[str] = Header(None)
+):
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    if data.days_used < 0:
+        raise HTTPException(status_code=400, detail="days_used no puede ser negativo")
+
+    day_pass_res = supabase_client.table("member_day_passes")\
+        .select("id, days_total")\
+        .eq("member_id", member_id)\
+        .eq("status", "active")\
+        .execute()
+
+    if not day_pass_res.data:
+        raise HTTPException(status_code=404, detail="No hay un day pass activo para este miembro")
+
+    day_pass = day_pass_res.data[0]
+    days_total = day_pass.get("days_total", 15)
+
+    if data.days_used > days_total:
+        raise HTTPException(status_code=400, detail=f"days_used no puede ser mayor a {days_total}")
+
+    update_res = supabase_client.table("member_day_passes")\
+        .update({"days_used": data.days_used})\
+        .eq("id", day_pass["id"])\
+        .execute()
+
+    return {"status": "ok", "day_pass": update_res.data[0] if update_res.data else None}
+
 
 

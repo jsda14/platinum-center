@@ -70,6 +70,7 @@ export function AdminPayments() {
   const [paymentMode, setPaymentMode] = useState<'individual' | 'group'>('individual');
   const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<string[]>([]);
   const [registerForm] = Form.useForm();
+  const selectedPlan = Form.useWatch('plan', registerForm);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
@@ -173,6 +174,7 @@ export function AdminPayments() {
           ...(values.profile_id ? { profile_id: values.profile_id } : {}),
           start_date: values.pay_start_date ? values.pay_start_date.format('YYYY-MM-DD') : null,
           end_date: values.pay_end_date ? values.pay_end_date.format('YYYY-MM-DD') : null,
+          initial_days_used: values.initial_days_used !== undefined ? values.initial_days_used : null,
         });
 
         message.success('Pago manual registrado con éxito');
@@ -575,6 +577,21 @@ export function AdminPayments() {
                 <Select.Option value="other">Otro</Select.Option>
               </Select>
             </Form.Item>
+
+            {selectedPlan === '15_days' && (
+              <Form.Item
+                name="initial_days_used"
+                label="Días ya consumidos (opcional)"
+                rules={[{ type: 'number', min: 0, max: 15, message: 'Debe ser entre 0 y 15' }]}
+              >
+                <InputNumber
+                  min={0}
+                  max={15}
+                  style={{ width: '100%' }}
+                  placeholder="Ej. 5"
+                />
+              </Form.Item>
+            )}
 
             <Form.Item
               name="pay_start_date"
