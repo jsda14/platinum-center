@@ -75,6 +75,7 @@ export function AdminMembers() {
   // Form hooks
   const [createForm] = Form.useForm();
   const selectedPlan = Form.useWatch('plan', createForm);
+  const watchedEmail = Form.useWatch('email', createForm);
 
   // Load members data
   const loadData = async () => {
@@ -176,6 +177,10 @@ export function AdminMembers() {
       dataIndex: ['profiles', 'email'],
       key: 'email',
       responsive: ['md'] as any,
+      render: (email?: string) =>
+        email && email.includes('@platinumcenter.local')
+          ? <span className={styles['admin-members__secondary-text']}>Sin correo (gestión manual)</span>
+          : email,
     },
     {
       title: 'Plan',
@@ -428,19 +433,25 @@ export function AdminMembers() {
             <Form.Item
               name="email"
               label="Email"
+              extra="Déjalo vacío si el miembro no tiene correo — en ese caso el teléfono será obligatorio"
               rules={[
-                { required: true, message: 'El email es obligatorio' },
                 { type: 'email', message: 'Ingresa un email válido' }
               ]}
             >
-              <Input placeholder="Ej. juan@gmail.com" />
+              <Input placeholder="Ej. juan@gmail.com (opcional)" />
             </Form.Item>
 
             <Form.Item
               name="phone"
               label="Teléfono"
+              rules={[
+                {
+                  required: !watchedEmail || !watchedEmail.trim(),
+                  message: 'El teléfono es obligatorio si no hay correo'
+                }
+              ]}
             >
-              <Input placeholder="Ej. 3001234567 (opcional)" />
+              <Input placeholder={!watchedEmail || !watchedEmail.trim() ? 'Ej. 3001234567' : 'Ej. 3001234567 (opcional)'} />
             </Form.Item>
 
             <Form.Item

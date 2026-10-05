@@ -95,7 +95,7 @@ async def send_communication(
         recipients = []
         for m in members_data:
             profile = m.get("profiles")
-            if profile and profile.get("email"):
+            if profile and profile.get("email") and not profile["email"].endswith("@platinumcenter.local"):
                 recipients.append({
                     "email": profile["email"],
                     "full_name": profile.get("full_name", "Miembro")

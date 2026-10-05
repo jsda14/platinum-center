@@ -459,7 +459,7 @@ export function AdminMemberDetail() {
                 </div>
                 <div className={styles['admin-member-detail__info-item']}>
                   <span className={styles['admin-member-detail__info-label']}>Email</span>
-                  <span className={styles['admin-member-detail__info-value']}>{member.profiles?.email || 'Sin email registrado'}</span>
+                  <span className={styles['admin-member-detail__info-value']}>{member.profiles?.email?.includes('@platinumcenter.local') ? 'Sin correo (gestión manual)' : (member.profiles?.email || 'Sin email registrado')}</span>
                 </div>
                 <div className={styles['admin-member-detail__info-item']}>
                   <span className={styles['admin-member-detail__info-label']}>Teléfono</span>

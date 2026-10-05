@@ -7,6 +7,11 @@ import httpx
 from src.infrastructure.zkteco.tunnel_client import deactivate_member
 
 async def invoke_send_notification(payload: dict):
+    member_email = payload.get("member_email", "") or ""
+    if member_email.endswith("@platinumcenter.local"):
+        print(f"[EDGE FUNCTION] Envío omitido: correo placeholder ({member_email})")
+        return
+
     supabase_url = os.getenv("SUPABASE_URL")
     service_key = os.getenv("SUPABASE_SECRET_KEY")
     try:

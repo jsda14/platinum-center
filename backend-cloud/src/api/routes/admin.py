@@ -1,5 +1,6 @@
 import os
 import random
+import secrets
 import string
 import time
 import logging
@@ -19,7 +20,7 @@ router = APIRouter(tags=["admin"])
 
 class CreateMemberRequest(BaseModel):
     fullName: str
-    email: str
+    email: Optional[str] = None
     phone: Optional[str] = None
     plan: str
     paymentMethod: str
@@ -73,13 +74,25 @@ async def create_member(
             detail="No tienes permisos suficientes para realizar esta acción"
         )
         
+    has_real_email = bool(data.email and data.email.strip())
+
+    if not has_real_email:
+        if not data.phone or not data.phone.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Si no se proporciona correo, el teléfono es obligatorio"
+            )
+        member_email = f"sin-correo-{secrets.token_hex(4)}@platinumcenter.local"
+    else:
+        member_email = data.email.strip()
+
     try:
         # Generar contraseña temporal segura
         temp_password = "".join(random.choices(string.ascii_letters + string.digits, k=10)) + "Plat*2026"
         
         # 1. Crear el usuario en Supabase Auth
         auth_res = supabase_client.auth.admin.create_user({
-            "email": data.email,
+            "email": member_email,
             "password": temp_password,
             "email_confirm": True,
             "user_metadata": {
@@ -100,7 +113,8 @@ async def create_member(
         profile_res = supabase_client.table("profiles").upsert({
             "id": user_id,
             "full_name": data.fullName,
-            "email": data.email,
+            "email": member_email,
+            "has_real_email": has_real_email,
             "phone": data.phone,
             "role": "member",
             "created_at": datetime.utcnow().isoformat()
@@ -195,38 +209,39 @@ async def create_member(
                 "status": "active"
             }).execute()
             
-        # Generar link de activación
-        try:
-            link_res = supabase_client.auth.admin.generate_link({
-                "type": "recovery",
-                "email": data.email
-            })
-            recovery_link = link_res.properties.action_link
-        except Exception as e:
-            print(f"[ADMIN] No se pudo generar link de activación: {str(e)}")
-            recovery_link = None
+        # Generar link de activación y enviar bienvenida solo si hay correo real
+        if has_real_email:
+            try:
+                link_res = supabase_client.auth.admin.generate_link({
+                    "type": "recovery",
+                    "email": member_email
+                })
+                recovery_link = link_res.properties.action_link
+            except Exception as e:
+                print(f"[ADMIN] No se pudo generar link de activación: {str(e)}")
+                recovery_link = None
 
-        # Enviar email de bienvenida
-        import httpx
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{os.getenv('SUPABASE_URL')}/functions/v1/send-notification",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('SUPABASE_SECRET_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "type": "WELCOME_NEW_MEMBER",
-                        "member_email": data.email,
-                        "member_name": data.fullName,
-                        "recovery_link": recovery_link,
-                        "plan": data.plan
-                    },
-                    timeout=10.0
-                )
-        except Exception as e:
-            print(f"[ADMIN] Error al enviar email de bienvenida: {str(e)}")
+            # Enviar email de bienvenida
+            import httpx
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        f"{os.getenv('SUPABASE_URL')}/functions/v1/send-notification",
+                        headers={
+                            "Authorization": f"Bearer {os.getenv('SUPABASE_SECRET_KEY')}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "type": "WELCOME_NEW_MEMBER",
+                            "member_email": member_email,
+                            "member_name": data.fullName,
+                            "recovery_link": recovery_link,
+                            "plan": data.plan
+                        },
+                        timeout=10.0
+                    )
+            except Exception as e:
+                print(f"[ADMIN] Error al enviar email de bienvenida: {str(e)}")
 
         return member_data
     except Exception as e:
