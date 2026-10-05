@@ -16,7 +16,9 @@ import {
   InputNumber,
   Avatar,
   DatePicker,
-  Popconfirm
+  Popconfirm,
+  Switch,
+  Alert
 } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -102,6 +104,7 @@ export function AdminMemberDetail() {
   const [isChipModalOpen, setIsChipModalOpen] = useState<boolean>(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [daysUsedVal, setDaysUsedVal] = useState<number>(0);
+  const [isSplitPayment, setIsSplitPayment] = useState(false);
 
   // Forms hooks
   const [editForm] = Form.useForm();
@@ -270,11 +273,13 @@ export function AdminMemberDetail() {
         member_id: id,
         plan: values.plan,
         amount: values.amount,
-        method: values.paymentMethod
+        method: isSplitPayment ? 'mixed' : values.paymentMethod,
+        ...(isSplitPayment && values.splits ? { splits: values.splits } : {}),
       });
       message.success('Pago manual registrado y membresía actualizada');
       setIsPaymentModalOpen(false);
       paymentForm.resetFields();
+      setIsSplitPayment(false);
       await loadDetail(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al registrar el pago';
@@ -721,7 +726,11 @@ export function AdminMemberDetail() {
           title="Registrar Pago Manual"
           open={isPaymentModalOpen}
           onOk={handlePaymentSubmit}
-          onCancel={() => setIsPaymentModalOpen(false)}
+          onCancel={() => {
+            setIsPaymentModalOpen(false);
+            setIsSplitPayment(false);
+            paymentForm.resetFields();
+          }}
           okText="Registrar Pago"
           cancelText="Cancelar"
           destroyOnClose
@@ -742,19 +751,87 @@ export function AdminMemberDetail() {
               </Select>
             </Form.Item>
 
-            <Form.Item
-              name="paymentMethod"
-              label="Método de Pago"
-              rules={[{ required: true, message: 'Selecciona un método de pago' }]}
-            >
-              <Select>
-                <Select.Option value="cash">Efectivo</Select.Option>
-                <Select.Option value="nequi">Nequi</Select.Option>
-                <Select.Option value="daviplata">DaviPlata</Select.Option>
-                <Select.Option value="bold">Bold (Tarjetas/PSE)</Select.Option>
-                <Select.Option value="other">Otro</Select.Option>
-              </Select>
+            <Form.Item label="¿Pago dividido en varios métodos?">
+              <Switch checked={isSplitPayment} onChange={setIsSplitPayment} />
             </Form.Item>
+
+            {isSplitPayment ? (
+              <Form.List name="splits" initialValue={[{ method: undefined, amount: undefined }, { method: undefined, amount: undefined }]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field) => (
+                      <div key={field.key} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'method']}
+                          rules={[{ required: true, message: 'Método' }]}
+                          style={{ flex: 1, marginBottom: 0 }}
+                        >
+                          <Select placeholder="Método">
+                            <Select.Option value="cash">Efectivo</Select.Option>
+                            <Select.Option value="nequi">Nequi</Select.Option>
+                            <Select.Option value="daviplata">DaviPlata</Select.Option>
+                            <Select.Option value="other">Otro</Select.Option>
+                          </Select>
+                        </Form.Item>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'amount']}
+                          rules={[{ required: true, message: 'Monto' }]}
+                          style={{ flex: 1, marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            style={{ width: '100%' }}
+                            placeholder="Monto"
+                            formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={(value) => (value ? parseFloat(value.replace(/\$\s?|(,*)/g, '')) : 0)}
+                          />
+                        </Form.Item>
+                        {fields.length > 2 && (
+                          <Button danger onClick={() => remove(field.name)}>Quitar</Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="dashed" onClick={() => add({ method: undefined, amount: undefined })} style={{ width: '100%', marginBottom: 16 }}>
+                      + Agregar método
+                    </Button>
+                  </>
+                )}
+              </Form.List>
+            ) : (
+              <Form.Item
+                name="paymentMethod"
+                label="Método de Pago"
+                rules={[{ required: true, message: 'Selecciona un método de pago' }]}
+              >
+                <Select>
+                  <Select.Option value="cash">Efectivo</Select.Option>
+                  <Select.Option value="nequi">Nequi</Select.Option>
+                  <Select.Option value="daviplata">DaviPlata</Select.Option>
+                  <Select.Option value="bold">Bold (Tarjetas/PSE)</Select.Option>
+                  <Select.Option value="other">Otro</Select.Option>
+                </Select>
+              </Form.Item>
+            )}
+
+            {isSplitPayment && (
+              <Form.Item shouldUpdate noStyle>
+                {() => {
+                  const splits = paymentForm.getFieldValue('splits') || [];
+                  const total = splits.reduce((sum: number, s: any) => sum + (s?.amount || 0), 0);
+                  const amount = paymentForm.getFieldValue('amount') || 0;
+                  const matches = Math.abs(total - amount) <= 1;
+                  return (
+                    <Alert
+                      type={matches ? 'success' : 'warning'}
+                      showIcon
+                      message={`Suma de métodos: $${total.toLocaleString('es-CO')} / Monto total: $${amount.toLocaleString('es-CO')}`}
+                      style={{ marginBottom: 16 }}
+                    />
+                  );
+                }}
+              </Form.Item>
+            )}
 
             <Form.Item
               name="amount"
