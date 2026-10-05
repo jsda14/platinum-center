@@ -755,28 +755,41 @@ async def register_payment(
     admin_user = get_current_user(authorization)
     admin_user_id = admin_user["id"] if admin_user else None
 
-    # Si no hay member_id en la URL pero sí profile_id, crear el miembro
+    # Si no hay member_id en la URL pero sí profile_id, reutilizar el miembro
+    # existente para ese perfil si ya hay uno, o crearlo si no existe.
+    # (Evita duplicados cuando el miembro ya tiene una fila "members" creada
+    # previamente, por ejemplo por un intento de pago con Bold.)
     actual_member_id = member_id
     if member_id == "new" and data.profile_id:
         try:
-            logger.info(f"[ADMIN] Creando miembro para profile_id={data.profile_id}")
-            member_create_res = supabase_client.table("members").insert({
-                "profile_id": data.profile_id,
-                "status": "active"
-            }).execute()
+            existing_res = supabase_client.table("members")\
+                .select("id")\
+                .eq("profile_id", data.profile_id)\
+                .limit(1)\
+                .execute()
 
-            if not member_create_res.data:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="No se pudo crear el miembro automáticamente"
-                )
+            if existing_res.data:
+                actual_member_id = existing_res.data[0]["id"]
+                logger.info(f"[ADMIN] Reutilizando miembro existente para profile_id={data.profile_id}: {actual_member_id}")
+            else:
+                logger.info(f"[ADMIN] Creando miembro para profile_id={data.profile_id}")
+                member_create_res = supabase_client.table("members").insert({
+                    "profile_id": data.profile_id,
+                    "status": "active"
+                }).execute()
 
-            actual_member_id = member_create_res.data[0].get("id")
-            logger.info(f"[ADMIN] Miembro creado exitosamente: {actual_member_id}")
+                if not member_create_res.data:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="No se pudo crear el miembro automáticamente"
+                    )
+
+                actual_member_id = member_create_res.data[0].get("id")
+                logger.info(f"[ADMIN] Miembro creado exitosamente: {actual_member_id}")
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"[ADMIN] Error al crear miembro: {e}")
+            logger.error(f"[ADMIN] Error al crear/reutilizar miembro: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error al crear miembro: {str(e)}"
