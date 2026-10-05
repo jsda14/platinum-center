@@ -611,7 +611,7 @@ async def get_payments(authorization: Optional[str] = Header(None)):
     
     try:
         res = supabase_client.table("payments")\
-            .select("*, members(id, profiles:profile_id(full_name, email))")\
+            .select("*, members(id, profiles:profile_id(full_name, email)), payment_splits(method, amount)")\
             .order("payment_date", desc=True)\
             .execute()
         
@@ -743,7 +743,7 @@ async def get_member_detail(
     
     # payments
     payments_res = supabase_client.table("payments")\
-        .select("id, amount, method, plan, status, payment_date, plan_start_date, plan_end_date")\
+        .select("id, amount, method, plan, status, payment_date, plan_start_date, plan_end_date, payment_splits(method, amount)")\
         .eq("member_id", member_id)\
         .order("payment_date", desc=True)\
         .execute()

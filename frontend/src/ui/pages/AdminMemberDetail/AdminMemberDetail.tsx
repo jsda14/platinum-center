@@ -67,7 +67,8 @@ const METHOD_LABELS: Record<string, string> = {
   'nequi': 'Nequi',
   'daviplata': 'DaviPlata',
   'bold': 'Bold (Tarjetas/PSE)',
-  'other': 'Otro'
+  'other': 'Otro',
+  'mixed': 'Mixto'
 };
 
 const getInitials = (name?: string) => {
@@ -384,14 +385,26 @@ export function AdminMemberDetail() {
       title: 'Método',
       dataIndex: 'method',
       key: 'method',
-      render: (val: string) => {
+      render: (val: string, record: any) => {
         let color = 'default';
         if (val === 'nequi') color = 'blue';
         else if (val === 'daviplata') color = 'red';
         else if (val === 'bold') color = 'purple';
         else if (val === 'other') color = 'orange';
+        else if (val === 'mixed') color = 'gold';
 
-        return <Tag color={color}>{METHOD_LABELS[val] || val || 'Desconocido'}</Tag>;
+        return (
+          <div>
+            <Tag color={color}>{METHOD_LABELS[val] || val || 'Desconocido'}</Tag>
+            {val === 'mixed' && record.payment_splits?.length > 0 && (
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                {record.payment_splits
+                  .map((s: any) => `${METHOD_LABELS[s.method] || s.method} $${Number(s.amount).toLocaleString('es-CO')}`)
+                  .join(' + ')}
+              </div>
+            )}
+          </div>
+        );
       }
     },
     {

@@ -265,7 +265,21 @@ export function AdminPayments() {
       title: 'Método',
       dataIndex: 'method',
       key: 'method',
-      render: (val: string) => METHOD_LABELS[val] || val
+      render: (val: string, record: any) => {
+        if (val === 'mixed' && record.payment_splits?.length) {
+          return (
+            <div>
+              <div style={{ fontWeight: 500 }}>{METHOD_LABELS[val] || val}</div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
+                {record.payment_splits
+                  .map((s: any) => `${METHOD_LABELS[s.method] || s.method} $${Number(s.amount).toLocaleString('es-CO')}`)
+                  .join(' + ')}
+              </div>
+            </div>
+          );
+        }
+        return METHOD_LABELS[val] || val;
+      }
     },
     {
       title: 'Estado',

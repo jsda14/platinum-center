@@ -14,18 +14,32 @@ CREATE TABLE IF NOT EXISTS public.payment_splits (
 );
 
 GRANT ALL ON public.payment_splits TO service_role;
-GRANT SELECT ON public.payment_splits TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.payment_splits TO authenticated;
 
 ALTER TABLE public.payment_splits ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Enable read access for all authenticated users" ON public.payment_splits
-    FOR SELECT TO authenticated USING (true);
+-- Mismo criterio que la tabla payments: staff ve todo, un member solo
+-- ve los splits de sus propios pagos; solo staff/super_admin escriben.
+CREATE POLICY "payment_splits_select_policy" ON public.payment_splits
+  FOR SELECT
+  USING (
+    is_staff()
+    OR EXISTS (
+      SELECT 1 FROM public.payments p
+      WHERE p.id = payment_splits.payment_id
+        AND p.member_id = get_current_member_id()
+    )
+  );
 
-CREATE POLICY "Enable insert access for authenticated users" ON public.payment_splits
-    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "payment_splits_insert_policy" ON public.payment_splits
+  FOR INSERT
+  WITH CHECK (is_staff());
 
-CREATE POLICY "Enable update access for authenticated users" ON public.payment_splits
-    FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "payment_splits_update_policy" ON public.payment_splits
+  FOR UPDATE
+  USING (is_super_admin())
+  WITH CHECK (is_super_admin());
 
-CREATE POLICY "Enable delete access for authenticated users" ON public.payment_splits
-    FOR DELETE TO authenticated USING (true);
+CREATE POLICY "payment_splits_delete_policy" ON public.payment_splits
+  FOR DELETE
+  USING (is_super_admin());
