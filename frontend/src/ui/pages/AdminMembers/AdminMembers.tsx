@@ -177,9 +177,12 @@ export function AdminMembers() {
   const filteredData = members.filter((item) => {
     const fullName = item.profiles?.full_name || '';
     const email = item.profiles?.email || '';
+    const cardNo = item.card_no || '';
+    const query = searchText.toLowerCase();
     const matchesSearch =
-      fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-      email.toLowerCase().includes(searchText.toLowerCase());
+      fullName.toLowerCase().includes(query) ||
+      email.toLowerCase().includes(query) ||
+      cardNo.toLowerCase().includes(query);
 
     let matchesStatus = true;
     if (statusFilter === 'no_chip') {
@@ -320,7 +323,7 @@ export function AdminMembers() {
         {/* Filters Section */}
         <section className={styles['admin-members__filters']} aria-label="Filtros de búsqueda">
           <Input
-            placeholder="Buscar por nombre o email..."
+            placeholder="Buscar por nombre, email o chip..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}

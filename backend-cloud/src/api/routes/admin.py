@@ -687,16 +687,20 @@ async def search_members_and_profiles(
         if not profiles_res.data:
             return {"results": []}
 
-        # Para cada perfil, obtener su miembro asociado (si existe)
+        # Traer todos los miembros asociados a estos perfiles en una sola consulta
+        # (antes: 1 query por perfil dentro de un loop — N+1 y lento en la búsqueda)
+        profile_ids = [p.get("id") for p in profiles_res.data]
+        members_res = supabase_client.table("members")\
+            .select("id, profile_id, status, plan, card_no, zkteco_user_id, end_date")\
+            .in_("profile_id", profile_ids)\
+            .execute()
+
+        members_by_profile = {m["profile_id"]: m for m in (members_res.data or [])}
+
         results = []
         for profile in profiles_res.data:
             profile_id = profile.get("id")
-            member_res = supabase_client.table("members")\
-                .select("id, status, plan, card_no, zkteco_user_id, end_date")\
-                .eq("profile_id", profile_id)\
-                .execute()
-
-            member_data = member_res.data[0] if member_res.data else None
+            member_data = members_by_profile.get(profile_id)
 
             results.append({
                 "profile_id": profile_id,

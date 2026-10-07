@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Table,
   Modal,
@@ -75,6 +75,8 @@ export function AdminPayments() {
   const selectedPlan = Form.useWatch('plan', registerForm);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestIdRef = useRef(0);
   const [isSplitPayment, setIsSplitPayment] = useState<boolean>(false);
 
   // Success details modal
@@ -117,23 +119,39 @@ export function AdminPayments() {
     registerForm.setFieldsValue({ amount: price });
   };
 
-  const handleSearchMembers = async (searchValue: string) => {
+  const handleSearchMembers = (searchValue: string) => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
     if (!searchValue || searchValue.length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
 
     setIsSearching(true);
-    try {
-      const results = await adminRepository.searchMembersAndProfiles(searchValue);
-      setSearchResults(results);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al buscar';
-      message.error(msg);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
+    const requestId = ++searchRequestIdRef.current;
+
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await adminRepository.searchMembersAndProfiles(searchValue);
+        // Ignorar resultados de búsquedas viejas que respondan tarde
+        if (requestId === searchRequestIdRef.current) {
+          setSearchResults(results);
+        }
+      } catch (err: unknown) {
+        if (requestId === searchRequestIdRef.current) {
+          const msg = err instanceof Error ? err.message : 'Error al buscar';
+          message.error(msg);
+          setSearchResults([]);
+        }
+      } finally {
+        if (requestId === searchRequestIdRef.current) {
+          setIsSearching(false);
+        }
+      }
+    }, 300);
   };
 
   const handleRegisterSubmit = async () => {
