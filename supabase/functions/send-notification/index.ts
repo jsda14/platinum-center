@@ -1,4 +1,5 @@
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
+const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://www.gymplatinumcenter.com";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">¡Gracias por entrenar con nosotros! Nos vemos en el gym para dar el 100%.</p>
         
         <div style="text-align: center;">
-          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Ver mi membresía</a>
+          <a href="${FRONTEND_URL}/portal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Ver mi membresía</a>
         </div>
         ${emailFooterHtml}
       `;
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">No interrumpas tu ritmo. Realiza tu renovación de forma segura desde el portal web en pocos clics.</p>
         
         <div style="text-align: center;">
-          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
+          <a href="${FRONTEND_URL}/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
         </div>
         ${emailFooterHtml}
       `;
@@ -143,7 +144,7 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">Renueva ahora mismo para no perder el acceso.</p>
     
         <div style="text-align: center;">
-          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
+          <a href="${FRONTEND_URL}/portal/renewal" style="background-color: #C41E3A; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(196, 30, 58, 0.4);">Renovar ahora</a>
         </div>
         ${emailFooterHtml}
       `;
@@ -163,7 +164,7 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">Renueva a tiempo para no quedarte sin cupos disponibles.</p>
     
         <div style="text-align: center;">
-          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #D4A017; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(212, 160, 23, 0.4);">Renovar ahora</a>
+          <a href="${FRONTEND_URL}/portal/renewal" style="background-color: #D4A017; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(212, 160, 23, 0.4);">Renovar ahora</a>
         </div>
         ${emailFooterHtml}
       `;
@@ -183,7 +184,7 @@ Deno.serve(async (req) => {
         <p style="font-size: 14px; color: #A0A0A0; margin-bottom: 25px;">Si tienes alguna inquietud con tu medio de pago, comunícate con tu entidad financiera o reintenta el pago.</p>
         
         <div style="text-align: center;">
-          <a href="https://platinum-center-git-develop-gymplatinumcenter-6828s-projects.vercel.app/portal/renewal" style="background-color: #EF4444; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">Reintentar pago</a>
+          <a href="${FRONTEND_URL}/portal/renewal" style="background-color: #EF4444; color: #FFFFFF; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">Reintentar pago</a>
         </div>
         ${emailFooterHtml}
       `;
