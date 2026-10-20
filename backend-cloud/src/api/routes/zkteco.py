@@ -126,6 +126,13 @@ async def access_event(
                     .execute()
 
                 if days_used >= days_total:
+                    # Marcar la membresía como expirada: sin esto, el portal/admin
+                    # sigue mostrando "activo" aunque el chip ya quedó bloqueado.
+                    supabase_client.table("members")\
+                        .update({"status": "expired"})\
+                        .eq("id", member_id)\
+                        .execute()
+
                     profile_id = member.get("profile_id")
                     full_name = "Miembro"
                     if profile_id:
