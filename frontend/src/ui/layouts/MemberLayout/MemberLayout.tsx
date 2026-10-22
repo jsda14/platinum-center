@@ -12,6 +12,7 @@ import {
   ShopOutlined,
   LeftOutlined,
   RightOutlined,
+  LoginOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -92,20 +93,26 @@ export function MemberLayout() {
       label: 'Buzón',
       icon: <CommentOutlined />,
     },
+    {
+      path: '/portal/access-logs',
+      label: 'Ingresos',
+      icon: <LoginOutlined />,
+    },
   ];
 
-  const navPages = [
-    navItems.slice(0, 4),
-    navItems.slice(4, 8),
-  ];
+  // Páginas de 4 ítems cada una, con el resto (hoy solo "Ingresos") en una
+  // página final aparte, para no reordenar los grupos que el miembro ya conoce.
+  const navPages: typeof navItems[] = [];
+  for (let i = 0; i < navItems.length; i += 4) {
+    navPages.push(navItems.slice(i, i + 4));
+  }
+  const lastPageIndex = navPages.length - 1;
 
   // Switch page automatically when route changes
   useEffect(() => {
     const itemIndex = navItems.findIndex((item) => location.pathname === item.path);
-    if (itemIndex >= 4) {
-      setActivePage(1);
-    } else if (itemIndex >= 0) {
-      setActivePage(0);
+    if (itemIndex >= 0) {
+      setActivePage(Math.floor(itemIndex / 4));
     }
   }, [location.pathname]);
 
@@ -132,7 +139,7 @@ export function MemberLayout() {
     let appliedDelta = deltaX;
     if (activePage === 0 && deltaX > 0) {
       appliedDelta = deltaX * 0.2;
-    } else if (activePage === 1 && deltaX < 0) {
+    } else if (activePage === lastPageIndex && deltaX < 0) {
       appliedDelta = deltaX * 0.2;
     }
 
@@ -147,10 +154,10 @@ export function MemberLayout() {
     const deltaX = clientX - startXRef.current;
 
     // Threshold of 35px to trigger page change
-    if (deltaX < -35 && activePage === 0) {
-      setActivePage(1);
-    } else if (deltaX > 35 && activePage === 1) {
-      setActivePage(0);
+    if (deltaX < -35 && activePage < lastPageIndex) {
+      setActivePage(activePage + 1);
+    } else if (deltaX > 35 && activePage > 0) {
+      setActivePage(activePage - 1);
     }
 
     setDragOffset(0);
@@ -179,10 +186,10 @@ export function MemberLayout() {
   // Trackpad horizontal wheel support
   const handleWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) > 25) {
-      if (e.deltaX > 25 && activePage === 0) {
-        setActivePage(1);
-      } else if (e.deltaX < -25 && activePage === 1) {
-        setActivePage(0);
+      if (e.deltaX > 25 && activePage < lastPageIndex) {
+        setActivePage(activePage + 1);
+      } else if (e.deltaX < -25 && activePage > 0) {
+        setActivePage(activePage - 1);
       }
     }
   };
@@ -244,7 +251,7 @@ export function MemberLayout() {
           <button
             type="button"
             className={`${styles['member-layout__arrow-btn']} ${styles['member-layout__arrow-btn--left']}`}
-            onClick={() => setActivePage(0)}
+            onClick={() => setActivePage(activePage - 1)}
             aria-label="Página anterior"
           >
             <LeftOutlined />
@@ -272,6 +279,7 @@ export function MemberLayout() {
                 className={styles['member-layout__page']}
                 role="navigation"
                 aria-label={`Página ${pIdx + 1}`}
+                style={{ gridTemplateColumns: `repeat(${pageGroup.length}, 1fr)` }}
               >
                 {pageGroup.map((item) => {
                   const isActive = location.pathname === item.path;
@@ -300,11 +308,11 @@ export function MemberLayout() {
         </div>
 
         {/* Mobile Nav Arrow Right */}
-        {activePage === 0 && (
+        {activePage < lastPageIndex && (
           <button
             type="button"
             className={`${styles['member-layout__arrow-btn']} ${styles['member-layout__arrow-btn--right']}`}
-            onClick={() => setActivePage(1)}
+            onClick={() => setActivePage(activePage + 1)}
             aria-label="Página siguiente"
           >
             <RightOutlined />
@@ -313,18 +321,15 @@ export function MemberLayout() {
 
         {/* Mobile Page Indicator Dots */}
         <div className={styles['member-layout__dots']}>
-          <button
-            type="button"
-            className={`${styles['member-layout__dot']} ${activePage === 0 ? styles['member-layout__dot--active'] : ''}`}
-            onClick={() => setActivePage(0)}
-            aria-label="Página 1"
-          />
-          <button
-            type="button"
-            className={`${styles['member-layout__dot']} ${activePage === 1 ? styles['member-layout__dot--active'] : ''}`}
-            onClick={() => setActivePage(1)}
-            aria-label="Página 2"
-          />
+          {navPages.map((_, pIdx) => (
+            <button
+              key={pIdx}
+              type="button"
+              className={`${styles['member-layout__dot']} ${activePage === pIdx ? styles['member-layout__dot--active'] : ''}`}
+              onClick={() => setActivePage(pIdx)}
+              aria-label={`Página ${pIdx + 1}`}
+            />
+          ))}
         </div>
       </div>
     </div>

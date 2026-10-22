@@ -74,6 +74,13 @@
   overflow-x: auto;
 }
 
+.admin-access-logs__page-indicator {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
 .admin-access-logs__table-wrapper :global(.ant-table) {
   background: transparent !important;
   color: var(--color-text-primary) !important;

@@ -224,6 +224,9 @@ export function AdminAccessLogs() {
           </div>
         ) : (
           <div className={styles['admin-access-logs__table-wrapper']}>
+            <div className={styles['admin-access-logs__page-indicator']}>
+              Página {page} de {Math.max(1, Math.ceil(total / pageSize))} · {total} ingresos
+            </div>
             <Table
               dataSource={entries}
               columns={columns}
@@ -233,7 +236,7 @@ export function AdminAccessLogs() {
                 pageSize,
                 total,
                 showSizeChanger: false,
-                position: ['bottomCenter'],
+                position: ['topCenter', 'bottomCenter'],
                 onChange: (p) => setPage(p),
               }}
             />

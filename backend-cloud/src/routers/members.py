@@ -79,6 +79,51 @@ async def get_my_payments(
             detail=f"Error al obtener historial de pagos: {str(e)}"
         )
 
+@router.get("/me/access-logs")
+async def get_my_access_logs(
+    authorization: Optional[str] = Header(None),
+    page: int = 1,
+    page_size: int = 20,
+):
+    """
+    Devuelve el historial de ingresos (fecha/hora) del miembro autenticado,
+    filtrado por su propio member_id — nunca por card_no suelto, para no
+    depender de que el chip nunca haya cambiado de dueño.
+    """
+    try:
+        member = get_current_member(authorization)
+
+        if page < 1:
+            page = 1
+        if page_size < 1 or page_size > 100:
+            page_size = 20
+
+        offset = (page - 1) * page_size
+        logs_res = (
+            supabase_client.table("access_logs")
+            .select("id, event_type, timestamp", count="exact")
+            .eq("member_id", member["id"])
+            .eq("event_type", "granted")
+            .order("timestamp", desc=True)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+
+        return {
+            "page": page,
+            "page_size": page_size,
+            "total": logs_res.count or 0,
+            "results": logs_res.data or []
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("[ROUTER] Error en GET /members/me/access-logs: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener historial de ingresos: {str(e)}"
+        )
+
 @router.post("/me/suggestions", response_model=SuggestionResponse, status_code=status.HTTP_201_CREATED)
 async def create_my_suggestion(
     data: CreateSuggestionRequest,
