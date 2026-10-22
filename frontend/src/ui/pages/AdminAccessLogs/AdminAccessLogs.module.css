@@ -1,0 +1,136 @@
+.admin-access-logs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+  padding: var(--space-4);
+  color: var(--color-text-primary);
+  min-height: 100%;
+}
+
+.admin-access-logs__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .admin-access-logs__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.admin-access-logs__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.admin-access-logs__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  width: 100%;
+  background-color: var(--color-dark-surface);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  align-items: center;
+}
+
+.admin-access-logs__filter-input,
+.admin-access-logs__filter-select {
+  width: 100% !important;
+  height: 40px !important;
+}
+
+@media (min-width: 768px) {
+  .admin-access-logs__filter-input,
+  .admin-access-logs__filter-select {
+    width: 200px !important;
+  }
+}
+
+.admin-access-logs__filter-select :global(.ant-select-selector),
+.admin-access-logs__filter-input {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.admin-access-logs__table-wrapper {
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-table) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-table-thead > tr > th) {
+  background: var(--color-dark-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.admin-access-logs__loading-container,
+.admin-access-logs__error-container,
+.admin-access-logs__empty-container {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background-color: var(--color-dark-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.admin-access-logs__loading-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-access-logs__error-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-status-expired);
+  margin: 0;
+}
+
+.admin-access-logs__error-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.admin-access-logs__btn-retry {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  border-radius: var(--radius-md) !important;
+}

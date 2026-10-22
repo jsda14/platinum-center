@@ -17,6 +17,7 @@ import { PaymentResult } from './ui/pages/PaymentResult/PaymentResult';
 import { SetupProfile } from './ui/pages/SetupProfile/SetupProfile';
 import { MemberSettings } from './ui/pages/MemberSettings/MemberSettings';
 import { AdminPayments } from './ui/pages/AdminPayments/AdminPayments';
+import { AdminAccessLogs } from './ui/pages/AdminAccessLogs/AdminAccessLogs';
 import { AdminMemberDetail } from './ui/pages/AdminMemberDetail/AdminMemberDetail';
 import { AdminDashboard } from './ui/pages/AdminDashboard/AdminDashboard';
 import { AdminPlans } from './ui/pages/AdminPlans/AdminPlans';
@@ -69,6 +70,18 @@ function AdminPaymentsRedirect() {
   return (
     <AdminLayout>
       <AdminPayments />
+    </AdminLayout>
+  );
+}
+
+function AdminAccessLogsRedirect() {
+  const { profile } = useAppSelector((state) => state.auth);
+  if (profile?.role === 'receptionist') {
+    return <Navigate to="/reception/access-logs" replace />;
+  }
+  return (
+    <AdminLayout>
+      <AdminAccessLogs />
     </AdminLayout>
   );
 }
@@ -143,6 +156,15 @@ export function App() {
         }
       />
 
+      <Route
+        path="/admin/access-logs"
+        element={
+          <ProtectedRoute allowedRoles={['super_admin', 'receptionist']}>
+            <AdminAccessLogsRedirect />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Admin routes (restricted to super_admin only) */}
       <Route
         path="/admin/*"
@@ -158,6 +180,7 @@ export function App() {
         <Route path="classes" element={<AdminClasses />} />
         <Route path="store" element={<AdminStore />} />
         <Route path="profile" element={<AdminProfile />} />
+        <Route path="access-logs" element={<AdminAccessLogs />} />
       </Route>
 
       {/* Receptionist routes */}
@@ -175,6 +198,7 @@ export function App() {
         <Route path="payments" element={<AdminPayments />} />
         <Route path="plans" element={<AdminPlans />} />
         <Route path="profile" element={<AdminProfile />} />
+        <Route path="access-logs" element={<AdminAccessLogs />} />
       </Route>
 
       {/* Member Portal routes */}

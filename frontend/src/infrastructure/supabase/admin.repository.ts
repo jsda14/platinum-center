@@ -63,6 +63,35 @@ export interface AssignChipData {
   sn?: string;
 }
 
+export interface AccessLogsFilters {
+  card_no?: string;
+  name?: string;
+  event_type?: 'granted' | 'denied' | 'unknown' | '';
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+  page?: number;
+  page_size?: number;
+}
+
+export interface AccessLogEntry {
+  id: string;
+  member_id: string | null;
+  full_name: string;
+  card_no: string;
+  event_type: 'granted' | 'denied' | 'unknown';
+  timestamp: string;
+  zkteco_user_id: string | null;
+  sn: string | null;
+}
+
+export interface AccessLogsResponse {
+  status: string;
+  page: number;
+  page_size: number;
+  total: number;
+  results: AccessLogEntry[];
+}
+
 export interface MemberDetail {
   member: MemberWithProfile;
   payments: Payment[];
@@ -267,6 +296,31 @@ export const adminRepository = {
 
     const data = await response.json();
     return (data.payments || []) as any[];
+  },
+
+  async getAccessLogs(filters: AccessLogsFilters): Promise<AccessLogsResponse> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const params = new URLSearchParams();
+    if (filters.card_no) params.set('card_no', filters.card_no);
+    if (filters.name) params.set('name', filters.name);
+    if (filters.event_type) params.set('event_type', filters.event_type);
+    if (filters.date_from) params.set('date_from', filters.date_from);
+    if (filters.date_to) params.set('date_to', filters.date_to);
+    params.set('page', String(filters.page ?? 1));
+    params.set('page_size', String(filters.page_size ?? 50));
+
+    const response = await fetch(`${apiUrl}/admin/access-logs?${params.toString()}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener el registro de ingresos');
+    }
+
+    return (await response.json()) as AccessLogsResponse;
   },
 
   async getMemberDetail(memberId: string): Promise<MemberDetail> {

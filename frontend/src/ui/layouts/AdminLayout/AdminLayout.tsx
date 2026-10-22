@@ -13,6 +13,7 @@ import {
   NotificationOutlined,
   ShopOutlined,
   CalendarOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../../../infrastructure/store/store';
 import { logout } from '../../../infrastructure/store/authSlice';
@@ -78,6 +79,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <TagOutlined />,
       label: 'Planes',
       onClick: () => navigate(`${basePath}/plans`),
+    },
+    {
+      key: `${basePath}/access-logs`,
+      icon: <IdcardOutlined />,
+      label: 'Ingresos',
+      onClick: () => navigate(`${basePath}/access-logs`),
     },
     ...(basePath === '/admin' ? [
       {
@@ -174,6 +181,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               ? `${basePath}/payments`
               : location.pathname.startsWith(`${basePath}/plans`)
               ? `${basePath}/plans`
+              : location.pathname.startsWith(`${basePath}/access-logs`)
+              ? `${basePath}/access-logs`
               : location.pathname.startsWith(`${basePath}/profile`)
               ? `${basePath}/profile`
               : location.pathname.startsWith('/admin/settings')
