@@ -38,23 +38,30 @@ def get_current_user_role(authorization: Optional[str]) -> str:
         )
     token = authorization.split(" ")[1]
     try:
+        import time as _time
+        _t0 = _time.monotonic()
         user_res = supabase_client.auth.get_user(token)
+        _t1 = _time.monotonic()
+        logger.info(f"[PERF_DEBUG] auth.get_user() tardó {(_t1 - _t0)*1000:.0f} ms")
         if not user_res or not user_res.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token de Supabase inválido o expirado"
             )
-        
+
         user_id = user_res.user.id
-        
+
         # Buscar el rol en profiles
+        _t2 = _time.monotonic()
         profile_res = supabase_client.table("profiles").select("role").eq("id", user_id).execute()
+        _t3 = _time.monotonic()
+        logger.info(f"[PERF_DEBUG] profiles select tardó {(_t3 - _t2)*1000:.0f} ms")
         if not profile_res.data:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="El perfil de usuario no existe en la base de datos"
             )
-        
+
         return profile_res.data[0]["role"]
     except Exception as e:
         raise HTTPException(
@@ -647,7 +654,11 @@ async def get_payments(
         offset = (page - 1) * page_size
         query = query.order("payment_date", desc=True).range(offset, offset + page_size - 1)
 
+        import time as _time
+        _t0 = _time.monotonic()
         res = query.execute()
+        _t1 = _time.monotonic()
+        logger.info(f"[PERF_DEBUG] query de payments tardó {(_t1 - _t0)*1000:.0f} ms")
 
         return {
             "payments": res.data or [],
