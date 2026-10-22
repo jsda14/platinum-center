@@ -199,7 +199,7 @@ export function AdminAccessLogs() {
           <Button
             type="default"
             icon={<ReloadOutlined />}
-            onClick={loadData}
+            onClick={() => { void loadData(); }}
             disabled={isLoading}
           >
             Refrescar
@@ -214,7 +214,7 @@ export function AdminAccessLogs() {
           <div className={styles['admin-access-logs__error-container']} role="alert">
             <h2 className={styles['admin-access-logs__error-title']}>Ocurrió un error</h2>
             <p className={styles['admin-access-logs__error-text']}>{error}</p>
-            <Button className={styles['admin-access-logs__btn-retry']} onClick={loadData}>
+            <Button className={styles['admin-access-logs__btn-retry']} onClick={() => { void loadData(); }}>
               Intentar de nuevo
             </Button>
           </div>

@@ -26,7 +26,7 @@ import {
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
 
 // Import use cases
-import { getMembers } from '../../../application/admin/getMembers.usecase';
+
 import { createMember } from '../../../application/admin/createMember.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 
