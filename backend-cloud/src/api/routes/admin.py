@@ -1341,4 +1341,105 @@ async def update_member_day_pass(
     return {"status": "ok", "day_pass": update_res.data[0] if update_res.data else None}
 
 
+@router.get("/admin/access-logs")
+async def list_access_logs(
+    authorization: Optional[str] = Header(None),
+    card_no: Optional[str] = None,
+    name: Optional[str] = None,
+    event_type: Optional[str] = None,
+    date_from: Optional[str] = None,   # YYYY-MM-DD
+    date_to: Optional[str] = None,     # YYYY-MM-DD
+    page: int = 1,
+    page_size: int = 50
+):
+    """
+    Vista de ingresos: muestra lo que el inBio reportó vía el Bridge, con filtros
+    por card_no, nombre, tipo de evento y rango de fechas. Pensado para monitorear
+    si la comunicación inBio <-> Bridge <-> app está funcionando (eventos 'unknown'
+    son swipes que no matchearon con ningún miembro registrado en la app).
+    """
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 50
+
+    query = supabase_client.table("access_logs").select(
+        "id, member_id, card_no, event_type, timestamp, raw_payload, created_at",
+        count="exact"
+    )
+
+    if card_no:
+        query = query.eq("card_no", card_no)
+    if event_type:
+        query = query.eq("event_type", event_type)
+    if date_from:
+        query = query.gte("timestamp", f"{date_from}T00:00:00")
+    if date_to:
+        query = query.lte("timestamp", f"{date_to}T23:59:59")
+
+    offset = (page - 1) * page_size
+    query = query.order("timestamp", desc=True).range(offset, offset + page_size - 1)
+
+    res = query.execute()
+    rows = res.data or []
+    total = res.count or 0
+
+    # Resolver nombres de los member_id presentes en esta página (una sola consulta)
+    member_ids = list({r["member_id"] for r in rows if r.get("member_id")})
+    names_by_member = {}
+    if member_ids:
+        members_res = supabase_client.table("members")\
+            .select("id, profile_id")\
+            .in_("id", member_ids)\
+            .execute()
+        profile_ids = [m["profile_id"] for m in (members_res.data or []) if m.get("profile_id")]
+        profile_by_member = {m["id"]: m.get("profile_id") for m in (members_res.data or [])}
+        names_by_profile = {}
+        if profile_ids:
+            profiles_res = supabase_client.table("profiles")\
+                .select("id, full_name")\
+                .in_("id", profile_ids)\
+                .execute()
+            names_by_profile = {p["id"]: p.get("full_name") for p in (profiles_res.data or [])}
+        for mid, pid in profile_by_member.items():
+            names_by_member[mid] = names_by_profile.get(pid, "Miembro")
+
+    import json as _json
+    results = []
+    for r in rows:
+        full_name = names_by_member.get(r.get("member_id"), "Desconocido")
+        if name and name.strip().lower() not in full_name.lower():
+            continue
+        zkteco_user_id = None
+        sn = None
+        try:
+            payload = _json.loads(r.get("raw_payload") or "{}")
+            zkteco_user_id = payload.get("user_id")
+            sn = payload.get("sn")
+        except Exception:
+            pass
+        results.append({
+            "id": r["id"],
+            "member_id": r.get("member_id"),
+            "full_name": full_name,
+            "card_no": r.get("card_no"),
+            "event_type": r.get("event_type"),
+            "timestamp": r.get("timestamp"),
+            "zkteco_user_id": zkteco_user_id,
+            "sn": sn
+        })
+
+    return {
+        "status": "ok",
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "results": results
+    }
+
+
 

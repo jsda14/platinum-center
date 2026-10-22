@@ -177,3 +177,33 @@ async def send_expiration_reminders(
     logger.info(f"[EXPIRATION_REMINDERS] Resultado: {results}")
     return results
 
+
+@router.post("/admin/purge-access-logs")
+async def purge_access_logs(
+    x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret")
+):
+    """
+    Job de limpieza: borra de access_logs todo registro más viejo de 30 días,
+    para mantener la vista de ingresos liviana.
+    """
+    cron_secret = os.getenv("CRON_SECRET")
+    if not cron_secret:
+        raise HTTPException(status_code=500, detail="Configuración incompleta")
+    if not x_cron_secret or x_cron_secret != cron_secret:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    bogota_tz = timezone(timedelta(hours=-5))
+    cutoff = (datetime.now(bogota_tz) - timedelta(days=30)).isoformat()
+
+    try:
+        res = supabase_client.table("access_logs")\
+            .delete()\
+            .lt("timestamp", cutoff)\
+            .execute()
+        deleted_count = len(res.data) if res.data else 0
+        logger.info(f"[PURGE_ACCESS_LOGS] {deleted_count} registros borrados (más viejos de {cutoff})")
+        return {"status": "ok", "deleted_count": deleted_count, "cutoff": cutoff}
+    except Exception as e:
+        logger.error(f"[PURGE_ACCESS_LOGS] Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno purgando access_logs")
+
