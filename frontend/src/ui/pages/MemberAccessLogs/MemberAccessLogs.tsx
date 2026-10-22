@@ -26,6 +26,13 @@ function groupByDay(entries: AccessLogEntryMember[]): DayGroup[] {
     groups[indexByKey.get(dateKey)!].entries.push(entry);
   }
 
+  // El backend trae los ingresos más recientes primero (para que la paginación
+  // muestre las últimas visitas primero); dentro de cada día se muestran de
+  // más temprano a más tarde, que es como se lee un registro de entradas.
+  for (const group of groups) {
+    group.entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }
+
   return groups;
 }
 

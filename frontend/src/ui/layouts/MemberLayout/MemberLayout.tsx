@@ -55,6 +55,11 @@ export function MemberLayout() {
       icon: <IdcardOutlined />,
     },
     {
+      path: '/portal/access-logs',
+      label: 'Ingresos',
+      icon: <LoginOutlined />,
+    },
+    {
       path: '/portal/classes',
       label: 'Clases',
       icon: <CalendarOutlined />,
@@ -93,15 +98,9 @@ export function MemberLayout() {
       label: 'Buzón',
       icon: <CommentOutlined />,
     },
-    {
-      path: '/portal/access-logs',
-      label: 'Ingresos',
-      icon: <LoginOutlined />,
-    },
   ];
 
-  // Páginas de 4 ítems cada una, con el resto (hoy solo "Ingresos") en una
-  // página final aparte, para no reordenar los grupos que el miembro ya conoce.
+  // Páginas de 4 ítems cada una (swipe móvil); con 9 ítems quedan 3 páginas.
   const navPages: typeof navItems[] = [];
   for (let i = 0; i < navItems.length; i += 4) {
     navPages.push(navItems.slice(i, i + 4));
