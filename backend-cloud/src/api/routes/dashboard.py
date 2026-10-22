@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import datetime, date, timedelta
 from typing import Optional
@@ -20,20 +21,81 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
     try:
         now = datetime.now()
         start_of_month = datetime(now.year, now.month, 1).isoformat()
+        today_str = now.date().isoformat()
+        seven_days_later = (now + timedelta(days=7)).date().isoformat()
+
+        six_months_ago = datetime(now.year, now.month, 1) - timedelta(days=150)
+        six_months_ago = datetime(six_months_ago.year, six_months_ago.month, 1)
+        six_months_ago_str = six_months_ago.isoformat()
+
+        # Las 9 consultas de abajo son independientes entre sí (ninguna depende
+        # del resultado de otra), pero antes corrían una detrás de otra. El
+        # cliente de Supabase que usa este proyecto es síncrono, así que cada
+        # una se manda a un hilo aparte (asyncio.to_thread) y se esperan todas
+        # juntas con gather — mismas 9 consultas, pero en paralelo en vez de
+        # secuencial.
+        #
+        # totalActiveMembers y newMembersThisMonth antes traían TODAS las filas
+        # de members que matchean solo para contarlas con len() en Python; ahora
+        # piden un conteo exacto a la base de datos (count="exact" + limit(1)),
+        # que no transfiere las filas, solo el número.
+
+        def _count_active_members():
+            return supabase_client.table('members').select('id', count='exact').eq('status', 'active').limit(1).execute()
+
+        def _monthly_revenue():
+            return supabase_client.table('payments').select('amount').eq('status', 'confirmed').gte('payment_date', start_of_month).execute()
+
+        def _expiring_this_week():
+            return supabase_client.table('members').select('*, profiles:profile_id(full_name, email, phone)').eq('status', 'active').gte('end_date', today_str).lte('end_date', seven_days_later).order('end_date', desc=False).execute()
+
+        def _count_new_members_this_month():
+            return supabase_client.table('members').select('id', count='exact').gte('created_at', start_of_month).limit(1).execute()
+
+        def _payments_last_6_months():
+            return supabase_client.table('payments').select('amount, payment_date').eq('status', 'confirmed').gte('payment_date', six_months_ago_str).execute()
+
+        def _members_plans():
+            return supabase_client.table('members').select('plan').eq('status', 'active').execute()
+
+        def _payment_methods():
+            return supabase_client.table('payments').select('method').eq('status', 'confirmed').gte('payment_date', start_of_month).execute()
+
+        def _recent_payments():
+            return supabase_client.table('payments').select('*, members(profiles:profile_id(full_name, email))').eq('status', 'confirmed').order('payment_date', desc=True).limit(5).execute()
+
+        def _members_without_chip():
+            return supabase_client.table('members').select('*, profiles:profile_id(full_name, email)').eq('status', 'active').is_('card_no', 'null').execute()
+
+        (
+            active_res,
+            revenue_res,
+            expiring_res,
+            new_res,
+            payments_res,
+            members_plans_res,
+            methods_res,
+            recent_res,
+            without_chip_res
+        ) = await asyncio.gather(
+            asyncio.to_thread(_count_active_members),
+            asyncio.to_thread(_monthly_revenue),
+            asyncio.to_thread(_expiring_this_week),
+            asyncio.to_thread(_count_new_members_this_month),
+            asyncio.to_thread(_payments_last_6_months),
+            asyncio.to_thread(_members_plans),
+            asyncio.to_thread(_payment_methods),
+            asyncio.to_thread(_recent_payments),
+            asyncio.to_thread(_members_without_chip),
+        )
 
         # a) totalActiveMembers
-        active_res = supabase_client.table('members').select('id').eq('status', 'active').execute()
-        total_active_members = len(active_res.data) if active_res.data else 0
+        total_active_members = active_res.count or 0
 
         # b) monthlyRevenue
-        revenue_res = supabase_client.table('payments').select('amount').eq('status', 'confirmed').gte('payment_date', start_of_month).execute()
         monthly_revenue = sum(float(p['amount']) for p in revenue_res.data) if revenue_res.data else 0.0
 
         # c) expiringThisWeek (members list)
-        today_str = now.date().isoformat()
-        seven_days_later = (now + timedelta(days=7)).date().isoformat()
-        expiring_res = supabase_client.table('members').select('*, profiles:profile_id(full_name, email, phone)').eq('status', 'active').gte('end_date', today_str).lte('end_date', seven_days_later).order('end_date', desc=False).execute()
-
         expiring_this_week = []
         if expiring_res.data:
             for r in expiring_res.data:
@@ -50,16 +112,9 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
                 })
 
         # d) newMembersThisMonth
-        new_res = supabase_client.table('members').select('id').gte('created_at', start_of_month).execute()
-        new_members_this_month = len(new_res.data) if new_res.data else 0
+        new_members_this_month = new_res.count or 0
 
         # e) revenueByMonth (last 6 months)
-        six_months_ago = datetime(now.year, now.month, 1) - timedelta(days=150)
-        six_months_ago = datetime(six_months_ago.year, six_months_ago.month, 1)
-        six_months_ago_str = six_months_ago.isoformat()
-
-        payments_res = supabase_client.table('payments').select('amount, payment_date').eq('status', 'confirmed').gte('payment_date', six_months_ago_str).execute()
-
         month_names = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
         last_6_months = []
         for i in range(5, -1, -1):
@@ -90,12 +145,11 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
                     pass
 
         revenue_by_month = [
-            {"name": m["name"], "revenue": m["revenue"]} 
+            {"name": m["name"], "revenue": m["revenue"]}
             for m in last_6_months
         ]
 
         # f) planDistribution
-        members_plans_res = supabase_client.table('members').select('plan').eq('status', 'active').execute()
         plan_map = {
             '1_day': '1 Día',
             '15_days': '15 Días',
@@ -115,7 +169,6 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
         ]
 
         # g) paymentMethodDistribution
-        methods_res = supabase_client.table('payments').select('method').eq('status', 'confirmed').gte('payment_date', start_of_month).execute()
         method_map = {
             'cash': 'Efectivo',
             'nequi': 'Nequi',
@@ -136,7 +189,6 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
         ]
 
         # h) recentPayments
-        recent_res = supabase_client.table('payments').select('*, members(profiles:profile_id(full_name, email))').eq('status', 'confirmed').order('payment_date', desc=True).limit(5).execute()
         recent_payments = []
         if recent_res.data:
             for r in recent_res.data:
@@ -160,7 +212,6 @@ async def get_dashboard_metrics(authorization: Optional[str] = Header(None)):
                 })
 
         # i) membersWithoutChip
-        without_chip_res = supabase_client.table('members').select('*, profiles:profile_id(full_name, email)').eq('status', 'active').is_('card_no', 'null').execute()
         members_without_chip = []
         if without_chip_res.data:
             for r in without_chip_res.data:

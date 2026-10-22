@@ -1,0 +1,196 @@
+.member-access-logs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+.member-access-logs__loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.member-access-logs__error {
+  padding: var(--space-4);
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-status-expired);
+  border-radius: var(--radius-md);
+  color: var(--color-status-expired);
+  text-align: center;
+}
+
+.member-access-logs__error-message {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.member-access-logs__empty {
+  padding: var(--space-6);
+  background-color: var(--color-dark-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member-access-logs__empty h2 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-status-warning);
+}
+
+.member-access-logs__empty p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.member-access-logs__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.member-access-logs__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.member-access-logs__subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.member-access-logs__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.member-access-logs__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.member-access-logs__group-date {
+  font-family: var(--font-display);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+  margin: 0;
+  letter-spacing: 0.5px;
+  padding-left: var(--space-1);
+}
+
+.member-access-logs__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.member-access-logs__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background-color: var(--color-dark-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-base) ease, transform var(--transition-base) ease;
+}
+
+.member-access-logs__card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.member-access-logs__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--radius-full);
+  background-color: rgba(34, 197, 94, 0.1);
+  color: var(--color-status-active);
+  font-size: var(--font-size-lg);
+  border: 1px solid var(--color-status-active);
+}
+
+.member-access-logs__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.member-access-logs__card-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.member-access-logs__card-time {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+  letter-spacing: 0.5px;
+}
+
+.member-access-logs__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.member-access-logs__page-btn {
+  background-color: var(--color-dark-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-base) ease, background-color var(--transition-base) ease;
+}
+
+.member-access-logs__page-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.member-access-logs__page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.member-access-logs__page-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .member-access-logs__list {
+    grid-template-columns: 1fr;
+  }
+
+  .member-access-logs__title {
+    font-size: var(--font-size-2xl);
+  }
+}

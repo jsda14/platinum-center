@@ -33,6 +33,7 @@ import {
   calculateGroupPricingSummary
 } from '../../../domain/member/groupPricing.utils';
 import { formatDate, formatDateTime } from '@/utils/date';
+import dayjs from 'dayjs';
 import styles from './AdminPayments.module.css';
 
 // Methods and status mapping
@@ -66,6 +67,9 @@ export function AdminPayments() {
   // Filters
   const [methodFilter, setMethodFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>(''); // 'today', 'week', 'month'
+  const [page, setPage] = useState<number>(1);
+  const [totalPayments, setTotalPayments] = useState<number>(0);
+  const pageSize = 10;
 
   // Modal
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
@@ -82,31 +86,78 @@ export function AdminPayments() {
   // Success details modal
   const [successPayment, setSuccessPayment] = useState<Payment | null>(null);
 
-  const loadData = async () => {
+  // Convierte el preset de fecha ('today'/'week'/'month') a date_from/date_to
+  // para mandarlos al backend, que ahora filtra en la query en vez de en el navegador.
+  const getDateRangeFromFilter = (): { date_from?: string; date_to?: string } => {
+    const today = dayjs();
+    if (dateFilter === 'today') {
+      return { date_from: today.format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') };
+    }
+    if (dateFilter === 'week') {
+      return { date_from: today.subtract(6, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') };
+    }
+    if (dateFilter === 'month') {
+      return { date_from: today.startOf('month').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') };
+    }
+    return {};
+  };
+
+  const loadPayments = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [paymentsData, membersData, plansData, pricingData] = await Promise.all([
-        adminRepository.getPayments(),
-        adminRepository.getMembers(),
-        getActivePlans(),
-        adminRepository.getGroupPricing()
-      ]);
-      setPayments(paymentsData);
-      setMembers(membersData);
-      setActivePlans(plansData);
-      setGroupPricing(pricingData);
+      const { date_from, date_to } = getDateRangeFromFilter();
+      const response = await adminRepository.getPaymentsPaginated({
+        method: methodFilter || undefined,
+        date_from,
+        date_to,
+        page,
+        page_size: pageSize
+      });
+      setPayments(response.payments);
+      setTotalPayments(response.total);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al cargar los datos';
+      const msg = err instanceof Error ? err.message : 'Error al cargar los pagos';
       setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Datos de soporte (miembros completos, planes, precios grupales) — no dependen
+  // de los filtros/página de la tabla de pagos, así que se cargan aparte.
+  const loadStaticData = async () => {
+    try {
+      const [membersData, plansData, pricingData] = await Promise.all([
+        adminRepository.getMembers(),
+        getActivePlans(),
+        adminRepository.getGroupPricing()
+      ]);
+      setMembers(membersData);
+      setActivePlans(plansData);
+      setGroupPricing(pricingData);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al cargar los datos';
+      setError(msg);
+    }
+  };
+
+  const loadData = async () => {
+    await Promise.all([loadPayments(), loadStaticData()]);
+  };
+
+  // Miembros/planes/precios se cargan una sola vez al montar (no dependen de
+  // los filtros ni de la página de la tabla de pagos).
   useEffect(() => {
-    loadData();
+    loadStaticData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pagos: se recargan al montar y cada vez que cambia la página o los filtros.
+  useEffect(() => {
+    loadPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, methodFilter, dateFilter]);
 
   const { minPersons, maxPersons } = getGroupPricingBounds(groupPricing);
   const groupSummary = calculateGroupPricingSummary(groupPricing, selectedGroupMemberIds.length);
@@ -215,38 +266,8 @@ export function AdminPayments() {
     }
   };
 
-  // Local filtering logic
-  const filteredPayments = payments.filter((payment) => {
-    // 1. Method filter
-    if (methodFilter && payment.method !== methodFilter) {
-      return false;
-    }
-
-    // 2. Date filter
-    if (dateFilter) {
-      const paymentDate = new Date(payment.payment_date);
-      const today = new Date();
-
-      if (dateFilter === 'today') {
-        return paymentDate.toDateString() === today.toDateString();
-      }
-
-      if (dateFilter === 'week') {
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(today.getDate() - 7);
-        return paymentDate >= oneWeekAgo;
-      }
-
-      if (dateFilter === 'month') {
-        return (
-          paymentDate.getMonth() === today.getMonth() &&
-          paymentDate.getFullYear() === today.getFullYear()
-        );
-      }
-    }
-
-    return true;
-  });
+  // El filtrado por método/fecha ahora lo hace el backend (getPaymentsPaginated);
+  // `payments` ya viene filtrado y paginado desde la API.
 
   const columns = [
     {
@@ -361,7 +382,7 @@ export function AdminPayments() {
           <Select
             placeholder="Filtrar por método"
             value={methodFilter}
-            onChange={(val) => setMethodFilter(val)}
+            onChange={(val) => { setMethodFilter(val); setPage(1); }}
             className={styles['admin-payments__filter-select']}
             allowClear
           >
@@ -376,7 +397,7 @@ export function AdminPayments() {
           <Select
             placeholder="Filtrar por fecha"
             value={dateFilter}
-            onChange={(val) => setDateFilter(val)}
+            onChange={(val) => { setDateFilter(val); setPage(1); }}
             className={styles['admin-payments__filter-select']}
             allowClear
           >
@@ -409,20 +430,26 @@ export function AdminPayments() {
               Intentar de nuevo
             </Button>
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : payments.length === 0 ? (
           <div className={styles['admin-payments__empty-container']}>
             <Empty description={<span style={{ color: 'var(--color-text-secondary)' }}>No se registraron pagos con los filtros seleccionados.</span>} />
           </div>
         ) : (
           <div className={styles['admin-payments__table-wrapper']}>
+            <div className={styles['admin-payments__page-indicator']}>
+              Página {page} de {Math.max(1, Math.ceil(totalPayments / pageSize))} · {totalPayments} pagos
+            </div>
             <Table
-              dataSource={filteredPayments}
+              dataSource={payments}
               columns={columns}
               rowKey="id"
               pagination={{
-                pageSize: 10,
+                current: page,
+                pageSize,
+                total: totalPayments,
                 showSizeChanger: false,
-                position: ['bottomCenter']
+                position: ['topCenter', 'bottomCenter'],
+                onChange: (p) => setPage(p),
               }}
             />
           </div>

@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
+from src.infrastructure.supabase.auth import get_current_user_id, get_current_user_role
 
 router = APIRouter(tags=["admin_communications"])
 
@@ -15,36 +16,14 @@ class SendCommunicationRequest(BaseModel):
     recipient_type: str  # 'all' | 'active' | 'expired' | 'expiring_soon'
 
 def get_current_user_and_role(authorization: Optional[str]):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falta el token de autorización o el formato es incorrecto"
-        )
-    token = authorization.split(" ")[1]
-    try:
-        user_res = supabase_client.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token de Supabase inválido o expirado"
-            )
-        
-        user_id = user_res.user.id
-        
-        # Buscar el rol en profiles
-        profile_res = supabase_client.table("profiles").select("role").eq("id", user_id).execute()
-        if not profile_res.data:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="El perfil de usuario no existe en la base de datos"
-            )
-        
-        return user_id, profile_res.data[0]["role"]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token inválido o error al verificar permisos: {str(e)}"
-        )
+    """
+    Antes tenía su propia copia de la validación lenta (auth.get_user() por
+    request). Ahora reutiliza get_current_user_id/get_current_user_role de
+    src.infrastructure.supabase.auth, que verifican el JWT localmente.
+    """
+    user_id = get_current_user_id(authorization)
+    role = get_current_user_role(authorization)
+    return user_id, role
 
 @router.post("/admin/send-communication")
 async def send_communication(

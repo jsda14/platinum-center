@@ -10,7 +10,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from src.infrastructure.supabase import supabase_client
-from src.infrastructure.supabase.auth import get_current_user
+from src.infrastructure.supabase.auth import get_current_user, get_current_user_role
 from src.infrastructure.zkteco.tunnel_client import activate_member
 from src.domain.member.schemas import GroupPaymentAdminRequest
 
@@ -29,38 +29,6 @@ class CreateMemberRequest(BaseModel):
     end_date: Optional[str] = None     # YYYY-MM-DD; si no se envía, se calcula por plan
     initial_days_used: Optional[int] = None
     splits: Optional[list[dict]] = None
-
-def get_current_user_role(authorization: Optional[str]) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falta el token de autorización o el formato es incorrecto"
-        )
-    token = authorization.split(" ")[1]
-    try:
-        user_res = supabase_client.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token de Supabase inválido o expirado"
-            )
-        
-        user_id = user_res.user.id
-        
-        # Buscar el rol en profiles
-        profile_res = supabase_client.table("profiles").select("role").eq("id", user_id).execute()
-        if not profile_res.data:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="El perfil de usuario no existe en la base de datos"
-            )
-        
-        return profile_res.data[0]["role"]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token inválido o error al verificar permisos: {str(e)}"
-        )
 
 @router.post("/admin/members/create")
 async def create_member(
@@ -603,19 +571,58 @@ async def suspend_member(
 
 
 @router.get("/admin/payments")
-async def get_payments(authorization: Optional[str] = Header(None)):
-    """Historial general de pagos con datos del miembro y perfil."""
+async def get_payments(
+    authorization: Optional[str] = Header(None),
+    method: Optional[str] = None,
+    date_from: Optional[str] = None,   # YYYY-MM-DD, hora local Bogotá
+    date_to: Optional[str] = None,     # YYYY-MM-DD, hora local Bogotá
+    page: int = 1,
+    page_size: int = 50
+):
+    """
+    Historial general de pagos con datos del miembro y perfil.
+
+    Antes traía la tabla completa en cada carga (sin límite) y el filtro de
+    método/fecha se hacía en el navegador. Ahora pagina y filtra en la query,
+    mismo patrón que /admin/access-logs.
+    """
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
-    
+
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 50
+
     try:
-        res = supabase_client.table("payments")\
-            .select("*, members(id, profiles:profile_id(full_name, email)), payment_splits(method, amount)")\
-            .order("payment_date", desc=True)\
-            .execute()
-        
-        return {"payments": res.data or []}
+        query = supabase_client.table("payments").select(
+            "*, members(id, profiles:profile_id(full_name, email)), payment_splits(method, amount)",
+            count="exact"
+        )
+
+        if method:
+            query = query.eq("method", method)
+
+        bogota_tz = timezone(timedelta(hours=-5))
+        if date_from:
+            start_bogota = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=bogota_tz)
+            query = query.gte("payment_date", start_bogota.astimezone(timezone.utc).isoformat())
+        if date_to:
+            end_bogota = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=bogota_tz) + timedelta(days=1) - timedelta(seconds=1)
+            query = query.lte("payment_date", end_bogota.astimezone(timezone.utc).isoformat())
+
+        offset = (page - 1) * page_size
+        query = query.order("payment_date", desc=True).range(offset, offset + page_size - 1)
+
+        res = query.execute()
+
+        return {
+            "payments": res.data or [],
+            "total": res.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -629,23 +636,94 @@ async def get_payments(authorization: Optional[str] = Header(None)):
 @router.get("/admin/members")
 async def get_members(
     without_chip: bool = False,
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    page: Optional[int] = None,
+    page_size: int = 50,
     authorization: Optional[str] = Header(None)
 ):
-    """Listado de miembros con perfil. Filtro opcional: sin chip asignado."""
+    """
+    Listado de miembros con perfil.
+
+    Dos modos, según si se manda `page`:
+      - Sin `page` (compatibilidad hacia atrás): devuelve TODO el listado sin
+        paginar, igual que antes — lo sigue usando el selector de pago grupal,
+        que necesita ver/buscar entre todos los miembros a la vez.
+      - Con `page`: pagina y filtra en la base de datos (search por nombre,
+        email o chip; status_filter por estado, o 'no_chip' para activos sin
+        chip asignado). La usa la vista de listado de Gestión de Miembros,
+        que antes traía la tabla completa y filtraba en el navegador.
+    """
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
-    
+
     try:
-        query = supabase_client.table("members")\
-            .select("*, profiles:profile_id(full_name, email, phone)")
-        
-        if without_chip:
+        if page is None:
+            query = supabase_client.table("members")\
+                .select("*, profiles:profile_id(full_name, email, phone)")
+
+            if without_chip:
+                query = query.is_("card_no", "null").eq("status", "active")
+
+            res = query.order("created_at", desc=True).execute()
+
+            return {"members": res.data or []}
+
+        if page < 1:
+            page = 1
+        if page_size < 1 or page_size > 200:
+            page_size = 50
+
+        query = supabase_client.table("members").select(
+            "*, profiles:profile_id(full_name, email, phone)",
+            count="exact"
+        )
+
+        if status_filter == "no_chip":
             query = query.is_("card_no", "null").eq("status", "active")
-        
-        res = query.order("created_at", desc=True).execute()
-        
-        return {"members": res.data or []}
+        elif status_filter:
+            query = query.eq("status", status_filter)
+
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            # members no tiene nombre/email propios (viven en profiles), así que
+            # primero se resuelven los perfiles que matchean y se combinan con
+            # el filtro directo por card_no en una sola query a members.
+            profile_matches = supabase_client.table("profiles")\
+                .select("id")\
+                .or_(f"full_name.ilike.{term},email.ilike.{term}")\
+                .limit(500)\
+                .execute()
+            profile_ids = [p["id"] for p in (profile_matches.data or [])]
+
+            if profile_ids:
+                ids_str = ",".join(profile_ids)
+                query = query.or_(f"card_no.ilike.{term},profile_id.in.({ids_str})")
+            else:
+                query = query.ilike("card_no", term)
+
+        offset = (page - 1) * page_size
+        query = query.order("created_at", desc=True).range(offset, offset + page_size - 1)
+
+        res = query.execute()
+
+        # Conteo de "sin chip" independiente de la paginación/filtro actual,
+        # para que el badge en la UI no dependa de qué página esté cargada.
+        no_chip_res = supabase_client.table("members")\
+            .select("id", count="exact")\
+            .is_("card_no", "null")\
+            .eq("status", "active")\
+            .limit(1)\
+            .execute()
+
+        return {
+            "members": res.data or [],
+            "total": res.count or 0,
+            "page": page,
+            "page_size": page_size,
+            "without_chip_count": no_chip_res.count or 0
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -1407,6 +1485,41 @@ async def list_access_logs(
         end_bogota = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=bogota_tz) + timedelta(days=1) - timedelta(seconds=1)
         query = query.lte("timestamp", end_bogota.astimezone(timezone.utc).isoformat())
 
+    # El filtro por nombre no es una columna de access_logs (vive en profiles),
+    # así que se resuelve primero a member_id's y se aplica ANTES de pedir el
+    # conteo/paginación — si se filtrara después (en Python, sobre la página ya
+    # recortada), total/range quedarían calculados sobre TODAS las filas sin
+    # filtrar por nombre, dando una paginación que no corresponde a lo mostrado.
+    if name and name.strip():
+        name_term = f"%{name.strip()}%"
+        profile_matches = supabase_client.table("profiles")\
+            .select("id")\
+            .ilike("full_name", name_term)\
+            .limit(500)\
+            .execute()
+        profile_ids = [p["id"] for p in (profile_matches.data or [])]
+
+        matching_member_ids: list = []
+        if profile_ids:
+            members_matches = supabase_client.table("members")\
+                .select("id")\
+                .in_("profile_id", profile_ids)\
+                .execute()
+            matching_member_ids = [m["id"] for m in (members_matches.data or [])]
+
+        if not matching_member_ids:
+            # Ningún miembro matchea ese nombre: nada que traer, y evita
+            # mandar un .in_() vacío (que algunos backends interpretan raro).
+            return {
+                "status": "ok",
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "results": []
+            }
+
+        query = query.in_("member_id", matching_member_ids)
+
     offset = (page - 1) * page_size
     query = query.order("timestamp", desc=True).range(offset, offset + page_size - 1)
 
@@ -1448,8 +1561,6 @@ async def list_access_logs(
     results = []
     for r in rows:
         full_name = names_by_member.get(r.get("member_id"), "Desconocido")
-        if name and name.strip().lower() not in full_name.lower():
-            continue
 
         # Dedup: el inBio a veces dispara el mismo swipe dos veces en segundos.
         # Filas ya vienen ordenadas desc por timestamp, así que si la última

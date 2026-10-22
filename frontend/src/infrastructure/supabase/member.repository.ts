@@ -2,6 +2,19 @@ import { store } from '../store/store';
 import { supabase } from './client';
 import type { Member, MemberDayPass, Payment, Suggestion, GroupPricing, MemberGroup, ValidateEmailResponse } from '../../domain/member/member.types';
 
+export interface AccessLogEntryMember {
+  id: string;
+  event_type: string;
+  timestamp: string;
+}
+
+export interface AccessLogsPageResponse {
+  page: number;
+  page_size: number;
+  total: number;
+  results: AccessLogEntryMember[];
+}
+
 async function getAuthHeaders(): Promise<HeadersInit> {
   let token = store.getState().auth.accessToken;
   if (!token) {
@@ -97,6 +110,22 @@ export const memberRepository = {
 
     const data = await response.json();
     return (Array.isArray(data) ? data : []) as Payment[];
+  },
+
+  async getMyAccessLogs(page: number, pageSize: number): Promise<AccessLogsPageResponse> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${apiUrl}/members/me/access-logs?page=${page}&page_size=${pageSize}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al consultar historial de ingresos desde el servidor');
+    }
+
+    return (await response.json()) as AccessLogsPageResponse;
   },
 
   async createSuggestion(_memberId: string, message: string): Promise<Suggestion> {

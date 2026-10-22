@@ -49,6 +49,17 @@ export function formatDateTime(dateStr?: string | null): string {
   });
 }
 
+/** HH:mm — solo la hora, para listas donde la fecha ya se muestra agrupada aparte */
+export function formatTime(dateStr?: string | null): string {
+  if (!dateStr) return '--:--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString(LOCALE, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /** 20 de octubre de 2026 — para mensajes y sugerencias */
 export function formatDateLong(dateStr?: string | null): string {
   if (!dateStr) return 'Sin fecha';

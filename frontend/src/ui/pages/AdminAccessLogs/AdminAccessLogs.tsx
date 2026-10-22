@@ -41,13 +41,13 @@ export function AdminAccessLogs() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (overrides?: { card_no?: string; name?: string }) => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await adminRepository.getAccessLogs({
-        card_no: cardNoFilter || undefined,
-        name: nameFilter || undefined,
+        card_no: (overrides?.card_no ?? cardNoFilter) || undefined,
+        name: (overrides?.name ?? nameFilter) || undefined,
         event_type: (eventTypeFilter as any) || undefined,
         date_from: dateRange ? dateRange[0].format('YYYY-MM-DD') : undefined,
         date_to: dateRange ? dateRange[1].format('YYYY-MM-DD') : undefined,
@@ -69,13 +69,23 @@ export function AdminAccessLogs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, eventTypeFilter, dateRange]);
 
-  const handleTextFilterChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Nota: antes este handler llamaba a loadData() sin argumentos dentro del
+  // setTimeout, y loadData() leía cardNoFilter/nameFilter desde el closure
+  // capturado en el render anterior al de la última tecla — es decir, siempre
+  // un carácter atrasado respecto a lo que el usuario realmente escribió. Por
+  // eso una búsqueda exacta (card_no) casi nunca matcheaba. Ahora se pasa el
+  // valor recién tecleado (el de e.target.value, no el del estado de React)
+  // directo a loadData, evitando depender de un closure que puede estar viejo.
+  const handleTextFilterChange = (
+    key: 'card_no' | 'name',
+    setter: (v: string) => void
+  ) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setter(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      loadData();
+      loadData({ [key]: value });
     }, 400);
   };
 
@@ -141,7 +151,7 @@ export function AdminAccessLogs() {
           <Input
             placeholder="Buscar por card_no"
             value={cardNoFilter}
-            onChange={handleTextFilterChange(setCardNoFilter)}
+            onChange={handleTextFilterChange('card_no', setCardNoFilter)}
             className={styles['admin-access-logs__filter-input']}
             prefix={<SearchOutlined />}
             allowClear
@@ -150,7 +160,7 @@ export function AdminAccessLogs() {
           <Input
             placeholder="Buscar por nombre"
             value={nameFilter}
-            onChange={handleTextFilterChange(setNameFilter)}
+            onChange={handleTextFilterChange('name', setNameFilter)}
             className={styles['admin-access-logs__filter-input']}
             prefix={<SearchOutlined />}
             allowClear
@@ -189,7 +199,7 @@ export function AdminAccessLogs() {
           <Button
             type="default"
             icon={<ReloadOutlined />}
-            onClick={loadData}
+            onClick={() => { void loadData(); }}
             disabled={isLoading}
           >
             Refrescar
@@ -204,7 +214,7 @@ export function AdminAccessLogs() {
           <div className={styles['admin-access-logs__error-container']} role="alert">
             <h2 className={styles['admin-access-logs__error-title']}>Ocurrió un error</h2>
             <p className={styles['admin-access-logs__error-text']}>{error}</p>
-            <Button className={styles['admin-access-logs__btn-retry']} onClick={loadData}>
+            <Button className={styles['admin-access-logs__btn-retry']} onClick={() => { void loadData(); }}>
               Intentar de nuevo
             </Button>
           </div>
@@ -214,6 +224,9 @@ export function AdminAccessLogs() {
           </div>
         ) : (
           <div className={styles['admin-access-logs__table-wrapper']}>
+            <div className={styles['admin-access-logs__page-indicator']}>
+              Página {page} de {Math.max(1, Math.ceil(total / pageSize))} · {total} ingresos
+            </div>
             <Table
               dataSource={entries}
               columns={columns}
@@ -223,7 +236,7 @@ export function AdminAccessLogs() {
                 pageSize,
                 total,
                 showSizeChanger: false,
-                position: ['bottomCenter'],
+                position: ['topCenter', 'bottomCenter'],
                 onChange: (p) => setPage(p),
               }}
             />

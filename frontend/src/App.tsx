@@ -32,6 +32,7 @@ import { AdminClasses } from './ui/pages/AdminClasses/AdminClasses';
 import { MemberStore } from './ui/pages/MemberStore/MemberStore';
 import { MemberProgress } from './ui/pages/MemberProgress/MemberProgress';
 import { MemberClasses } from './ui/pages/MemberClasses/MemberClasses';
+import { MemberAccessLogs } from './ui/pages/MemberAccessLogs/MemberAccessLogs';
 import { MemberTrainer } from './ui/pages/MemberTrainer/MemberTrainer';
 
 import { useAppSelector } from './infrastructure/store/store';
@@ -218,6 +219,7 @@ export function App() {
         <Route path="payments" element={<MemberPayments />} />
         <Route path="suggestions" element={<MemberSuggestions />} />
         <Route path="renewal" element={<MemberRenewal />} />
+        <Route path="access-logs" element={<MemberAccessLogs />} />
         <Route path="payment-result" element={<PaymentResult />} />
         <Route path="settings" element={<MemberSettings />} />
       </Route>
