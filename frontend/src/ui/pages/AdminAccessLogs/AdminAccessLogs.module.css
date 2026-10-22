@@ -102,6 +102,37 @@
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
+/* Mismo estilo de paginación que Miembros y Pagos (fondo sólido en la
+   página activa, no solo un borde rojo del tema por defecto de AntD).
+   .ant-pagination-item va primero y .ant-pagination-item-active después:
+   ambas tienen la misma especificidad y el elemento activo trae las dos
+   clases a la vez, así que en CSS gana la que está más abajo — por eso el
+   orden importa. */
+.admin-access-logs__table-wrapper :global(.ant-pagination-item) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-pagination-item a) {
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-pagination-prev .ant-pagination-item-link),
+.admin-access-logs__table-wrapper :global(.ant-pagination-next .ant-pagination-item-link) {
+  background-color: var(--color-dark-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-pagination-item-active) {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-primary) !important;
+}
+
+.admin-access-logs__table-wrapper :global(.ant-pagination-item-active a) {
+  color: var(--color-text-primary) !important;
+}
+
 .admin-access-logs__loading-container,
 .admin-access-logs__error-container,
 .admin-access-logs__empty-container {
