@@ -1485,6 +1485,41 @@ async def list_access_logs(
         end_bogota = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=bogota_tz) + timedelta(days=1) - timedelta(seconds=1)
         query = query.lte("timestamp", end_bogota.astimezone(timezone.utc).isoformat())
 
+    # El filtro por nombre no es una columna de access_logs (vive en profiles),
+    # así que se resuelve primero a member_id's y se aplica ANTES de pedir el
+    # conteo/paginación — si se filtrara después (en Python, sobre la página ya
+    # recortada), total/range quedarían calculados sobre TODAS las filas sin
+    # filtrar por nombre, dando una paginación que no corresponde a lo mostrado.
+    if name and name.strip():
+        name_term = f"%{name.strip()}%"
+        profile_matches = supabase_client.table("profiles")\
+            .select("id")\
+            .ilike("full_name", name_term)\
+            .limit(500)\
+            .execute()
+        profile_ids = [p["id"] for p in (profile_matches.data or [])]
+
+        matching_member_ids: list = []
+        if profile_ids:
+            members_matches = supabase_client.table("members")\
+                .select("id")\
+                .in_("profile_id", profile_ids)\
+                .execute()
+            matching_member_ids = [m["id"] for m in (members_matches.data or [])]
+
+        if not matching_member_ids:
+            # Ningún miembro matchea ese nombre: nada que traer, y evita
+            # mandar un .in_() vacío (que algunos backends interpretan raro).
+            return {
+                "status": "ok",
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "results": []
+            }
+
+        query = query.in_("member_id", matching_member_ids)
+
     offset = (page - 1) * page_size
     query = query.order("timestamp", desc=True).range(offset, offset + page_size - 1)
 
@@ -1526,8 +1561,6 @@ async def list_access_logs(
     results = []
     for r in rows:
         full_name = names_by_member.get(r.get("member_id"), "Desconocido")
-        if name and name.strip().lower() not in full_name.lower():
-            continue
 
         # Dedup: el inBio a veces dispara el mismo swipe dos veces en segundos.
         # Filas ya vienen ordenadas desc por timestamp, así que si la última
