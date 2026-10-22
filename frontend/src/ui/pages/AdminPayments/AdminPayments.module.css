@@ -129,15 +129,6 @@
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
-.admin-payments__table-wrapper :global(.ant-pagination-item-active) {
-  border-color: var(--color-primary) !important;
-  background-color: var(--color-primary) !important;
-}
-
-.admin-payments__table-wrapper :global(.ant-pagination-item-active a) {
-  color: var(--color-text-primary) !important;
-}
-
 .admin-payments__table-wrapper :global(.ant-pagination-item) {
   background-color: var(--color-dark-elevated) !important;
   border-color: var(--color-border) !important;
@@ -145,6 +136,20 @@
 
 .admin-payments__table-wrapper :global(.ant-pagination-item a) {
   color: var(--color-text-secondary) !important;
+}
+
+/* Misma especificidad que .ant-pagination-item de arriba (una sola clase
+   cada una) — como el elemento activo trae AMBAS clases a la vez, en CSS
+   gana la regla que está más abajo en el archivo. Por eso esta va después:
+   si quedara antes, el estilo "normal" de arriba la tapa y la página activa
+   nunca se ve resaltada. */
+.admin-payments__table-wrapper :global(.ant-pagination-item-active) {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-primary) !important;
+}
+
+.admin-payments__table-wrapper :global(.ant-pagination-item-active a) {
+  color: var(--color-text-primary) !important;
 }
 
 .admin-payments__table-wrapper :global(.ant-pagination-prev .ant-pagination-item-link),
