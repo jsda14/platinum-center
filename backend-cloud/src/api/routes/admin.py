@@ -603,19 +603,58 @@ async def suspend_member(
 
 
 @router.get("/admin/payments")
-async def get_payments(authorization: Optional[str] = Header(None)):
-    """Historial general de pagos con datos del miembro y perfil."""
+async def get_payments(
+    authorization: Optional[str] = Header(None),
+    method: Optional[str] = None,
+    date_from: Optional[str] = None,   # YYYY-MM-DD, hora local Bogotá
+    date_to: Optional[str] = None,     # YYYY-MM-DD, hora local Bogotá
+    page: int = 1,
+    page_size: int = 50
+):
+    """
+    Historial general de pagos con datos del miembro y perfil.
+
+    Antes traía la tabla completa en cada carga (sin límite) y el filtro de
+    método/fecha se hacía en el navegador. Ahora pagina y filtra en la query,
+    mismo patrón que /admin/access-logs.
+    """
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
-    
+
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 50
+
     try:
-        res = supabase_client.table("payments")\
-            .select("*, members(id, profiles:profile_id(full_name, email)), payment_splits(method, amount)")\
-            .order("payment_date", desc=True)\
-            .execute()
-        
-        return {"payments": res.data or []}
+        query = supabase_client.table("payments").select(
+            "*, members(id, profiles:profile_id(full_name, email)), payment_splits(method, amount)",
+            count="exact"
+        )
+
+        if method:
+            query = query.eq("method", method)
+
+        bogota_tz = timezone(timedelta(hours=-5))
+        if date_from:
+            start_bogota = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=bogota_tz)
+            query = query.gte("payment_date", start_bogota.astimezone(timezone.utc).isoformat())
+        if date_to:
+            end_bogota = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=bogota_tz) + timedelta(days=1) - timedelta(seconds=1)
+            query = query.lte("payment_date", end_bogota.astimezone(timezone.utc).isoformat())
+
+        offset = (page - 1) * page_size
+        query = query.order("payment_date", desc=True).range(offset, offset + page_size - 1)
+
+        res = query.execute()
+
+        return {
+            "payments": res.data or [],
+            "total": res.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -629,23 +668,94 @@ async def get_payments(authorization: Optional[str] = Header(None)):
 @router.get("/admin/members")
 async def get_members(
     without_chip: bool = False,
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    page: Optional[int] = None,
+    page_size: int = 50,
     authorization: Optional[str] = Header(None)
 ):
-    """Listado de miembros con perfil. Filtro opcional: sin chip asignado."""
+    """
+    Listado de miembros con perfil.
+
+    Dos modos, según si se manda `page`:
+      - Sin `page` (compatibilidad hacia atrás): devuelve TODO el listado sin
+        paginar, igual que antes — lo sigue usando el selector de pago grupal,
+        que necesita ver/buscar entre todos los miembros a la vez.
+      - Con `page`: pagina y filtra en la base de datos (search por nombre,
+        email o chip; status_filter por estado, o 'no_chip' para activos sin
+        chip asignado). La usa la vista de listado de Gestión de Miembros,
+        que antes traía la tabla completa y filtraba en el navegador.
+    """
     role = get_current_user_role(authorization)
     if role not in ["super_admin", "receptionist"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
-    
+
     try:
-        query = supabase_client.table("members")\
-            .select("*, profiles:profile_id(full_name, email, phone)")
-        
-        if without_chip:
+        if page is None:
+            query = supabase_client.table("members")\
+                .select("*, profiles:profile_id(full_name, email, phone)")
+
+            if without_chip:
+                query = query.is_("card_no", "null").eq("status", "active")
+
+            res = query.order("created_at", desc=True).execute()
+
+            return {"members": res.data or []}
+
+        if page < 1:
+            page = 1
+        if page_size < 1 or page_size > 200:
+            page_size = 50
+
+        query = supabase_client.table("members").select(
+            "*, profiles:profile_id(full_name, email, phone)",
+            count="exact"
+        )
+
+        if status_filter == "no_chip":
             query = query.is_("card_no", "null").eq("status", "active")
-        
-        res = query.order("created_at", desc=True).execute()
-        
-        return {"members": res.data or []}
+        elif status_filter:
+            query = query.eq("status", status_filter)
+
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            # members no tiene nombre/email propios (viven en profiles), así que
+            # primero se resuelven los perfiles que matchean y se combinan con
+            # el filtro directo por card_no en una sola query a members.
+            profile_matches = supabase_client.table("profiles")\
+                .select("id")\
+                .or_(f"full_name.ilike.{term},email.ilike.{term}")\
+                .limit(500)\
+                .execute()
+            profile_ids = [p["id"] for p in (profile_matches.data or [])]
+
+            if profile_ids:
+                ids_str = ",".join(profile_ids)
+                query = query.or_(f"card_no.ilike.{term},profile_id.in.({ids_str})")
+            else:
+                query = query.ilike("card_no", term)
+
+        offset = (page - 1) * page_size
+        query = query.order("created_at", desc=True).range(offset, offset + page_size - 1)
+
+        res = query.execute()
+
+        # Conteo de "sin chip" independiente de la paginación/filtro actual,
+        # para que el badge en la UI no dependa de qué página esté cargada.
+        no_chip_res = supabase_client.table("members")\
+            .select("id", count="exact")\
+            .is_("card_no", "null")\
+            .eq("status", "active")\
+            .limit(1)\
+            .execute()
+
+        return {
+            "members": res.data or [],
+            "total": res.count or 0,
+            "page": page,
+            "page_size": page_size,
+            "without_chip_count": no_chip_res.count or 0
+        }
     except HTTPException:
         raise
     except Exception as e:

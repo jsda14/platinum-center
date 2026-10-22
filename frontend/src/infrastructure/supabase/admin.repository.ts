@@ -63,6 +63,36 @@ export interface AssignChipData {
   sn?: string;
 }
 
+export interface MembersPageFilters {
+  search?: string;
+  status_filter?: 'active' | 'expired' | 'suspended' | 'no_chip' | '';
+  page: number;
+  page_size?: number;
+}
+
+export interface MembersPageResponse {
+  members: MemberWithProfile[];
+  total: number;
+  page: number;
+  page_size: number;
+  without_chip_count: number;
+}
+
+export interface PaymentsPageFilters {
+  method?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+  page: number;
+  page_size?: number;
+}
+
+export interface PaymentsPageResponse {
+  payments: any[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface AccessLogsFilters {
   card_no?: string;
   name?: string;
@@ -136,6 +166,28 @@ export const adminRepository = {
 
     const data = await response.json();
     return (data.members || []) as MemberWithProfile[];
+  },
+
+  async getMembersPaginated(filters: MembersPageFilters): Promise<MembersPageResponse> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status_filter) params.set('status_filter', filters.status_filter);
+    params.set('page', String(filters.page));
+    params.set('page_size', String(filters.page_size ?? 50));
+
+    const response = await fetch(`${apiUrl}/admin/members?${params.toString()}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener miembros');
+    }
+
+    return (await response.json()) as MembersPageResponse;
   },
 
   async searchMembersAndProfiles(query: string): Promise<SearchResult[]> {
@@ -296,6 +348,29 @@ export const adminRepository = {
 
     const data = await response.json();
     return (data.payments || []) as any[];
+  },
+
+  async getPaymentsPaginated(filters: PaymentsPageFilters): Promise<PaymentsPageResponse> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const params = new URLSearchParams();
+    if (filters.method) params.set('method', filters.method);
+    if (filters.date_from) params.set('date_from', filters.date_from);
+    if (filters.date_to) params.set('date_to', filters.date_to);
+    params.set('page', String(filters.page));
+    params.set('page_size', String(filters.page_size ?? 50));
+
+    const response = await fetch(`${apiUrl}/admin/payments?${params.toString()}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al obtener pagos');
+    }
+
+    return (await response.json()) as PaymentsPageResponse;
   },
 
   async getAccessLogs(filters: AccessLogsFilters): Promise<AccessLogsResponse> {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -66,10 +66,11 @@ export function AdminMembers() {
   // Search & Filter states
   const [searchText, setSearchText] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
-
-  const membersWithoutChipCount = members.filter(
-    (item) => !item.card_no && item.status === 'active'
-  ).length;
+  const [page, setPage] = useState<number>(1);
+  const [totalMembers, setTotalMembers] = useState<number>(0);
+  const [membersWithoutChipCount, setMembersWithoutChipCount] = useState<number>(0);
+  const pageSize = 10;
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Modals states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -80,17 +81,21 @@ export function AdminMembers() {
   const selectedPlan = Form.useWatch('plan', createForm);
   const watchedEmail = Form.useWatch('email', createForm);
 
-  // Load members data
-  const loadData = async () => {
+  // Listado de miembros: pagina y filtra (nombre/email/chip, estado) en el backend.
+  // Antes traía la tabla completa y filtraba en el navegador en cada tecla.
+  const loadMembers = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [membersData, plansData] = await Promise.all([
-        getMembers(),
-        getActivePlans()
-      ]);
-      setMembers(membersData);
-      setActivePlans(plansData);
+      const response = await adminRepository.getMembersPaginated({
+        search: searchText || undefined,
+        status_filter: (statusFilter as any) || undefined,
+        page,
+        page_size: pageSize
+      });
+      setMembers(response.members);
+      setTotalMembers(response.total);
+      setMembersWithoutChipCount(response.without_chip_count);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al cargar los datos';
       setError(msg);
@@ -99,9 +104,42 @@ export function AdminMembers() {
     }
   };
 
+  // Planes activos: no dependen de filtros/página, se cargan una sola vez.
+  const loadStaticData = async () => {
+    try {
+      const plansData = await getActivePlans();
+      setActivePlans(plansData);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al cargar los datos';
+      setError(msg);
+    }
+  };
+
+  // Recarga todo (miembros + planes) — la usan "Recargar" y los flujos de
+  // crear/suspender miembro, que pueden cambiar tanto el listado como los planes.
+  const loadData = async () => {
+    await Promise.all([loadMembers(), loadStaticData()]);
+  };
+
   useEffect(() => {
-    loadData();
+    loadStaticData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    loadMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, statusFilter]);
+
+  const handleSearchTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchText(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setPage(1);
+      loadMembers();
+    }, 400);
+  };
 
   // Suggestions for pricing based on chosen plan in create mode
   const handleCreatePlanChange = (val: string) => {
@@ -173,25 +211,8 @@ export function AdminMembers() {
     }
   };
 
-  // Filtering local list logic
-  const filteredData = members.filter((item) => {
-    const fullName = item.profiles?.full_name || '';
-    const email = item.profiles?.email || '';
-    const cardNo = item.card_no || '';
-    const query = searchText.toLowerCase();
-    const matchesSearch =
-      fullName.toLowerCase().includes(query) ||
-      email.toLowerCase().includes(query) ||
-      cardNo.toLowerCase().includes(query);
-
-    let matchesStatus = true;
-    if (statusFilter === 'no_chip') {
-      matchesStatus = !item.card_no && item.status === 'active';
-    } else if (statusFilter) {
-      matchesStatus = item.status === statusFilter;
-    }
-    return matchesSearch && matchesStatus;
-  });
+  // El filtrado por nombre/email/chip y por estado ahora lo hace el backend
+  // (getMembersPaginated); `members` ya viene filtrado y paginado desde la API.
 
   // Table columns definition
   const columns = [
@@ -326,7 +347,7 @@ export function AdminMembers() {
             placeholder="Buscar por nombre, email o chip..."
             prefix={<SearchOutlined />}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={handleSearchTextChange}
             className={styles['admin-members__search-input']}
             allowClear
           />
@@ -334,7 +355,7 @@ export function AdminMembers() {
             <Select
               placeholder="Filtrar por estado"
               value={statusFilter}
-              onChange={(val) => setStatusFilter(val)}
+              onChange={(val) => { setStatusFilter(val); setPage(1); }}
               className={styles['admin-members__status-select']}
               allowClear
             >
@@ -377,7 +398,7 @@ export function AdminMembers() {
               Intentar de nuevo
             </Button>
           </div>
-        ) : filteredData.length === 0 ? (
+        ) : members.length === 0 ? (
           <div className={styles['admin-members__empty-container']}>
             <Empty
               description={
@@ -392,6 +413,11 @@ export function AdminMembers() {
                 onClick={() => {
                   setSearchText('');
                   setStatusFilter('');
+                  setPage(1);
+                  // loadMembers() corre solo (vía el useEffect de page/statusFilter)
+                  // cuando cambia statusFilter; para searchText hay que forzarlo
+                  // porque ese filtro se recarga por debounce, no por efecto.
+                  setTimeout(() => loadMembers(), 0);
                 }}
                 className={styles['admin-members__empty-action-btn']}
               >
@@ -411,14 +437,17 @@ export function AdminMembers() {
         ) : (
           <div className={styles['admin-members__table-wrapper']}>
             <Table
-              dataSource={filteredData}
+              dataSource={members}
               columns={columns}
               rowKey="id"
               scroll={{ x: window.innerWidth < 768 ? undefined : 1000 }}
               pagination={{
-                pageSize: 10,
+                current: page,
+                pageSize,
+                total: totalMembers,
                 showSizeChanger: false,
-                position: ['bottomCenter']
+                position: ['bottomCenter'],
+                onChange: (p) => setPage(p),
               }}
               onRow={(record) => ({
                 onClick: () => {
