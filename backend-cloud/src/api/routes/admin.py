@@ -1372,14 +1372,18 @@ async def list_access_logs(
         count="exact"
     )
 
+    bogota_tz = timezone(timedelta(hours=-5))
+
     if card_no:
         query = query.eq("card_no", card_no)
     if event_type:
         query = query.eq("event_type", event_type)
     if date_from:
-        query = query.gte("timestamp", f"{date_from}T00:00:00")
+        start_bogota = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=bogota_tz)
+        query = query.gte("timestamp", start_bogota.astimezone(timezone.utc).isoformat())
     if date_to:
-        query = query.lte("timestamp", f"{date_to}T23:59:59")
+        end_bogota = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=bogota_tz) + timedelta(days=1) - timedelta(seconds=1)
+        query = query.lte("timestamp", end_bogota.astimezone(timezone.utc).isoformat())
 
     offset = (page - 1) * page_size
     query = query.order("timestamp", desc=True).range(offset, offset + page_size - 1)
@@ -1409,11 +1413,34 @@ async def list_access_logs(
             names_by_member[mid] = names_by_profile.get(pid, "Miembro")
 
     import json as _json
+
+    def _parse_ts(val):
+        try:
+            return datetime.fromisoformat((val or "").replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    DEDUP_WINDOW = timedelta(minutes=1)
+    last_kept_ts_by_key: dict = {}
+
     results = []
     for r in rows:
         full_name = names_by_member.get(r.get("member_id"), "Desconocido")
         if name and name.strip().lower() not in full_name.lower():
             continue
+
+        # Dedup: el inBio a veces dispara el mismo swipe dos veces en segundos.
+        # Filas ya vienen ordenadas desc por timestamp, así que si la última
+        # fila que dejamos pasar para esta card+evento quedó a menos de 1
+        # minuto de esta, se descarta por ser el mismo swipe duplicado.
+        dedup_key = (r.get("card_no"), r.get("event_type"))
+        current_ts = _parse_ts(r.get("timestamp"))
+        last_kept_ts = last_kept_ts_by_key.get(dedup_key)
+        if current_ts and last_kept_ts and (last_kept_ts - current_ts) < DEDUP_WINDOW:
+            continue
+        if current_ts:
+            last_kept_ts_by_key[dedup_key] = current_ts
+
         zkteco_user_id = None
         sn = None
         try:

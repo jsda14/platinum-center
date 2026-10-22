@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
@@ -7,6 +8,29 @@ from src.infrastructure.supabase import supabase_client
 from src.infrastructure.zkteco.tunnel_client import deactivate_member
 
 router = APIRouter(prefix="/zkteco", tags=["zkteco"])
+
+BOGOTA_TZ = timezone(timedelta(hours=-5))
+
+
+def parse_device_timestamp_to_utc_iso(raw: str) -> str:
+    """
+    El inBio manda la hora como texto plano sin zona horaria, ej.
+    "2026-10-22 13:17:00" — es la hora local de Bogotá tal cual el
+    reloj del dispositivo. Si se inserta así en una columna timestamptz,
+    Postgres la interpreta como UTC (no hay offset en el string), lo
+    que corre todo 5 horas hacia atrás al mostrarla convertida a hora
+    local. Acá se interpreta explícitamente como Bogotá y se convierte
+    a UTC antes de guardar, para que quede correcta de origen.
+    """
+    try:
+        naive = datetime.strptime(raw.strip(), "%Y-%m-%d %H:%M:%S")
+        bogota_aware = naive.replace(tzinfo=BOGOTA_TZ)
+        return bogota_aware.astimezone(timezone.utc).isoformat()
+    except Exception:
+        # Si el formato no calza, se guarda tal cual llegó en vez de
+        # reventar el request — mejor un dato sin convertir que perderlo.
+        return raw
+
 
 class AccessEventRequest(BaseModel):
     card_no: str
@@ -34,6 +58,9 @@ async def access_event(
             detail="No autorizado"
         )
 
+    # Convertir la hora del dispositivo (naive, hora Bogotá) a UTC real antes de usarla
+    utc_timestamp = parse_device_timestamp_to_utc_iso(data.timestamp)
+
     # Busca en Supabase el miembro por card_no
     normalized_card = data.card_no.lstrip("0") or "0"
     member_res = supabase_client.table("members")\
@@ -59,7 +86,7 @@ async def access_event(
                     "member_id": member_id,
                     "card_no": data.card_no,
                     "event_type": "denied",
-                    "timestamp": data.timestamp,
+                    "timestamp": utc_timestamp,
                     "raw_payload": json.dumps(data.dict())
                 }).execute()
 
@@ -82,14 +109,24 @@ async def access_event(
 
         event_type = "granted"
 
-        # Extraer fecha (YYYY-MM-DD) y verificar si ya existe una entrada granted hoy
+        # Día calendario en Bogotá (del timestamp crudo del dispositivo, que ya
+        # viene en hora local) y su rango equivalente en UTC, para comparar
+        # contra access_logs.timestamp que ahora se guarda en UTC real.
         day_str = data.timestamp[:10]
+        try:
+            day_start_bogota = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=BOGOTA_TZ)
+        except Exception:
+            day_start_bogota = datetime.now(BOGOTA_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end_bogota = day_start_bogota + timedelta(days=1) - timedelta(seconds=1)
+        day_start_utc = day_start_bogota.astimezone(timezone.utc).isoformat()
+        day_end_utc = day_end_bogota.astimezone(timezone.utc).isoformat()
+
         existing_logs = supabase_client.table("access_logs")\
             .select("id")\
             .eq("member_id", member_id)\
             .eq("event_type", "granted")\
-            .gte("timestamp", f"{day_str}T00:00:00")\
-            .lte("timestamp", f"{day_str}T23:59:59")\
+            .gte("timestamp", day_start_utc)\
+            .lte("timestamp", day_end_utc)\
             .execute()
 
         already_entered_today = bool(existing_logs.data)
@@ -99,7 +136,7 @@ async def access_event(
             "member_id": member_id,
             "card_no": data.card_no,
             "event_type": "granted",
-            "timestamp": data.timestamp,
+            "timestamp": utc_timestamp,
             "raw_payload": json.dumps(data.dict())
         }).execute()
 
@@ -157,7 +194,7 @@ async def access_event(
             "member_id": None,
             "card_no": data.card_no,
             "event_type": "unknown",
-            "timestamp": data.timestamp,
+            "timestamp": utc_timestamp,
             "raw_payload": json.dumps(data.dict())
         }).execute()
 
