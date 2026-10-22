@@ -436,6 +436,9 @@ export function AdminPayments() {
           </div>
         ) : (
           <div className={styles['admin-payments__table-wrapper']}>
+            <div className={styles['admin-payments__page-indicator']}>
+              Página {page} de {Math.max(1, Math.ceil(totalPayments / pageSize))} · {totalPayments} pagos
+            </div>
             <Table
               dataSource={payments}
               columns={columns}
@@ -445,7 +448,7 @@ export function AdminPayments() {
                 pageSize,
                 total: totalPayments,
                 showSizeChanger: false,
-                position: ['bottomCenter'],
+                position: ['topCenter', 'bottomCenter'],
                 onChange: (p) => setPage(p),
               }}
             />

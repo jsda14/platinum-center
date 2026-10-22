@@ -436,6 +436,9 @@ export function AdminMembers() {
           </div>
         ) : (
           <div className={styles['admin-members__table-wrapper']}>
+            <div className={styles['admin-members__page-indicator']}>
+              Página {page} de {Math.max(1, Math.ceil(totalMembers / pageSize))} · {totalMembers} miembros
+            </div>
             <Table
               dataSource={members}
               columns={columns}
@@ -446,7 +449,7 @@ export function AdminMembers() {
                 pageSize,
                 total: totalMembers,
                 showSizeChanger: false,
-                position: ['bottomCenter'],
+                position: ['topCenter', 'bottomCenter'],
                 onChange: (p) => setPage(p),
               }}
               onRow={(record) => ({

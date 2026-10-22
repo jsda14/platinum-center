@@ -100,6 +100,13 @@
   overflow-x: auto;
 }
 
+.admin-payments__page-indicator {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
 /* Modificaciones estéticas de la tabla de Ant Design en tema oscuro */
 .admin-payments__table-wrapper :global(.ant-table) {
   background: transparent !important;
