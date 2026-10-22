@@ -561,13 +561,19 @@ export function AdminPayments() {
                 >
                   <Select
                     mode="multiple"
-                    placeholder={`Buscar y seleccionar de ${minPersons} a ${maxPersons} miembros...`}
-                    optionFilterProp="label"
+                    placeholder={`Buscar por nombre, email o número de chip...`}
                     maxCount={maxPersons}
                     onChange={(vals: string[]) => setSelectedGroupMemberIds(vals)}
+                    filterOption={(input, option: any) =>
+                      (option?.searchText || '').toLowerCase().includes(input.toLowerCase())
+                    }
                     options={members.map((m) => ({
                       value: m.id,
-                      label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})`
+                      label: `${m.profiles?.full_name || 'Sin nombre'} (${m.profiles?.email || 'sin email'})${m.card_no ? ` · Chip ${m.card_no}` : ''}`,
+                      // Texto usado solo para filtrar (no se muestra tal cual): incluye el
+                      // chip para que miembros sin correo (donde buscar por nombre puede
+                      // ser ambiguo) también se puedan encontrar por su número de chip.
+                      searchText: `${m.profiles?.full_name || ''} ${m.profiles?.email || ''} ${m.card_no || ''}`
                     }))}
                   />
                 </Form.Item>

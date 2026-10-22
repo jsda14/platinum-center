@@ -684,21 +684,43 @@ async def search_members_and_profiles(
             .limit(50)\
             .execute()
 
-        if not profiles_res.data:
+        # Buscar también por número de chip (card_no), independiente del nombre/email.
+        # Hay miembros sin correo (pagan en efectivo, nunca registran email) donde buscar
+        # solo por nombre puede ser ambiguo — el chip es el identificador inequívoco.
+        card_match_members_res = supabase_client.table("members")\
+            .select("id, profile_id, status, plan, card_no, zkteco_user_id, end_date")\
+            .ilike("card_no", query_term)\
+            .limit(50)\
+            .execute()
+        card_match_members = card_match_members_res.data or []
+
+        profile_ids = {p.get("id") for p in (profiles_res.data or [])}
+        # Perfiles encontrados por chip que no vinieron ya por nombre/email
+        extra_profile_ids = {m["profile_id"] for m in card_match_members if m.get("profile_id") not in profile_ids}
+
+        profiles_data = list(profiles_res.data or [])
+        if extra_profile_ids:
+            extra_profiles_res = supabase_client.table("profiles")\
+                .select("id, full_name, email, phone")\
+                .in_("id", list(extra_profile_ids))\
+                .execute()
+            profiles_data.extend(extra_profiles_res.data or [])
+
+        if not profiles_data:
             return {"results": []}
 
         # Traer todos los miembros asociados a estos perfiles en una sola consulta
         # (antes: 1 query por perfil dentro de un loop — N+1 y lento en la búsqueda)
-        profile_ids = [p.get("id") for p in profiles_res.data]
+        all_profile_ids = [p.get("id") for p in profiles_data]
         members_res = supabase_client.table("members")\
             .select("id, profile_id, status, plan, card_no, zkteco_user_id, end_date")\
-            .in_("profile_id", profile_ids)\
+            .in_("profile_id", all_profile_ids)\
             .execute()
 
         members_by_profile = {m["profile_id"]: m for m in (members_res.data or [])}
 
         results = []
-        for profile in profiles_res.data:
+        for profile in profiles_data:
             profile_id = profile.get("id")
             member_data = members_by_profile.get(profile_id)
 
