@@ -8,9 +8,11 @@ from src.domain.gym.services import calculate_gym_status
 logger = logging.getLogger(__name__)
 
 class GetGymStatusUseCase:
-    """Caso de uso: Consulta el estado del gimnasio (abierto/cerrado, minutos para cierre).
+    """
+    Caso de uso: Consulta el estado del gimnasio (abierto/cerrado, minutos para cierre).
     Orquesta la obtención del horario desde el repositorio y aplica las reglas de dominio.
-    No conoce detalles de FastAPI ni llamadas HTTP."""
+    No conoce detalles de FastAPI ni llamadas HTTP.
+    """
 
     def __init__(self, repository: GymConfigRepository):
         self._repository = repository
