@@ -530,10 +530,23 @@ async def update_member(
     if data.status is not None: member_updates["status"] = data.status
     if data.plan is not None: member_updates["plan"] = data.plan
     if data.start_date is not None: member_updates["start_date"] = data.start_date
-    if data.end_date is not None: 
+    if data.end_date is not None:
         member_updates["end_date"] = data.end_date
         member_updates["renewal_reminder_sent"] = False
         member_updates["expiration_day_notified"] = False
+        # Si el admin corrige el end_date a mano a una fecha futura y no mandó
+        # status explícito, reactivar — si no, queda con fechas futuras pero
+        # status="expired" de un vencimiento anterior, mostrando "VENCIDO" en
+        # el detalle del miembro aunque ya esté al día. Si el nuevo end_date
+        # sigue en el pasado, no se toca el status (data.status manda si vino).
+        if data.status is None:
+            try:
+                bogota_tz = timezone(timedelta(hours=-5))
+                today_bogota = datetime.now(bogota_tz).date()
+                if date.fromisoformat(data.end_date) >= today_bogota:
+                    member_updates["status"] = "active"
+            except ValueError:
+                pass
     if data.card_no is not None: member_updates["card_no"] = data.card_no
     if data.zkteco_user_id is not None: member_updates["zkteco_user_id"] = data.zkteco_user_id
     
