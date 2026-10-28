@@ -979,13 +979,23 @@ async def register_payment(
         except ValueError:
             raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
     elif member.get("status") == "active" and member.get("end_date"):
-        # Renovación anticipada: empieza desde donde termina el plan actual
+        # Renovación anticipada: empieza desde donde termina el plan actual —
+        # pero SOLO si ese plan actual todavía no venció. Si el end_date
+        # guardado ya quedó en el pasado (ej. status="active" desatrasado
+        # porque el cron de expiración no ha corrido todavía, o se corrigió
+        # a mano), sumarle los días desde ahí produce un "mes nuevo" que ya
+        # casi está vencido de entrada. En ese caso se calcula igual que a
+        # alguien sin membresía activa: desde hoy.
         try:
             current_end = datetime.fromisoformat(member["end_date"])
             if current_end.tzinfo is None:
                 current_end = current_end.replace(tzinfo=bogota_tz)
-            start_date = current_end.date().isoformat()
-            end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+            if current_end.date() >= now.date():
+                start_date = current_end.date().isoformat()
+                end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+            else:
+                start_date = now.date().isoformat()
+                end_date = (now + timedelta(days=duration_days)).date().isoformat()
         except Exception:
             start_date = now.date().isoformat()
             end_date = (now + timedelta(days=duration_days)).date().isoformat()
@@ -1141,12 +1151,18 @@ async def register_group_payment(
         member_info = member_res.data[0] if member_res.data else {}
 
         if member_info.get("status") == "active" and member_info.get("end_date"):
+            # Mismo criterio que en register_payment: solo extender desde el
+            # end_date guardado si ese plan todavía no venció.
             try:
                 current_end = datetime.fromisoformat(member_info["end_date"])
                 if current_end.tzinfo is None:
                     current_end = current_end.replace(tzinfo=bogota_tz)
-                start_date = current_end.date().isoformat()
-                end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+                if current_end.date() >= now.date():
+                    start_date = current_end.date().isoformat()
+                    end_date = (current_end + timedelta(days=duration_days)).date().isoformat()
+                else:
+                    start_date = now.date().isoformat()
+                    end_date = (now + timedelta(days=duration_days)).date().isoformat()
             except Exception:
                 start_date = now.date().isoformat()
                 end_date = (now + timedelta(days=duration_days)).date().isoformat()
