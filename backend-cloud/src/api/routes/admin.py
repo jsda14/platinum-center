@@ -270,15 +270,17 @@ async def assign_chip(
 
     # Validar que el card_no no esté asignado a otro miembro
     existing = supabase_client.table("members")\
-        .select("id")\
+        .select("id, profiles:profile_id(full_name)")\
         .eq("card_no", data.card_no)\
         .neq("id", data.member_id)\
         .execute()
 
     if existing.data:
+        owner_profile = existing.data[0].get("profiles") or {}
+        owner_name = owner_profile.get("full_name") or "otro miembro sin nombre registrado"
         raise HTTPException(
             status_code=400,
-            detail="Este chip ya está asignado a otro miembro"
+            detail=f"Este chip ya está asignado a {owner_name}"
         )
 
     member_res = supabase_client.table("members")\
