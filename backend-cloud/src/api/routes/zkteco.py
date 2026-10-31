@@ -32,6 +32,64 @@ def parse_device_timestamp_to_utc_iso(raw: str) -> str:
         return raw
 
 
+def _check_tunnel_secret(authorization: Optional[str]) -> None:
+    tunnel_secret = os.getenv("TUNNEL_SECRET")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Falta token de autorización o formato inválido"
+        )
+    token = authorization.split(" ")[1]
+    if token != tunnel_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autorizado"
+        )
+
+
+@router.get("/member-by-card/{card_no}")
+async def member_by_card(card_no: str, authorization: Optional[str] = Header(None)):
+    """
+    Usado por el Bridge para la auto-sanación en tiempo real: cuando el
+    dispositivo marca una tarjeta como "Usuario no registrado" pese a que
+    el miembro sigue activo, el Bridge consulta acá si vale la pena
+    reactivar el chip en caliente.
+    """
+    _check_tunnel_secret(authorization)
+
+    normalized_card = card_no.lstrip("0") or "0"
+    member_res = supabase_client.table("members")\
+        .select("id, profile_id, zkteco_user_id, card_no, status")\
+        .or_(f"card_no.eq.{card_no},card_no.eq.{normalized_card}")\
+        .execute()
+
+    if not member_res.data:
+        return {"found": False}
+
+    member = member_res.data[0]
+    if member.get("status") != "active":
+        return {"found": True, "active": False}
+
+    full_name = "Miembro"
+    profile_id = member.get("profile_id")
+    if profile_id:
+        profile_res = supabase_client.table("profiles")\
+            .select("full_name")\
+            .eq("id", profile_id)\
+            .execute()
+        if profile_res.data:
+            full_name = profile_res.data[0].get("full_name", "Miembro")
+
+    return {
+        "found": True,
+        "active": True,
+        "member_id": member["id"],
+        "zkteco_user_id": member.get("zkteco_user_id"),
+        "card_no": member.get("card_no"),
+        "full_name": full_name,
+    }
+
+
 class AccessEventRequest(BaseModel):
     card_no: str
     user_id: Optional[str] = None
@@ -45,18 +103,7 @@ async def access_event(
     authorization: Optional[str] = Header(None)
 ):
     # Validar el TUNNEL_SECRET
-    tunnel_secret = os.getenv("TUNNEL_SECRET")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falta token de autorización o formato inválido"
-        )
-    token = authorization.split(" ")[1]
-    if token != tunnel_secret:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No autorizado"
-        )
+    _check_tunnel_secret(authorization)
 
     # Convertir la hora del dispositivo (naive, hora Bogotá) a UTC real antes de usarla
     utc_timestamp = parse_device_timestamp_to_utc_iso(data.timestamp)
