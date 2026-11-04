@@ -10,7 +10,7 @@
 | SPEC | Nombre | Repo | Tipo | Estado | Rama |
 |---|---|---|---|---|---|
 | SPEC-001 | Pago manual con fecha de inicio futura (activación programada) | backend-cloud + frontend + supabase | Error + Feature | 🟢 DONE (mergeada a develop vía PR #18; pendiente deploy a Railway + alta en cron-job.org antes del 2026-12-10) | fix/SPEC-001-pago-manual-fecha-futura |
-| SPEC-002 | Visibilidad y edición de vigencias (inicio/fin) y pagos programados | backend-cloud + frontend | Feature | 🟣 IN REVIEW | feat/SPEC-002-visibilidad-vigencias-pagos |
+| SPEC-002 | Visibilidad y edición de vigencias (inicio/fin) y pagos programados | backend-cloud + frontend | Feature | 🟢 DONE (mergeada a develop vía PR #19) | feat/SPEC-002-visibilidad-vigencias-pagos |
 
 **Leyenda de estado:** 🔵 IN PROGRESS (SPEC redactada, pendiente aprobación o en ejecución) ·
 🟣 IN REVIEW (código listo, commit hecho, pendiente validación funcional) ·
