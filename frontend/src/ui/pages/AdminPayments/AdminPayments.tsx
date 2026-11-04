@@ -21,12 +21,12 @@ import {
   PlusOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { adminRepository, type MemberWithProfile } from '../../../infrastructure/supabase/admin.repository';
+import { adminRepository, type MemberWithProfile, type ManualPaymentResult } from '../../../infrastructure/supabase/admin.repository';
 import { registerManualPayment } from '../../../application/admin/registerManualPayment.usecase';
 import { registerGroupPayment } from '../../../application/admin/registerGroupPayment.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
-import type { Plan, Payment, PlanGroupPricing } from '../../../domain/member/member.types';
+import type { Plan, PlanGroupPricing } from '../../../domain/member/member.types';
 import {
   getGroupPricingBounds,
   findGroupPricingTier,
@@ -84,7 +84,7 @@ export function AdminPayments() {
   const [isSplitPayment, setIsSplitPayment] = useState<boolean>(false);
 
   // Success details modal
-  const [successPayment, setSuccessPayment] = useState<Payment | null>(null);
+  const [successPayment, setSuccessPayment] = useState<ManualPaymentResult | null>(null);
 
   // Convierte el preset de fecha ('today'/'week'/'month') a date_from/date_to
   // para mandarlos al backend, que ahora filtra en la query en vez de en el navegador.
@@ -797,6 +797,24 @@ export function AdminPayments() {
                   <strong>Nueva Fecha de Vencimiento:</strong> {successPayment.plan_end_date ? formatDate(successPayment.plan_end_date) : 'No especificada'}
                 </p>
               </div>
+              {successPayment.is_future_activation && successPayment.current_access_active && (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginTop: 12 }}
+                  message="Activación programada"
+                  description={`El acceso físico sigue funcionando con normalidad por la membresía vigente (hasta el ${formatDate(successPayment.current_access_until!)}). Este nuevo período se activará automáticamente el ${formatDate(successPayment.plan_start_date!)}.`}
+                />
+              )}
+              {successPayment.is_future_activation && !successPayment.current_access_active && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: 12 }}
+                  message="Activación programada"
+                  description={`El acceso físico (chip) permanece BLOQUEADO hasta el ${formatDate(successPayment.plan_start_date!)}. Se activará automáticamente ese día.`}
+                />
+              )}
             </div>
           )}
         </Modal>
