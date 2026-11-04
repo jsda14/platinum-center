@@ -1144,6 +1144,66 @@ async def register_payment(
         "current_access_until": member.get("end_date") if has_ongoing_access else None
     }
 
+
+class UpdateScheduledPaymentRequest(BaseModel):
+    start_date: str   # YYYY-MM-DD, obligatorio
+    end_date: str     # YYYY-MM-DD, obligatorio
+
+
+@router.put("/admin/payments/{payment_id}/schedule")
+async def update_scheduled_payment(
+    payment_id: str,
+    data: UpdateScheduledPaymentRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Permite corregir las fechas de un pago con activación programada
+    (activation_applied=false) ANTES de que el cron lo aplique. No se puede
+    editar un pago ya aplicado — para eso hay que corregir `members` directo.
+    """
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    payment_res = supabase_client.table("payments")\
+        .select("id, activation_applied")\
+        .eq("id", payment_id)\
+        .execute()
+
+    if not payment_res.data:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    if payment_res.data[0].get("activation_applied") is True:
+        raise HTTPException(
+            status_code=400,
+            detail="Este pago ya fue aplicado (la membresía ya está activa). No se puede editar su fecha programada."
+        )
+
+    try:
+        new_start = date.fromisoformat(data.start_date)
+        new_end = date.fromisoformat(data.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
+
+    if new_end <= new_start:
+        raise HTTPException(status_code=400, detail="La fecha de vencimiento debe ser posterior a la fecha de inicio")
+
+    bogota_tz = timezone(timedelta(hours=-5))
+    bogota_today = datetime.now(bogota_tz).date()
+    if new_start <= bogota_today:
+        raise HTTPException(
+            status_code=400,
+            detail="La nueva fecha de inicio debe seguir siendo futura. Si ya debe iniciar hoy, corrige el pago manualmente con el arquitecto."
+        )
+
+    supabase_client.table("payments").update({
+        "plan_start_date": new_start.isoformat(),
+        "plan_end_date": new_end.isoformat()
+    }).eq("id", payment_id).execute()
+
+    return {"status": "ok", "plan_start_date": new_start.isoformat(), "plan_end_date": new_end.isoformat()}
+
+
 @router.post("/admin/members/group-payment")
 async def register_group_payment(
     data: GroupPaymentAdminRequest,
