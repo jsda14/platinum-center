@@ -9,7 +9,7 @@
 
 | SPEC | Nombre | Repo | Tipo | Estado | Rama |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| SPEC-001 | Pago manual con fecha de inicio futura (activación programada) | backend-cloud + frontend + supabase | Error + Feature | 🟣 IN REVIEW | fix/SPEC-001-pago-manual-fecha-futura |
 
 **Leyenda de estado:** 🔵 IN PROGRESS (SPEC redactada, pendiente aprobación o en ejecución) ·
 🟣 IN REVIEW (código listo, commit hecho, pendiente validación funcional) ·
