@@ -328,6 +328,21 @@ export const adminRepository = {
     return this.registerManualPayment(data);
   },
 
+  async updateScheduledPayment(paymentId: string, startDate: string, endDate: string): Promise<{ plan_start_date: string; plan_end_date: string }> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/payments/${paymentId}/schedule`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar la fecha programada');
+    }
+    return response.json();
+  },
+
   async registerGroupPayment(data: RegisterGroupPaymentData): Promise<{ status: string; total_members: number; price_per_person: number; total_amount: number }> {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const headers = await getAdminAuthHeaders();
