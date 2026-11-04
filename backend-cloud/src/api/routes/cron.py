@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, status
 from src.infrastructure.supabase import supabase_client
+from src.infrastructure.zkteco.tunnel_client import activate_member
 
 logger = logging.getLogger(__name__)
 
@@ -207,3 +208,85 @@ async def purge_access_logs(
         logger.error(f"[PURGE_ACCESS_LOGS] Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Error interno purgando access_logs")
 
+@router.post("/admin/activate-scheduled-memberships")
+async def activate_scheduled_memberships(
+    x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret")
+):
+    """
+    Job diario: aplica pagos con plan_start_date futuro cuya fecha ya llegó —
+    activa members (status/plan/start_date/end_date) y reactiva el chip RFID.
+    """
+    cron_secret = os.getenv("CRON_SECRET")
+    if not cron_secret:
+        raise HTTPException(status_code=500, detail="Configuración incompleta")
+    if not x_cron_secret or x_cron_secret != cron_secret:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    bogota_tz = timezone(timedelta(hours=-5))
+    today_str = datetime.now(bogota_tz).date().isoformat()
+
+    # payments con activación pendiente cuya fecha ya llegó (<=, no ==, por si el
+    # cron falló un día — se aplica igual en cuanto vuelva a correr)
+    res = supabase_client.table("payments")\
+        .select("id, member_id, plan, plan_start_date, plan_end_date")\
+        .eq("activation_applied", False)\
+        .lte("plan_start_date", today_str)\
+        .execute()
+
+    pending = res.data or []
+    activated_count = 0
+    errors = []
+
+    for p in pending:
+        try:
+            supabase_client.table("members").update({
+                "status": "active",
+                "plan": p["plan"],
+                "start_date": p["plan_start_date"],
+                "end_date": p["plan_end_date"],
+                "updated_at": datetime.now(bogota_tz).isoformat(),
+                "renewal_reminder_sent": False,
+                "expiration_day_notified": False
+            }).eq("id", p["member_id"]).execute()
+
+            if p["plan"] == "15_days":
+                supabase_client.table("member_day_passes")\
+                    .update({"status": "exhausted"})\
+                    .eq("member_id", p["member_id"])\
+                    .eq("status", "active")\
+                    .execute()
+                supabase_client.table("member_day_passes").insert({
+                    "member_id": p["member_id"],
+                    "payment_id": p["id"],
+                    "days_total": 15,
+                    "days_used": 0,
+                    "valid_from": p["plan_start_date"],
+                    "valid_until": p["plan_end_date"],
+                    "status": "active"
+                }).execute()
+
+            # Reactivar chip (mismo patrón que register_payment paso 7)
+            member_full = supabase_client.table("members")\
+                .select("card_no, zkteco_user_id, profile_id")\
+                .eq("id", p["member_id"])\
+                .execute()
+            if member_full.data and member_full.data[0].get("card_no"):
+                m = member_full.data[0]
+                profile = supabase_client.table("profiles")\
+                    .select("full_name").eq("id", m["profile_id"]).execute()
+                full_name = profile.data[0]["full_name"] if profile.data else "Miembro"
+                await activate_member(
+                    member_id=p["member_id"],
+                    card_no=m["card_no"],
+                    zkteco_user_id=m["zkteco_user_id"],
+                    full_name=full_name
+                )
+
+            supabase_client.table("payments").update({"activation_applied": True}).eq("id", p["id"]).execute()
+            activated_count += 1
+        except Exception as e:
+            logger.error(f"[SCHEDULED_ACTIVATION] Error activando payment {p['id']}: {e}")
+            errors.append({"payment_id": p["id"], "error": str(e)})
+
+    logger.info(f"[SCHEDULED_ACTIVATION] {activated_count} membresías activadas de {len(pending)} pendientes")
+    return {"activated_count": activated_count, "pending_total": len(pending), "errors": errors}
