@@ -9,7 +9,7 @@
 
 | SPEC | Nombre | Repo | Tipo | Estado | Rama |
 |---|---|---|---|---|---|
-| SPEC-001 | Pago manual con fecha de inicio futura (activación programada) | backend-cloud + frontend + supabase | Error + Feature | 🟣 IN REVIEW | fix/SPEC-001-pago-manual-fecha-futura |
+| SPEC-001 | Pago manual con fecha de inicio futura (activación programada) | backend-cloud + frontend + supabase | Error + Feature | 🟢 DONE (mergeada a develop vía PR #18; pendiente deploy a Railway + alta en cron-job.org antes del 2026-12-10) | fix/SPEC-001-pago-manual-fecha-futura |
 
 **Leyenda de estado:** 🔵 IN PROGRESS (SPEC redactada, pendiente aprobación o en ejecución) ·
 🟣 IN REVIEW (código listo, commit hecho, pendiente validación funcional) ·
