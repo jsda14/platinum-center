@@ -21,12 +21,12 @@ import {
   PlusOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { adminRepository, type MemberWithProfile } from '../../../infrastructure/supabase/admin.repository';
+import { adminRepository, type MemberWithProfile, type ManualPaymentResult } from '../../../infrastructure/supabase/admin.repository';
 import { registerManualPayment } from '../../../application/admin/registerManualPayment.usecase';
 import { registerGroupPayment } from '../../../application/admin/registerGroupPayment.usecase';
 import { getActivePlans } from '../../../application/member/getActivePlans.usecase';
 import { LoadingScreen } from '../../components/LoadingScreen/LoadingScreen';
-import type { Plan, Payment, PlanGroupPricing } from '../../../domain/member/member.types';
+import type { Plan, PlanGroupPricing } from '../../../domain/member/member.types';
 import {
   getGroupPricingBounds,
   findGroupPricingTier,
@@ -84,7 +84,13 @@ export function AdminPayments() {
   const [isSplitPayment, setIsSplitPayment] = useState<boolean>(false);
 
   // Success details modal
-  const [successPayment, setSuccessPayment] = useState<Payment | null>(null);
+  const [successPayment, setSuccessPayment] = useState<ManualPaymentResult | null>(null);
+
+  // Estados para el modal de edición de pago programado
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editingPayment, setEditingPayment] = useState<any | null>(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState<boolean>(false);
+  const [editForm] = Form.useForm();
 
   // Convierte el preset de fecha ('today'/'week'/'month') a date_from/date_to
   // para mandarlos al backend, que ahora filtra en la query en vez de en el navegador.
@@ -266,6 +272,49 @@ export function AdminPayments() {
     }
   };
 
+  const handleOpenEditModal = (record: any) => {
+    setEditingPayment(record);
+    editForm.setFieldsValue({
+      start_date: record.plan_start_date ? dayjs(record.plan_start_date) : null,
+      end_date: record.plan_end_date ? dayjs(record.plan_end_date) : null,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingPayment(null);
+    editForm.resetFields();
+  };
+
+  const handleSaveSchedule = async () => {
+    try {
+      const values = await editForm.validateFields();
+      if (!editingPayment) return;
+
+      const startDateStr = values.start_date.format('YYYY-MM-DD');
+      const endDateStr = values.end_date.format('YYYY-MM-DD');
+
+      setIsSavingSchedule(true);
+      await adminRepository.updateScheduledPayment(
+        editingPayment.id,
+        startDateStr,
+        endDateStr
+      );
+      message.success('Fecha del pago programado actualizada');
+      handleCloseEditModal();
+      loadPayments();
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'errorFields' in err) {
+        return;
+      }
+      const msg = err instanceof Error ? err.message : 'Error al actualizar la fecha programada';
+      message.error(msg);
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
+
   // El filtrado por método/fecha ahora lo hace el backend (getPaymentsPaginated);
   // `payments` ya viene filtrado y paginado desde la API.
 
@@ -293,6 +342,25 @@ export function AdminPayments() {
       dataIndex: 'plan',
       key: 'plan',
       render: (val: string) => PLAN_LABELS[val] || val
+    },
+    {
+      title: 'Inicio de Vigencia',
+      dataIndex: 'plan_start_date',
+      key: 'plan_start_date',
+      render: (value: string | null) => value ? formatDate(value) : '—',
+    },
+    {
+      title: 'Vencimiento',
+      dataIndex: 'plan_end_date',
+      key: 'plan_end_date',
+      render: (value: string | null, record: any) => (
+        <span>
+          {value ? formatDate(value) : '—'}
+          {record.activation_applied === false && (
+            <Tag color="blue" style={{ marginLeft: 8 }}>Programado</Tag>
+          )}
+        </span>
+      ),
     },
     {
       title: 'Monto COP',
@@ -346,6 +414,22 @@ export function AdminPayments() {
       dataIndex: 'payment_date',
       key: 'payment_date',
       render: (val: string) => formatDateTime(val)
+    },
+    {
+      title: 'Acciones',
+      key: 'actions',
+      render: (_: any, record: any) => {
+        if (record.activation_applied !== false) return null;
+        return (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => handleOpenEditModal(record)}
+          >
+            Editar fecha
+          </Button>
+        );
+      }
     }
   ];
 
@@ -797,8 +881,86 @@ export function AdminPayments() {
                   <strong>Nueva Fecha de Vencimiento:</strong> {successPayment.plan_end_date ? formatDate(successPayment.plan_end_date) : 'No especificada'}
                 </p>
               </div>
+              {successPayment.is_future_activation && successPayment.current_access_active && (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginTop: 12 }}
+                  message="Activación programada"
+                  description={`El acceso físico sigue funcionando con normalidad por la membresía vigente (hasta el ${formatDate(successPayment.current_access_until!)}). Este nuevo período se activará automáticamente el ${formatDate(successPayment.plan_start_date!)}.`}
+                />
+              )}
+              {successPayment.is_future_activation && !successPayment.current_access_active && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: 12 }}
+                  message="Activación programada"
+                  description={`El acceso físico (chip) permanece BLOQUEADO hasta el ${formatDate(successPayment.plan_start_date!)}. Se activará automáticamente ese día.`}
+                />
+              )}
             </div>
           )}
+        </Modal>
+
+        {/* Modal: Editar fecha de pago programado */}
+        <Modal
+          title="Editar fecha de activación programada"
+          open={isEditModalOpen}
+          onOk={handleSaveSchedule}
+          onCancel={handleCloseEditModal}
+          okText="Guardar cambios"
+          cancelText="Cancelar"
+          confirmLoading={isSavingSchedule}
+          destroyOnClose
+          centered
+          width={450}
+        >
+          {editingPayment && (
+            <div style={{ marginBottom: 16, fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+              Socio: <strong style={{ color: 'var(--color-text-primary)' }}>{editingPayment.members?.profiles?.full_name || 'Sin nombre'}</strong>
+            </div>
+          )}
+          <Form
+            form={editForm}
+            layout="vertical"
+          >
+            <Form.Item
+              name="start_date"
+              label="Nueva Fecha de Inicio"
+              rules={[{ required: true, message: 'La fecha de inicio es obligatoria' }]}
+            >
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+                placeholder="Selecciona fecha de inicio"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="end_date"
+              label="Nueva Fecha de Vencimiento"
+              rules={[
+                { required: true, message: 'La fecha de vencimiento es obligatoria' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const start = getFieldValue('start_date');
+                    if (!value || !start) return Promise.resolve();
+                    if (value.isBefore(start) || value.isSame(start)) {
+                      return Promise.reject(new Error('La fecha de vencimiento debe ser posterior a la de inicio'));
+                    }
+                    return Promise.resolve();
+                  }
+                })
+              ]}
+            >
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+                placeholder="Selecciona fecha de vencimiento"
+              />
+            </Form.Item>
+          </Form>
         </Modal>
       </main>
     </ConfigProvider>

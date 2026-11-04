@@ -15,6 +15,12 @@ export interface ManualPaymentData {
   splits?: { method: string; amount: number }[];
 }
 
+export interface ManualPaymentResult extends Payment {
+  is_future_activation?: boolean;
+  current_access_active?: boolean;
+  current_access_until?: string | null;
+}
+
 export interface MemberWithProfile extends Member {
   profiles: Pick<Profile, 'full_name' | 'email' | 'phone'> | null;
 }
@@ -278,7 +284,8 @@ export const adminRepository = {
     return detail.member;
   },
 
-  async registerManualPayment(data: ManualPaymentData): Promise<Payment> {
+
+  async registerManualPayment(data: ManualPaymentData): Promise<ManualPaymentResult> {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const headers = await getAdminAuthHeaders();
     const response = await fetch(`${apiUrl}/admin/members/${data.member_id}/payments`, {
@@ -309,11 +316,31 @@ export const adminRepository = {
       method: data.method,
       plan: data.plan,
       status: 'confirmed',
-    } as Payment;
+      plan_start_date: resData.plan_start_date ?? null,
+      plan_end_date: resData.plan_end_date ?? null,
+      is_future_activation: resData.is_future_activation ?? false,
+      current_access_active: resData.current_access_active ?? false,
+      current_access_until: resData.current_access_until ?? null,
+    } as ManualPaymentResult;
   },
 
-  registerPayment(data: ManualPaymentData): Promise<Payment> {
+  registerPayment(data: ManualPaymentData): Promise<ManualPaymentResult> {
     return this.registerManualPayment(data);
+  },
+
+  async updateScheduledPayment(paymentId: string, startDate: string, endDate: string): Promise<{ plan_start_date: string; plan_end_date: string }> {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const headers = await getAdminAuthHeaders();
+    const response = await fetch(`${apiUrl}/admin/payments/${paymentId}/schedule`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Error al actualizar la fecha programada');
+    }
+    return response.json();
   },
 
   async registerGroupPayment(data: RegisterGroupPaymentData): Promise<{ status: string; total_members: number; price_per_person: number; total_amount: number }> {

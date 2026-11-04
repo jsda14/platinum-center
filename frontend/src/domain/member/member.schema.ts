@@ -61,6 +61,7 @@ export const paymentSchema = z.object({
   payment_date: z.string().optional(),
   plan_start_date: z.string().nullable().optional(),
   plan_end_date: z.string().nullable().optional(),
+  activation_applied: z.boolean().nullable().optional(),
   created_at: z.string().optional()
 });
 

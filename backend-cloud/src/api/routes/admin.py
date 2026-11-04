@@ -1005,6 +1005,35 @@ async def register_payment(
         start_date = now.date().isoformat()
         end_date = (now + timedelta(days=duration_days)).date().isoformat()
     
+    # 3.5 Determinar si la activación es futura
+    bogota_today = now.date()
+    is_future_activation = date.fromisoformat(start_date) > bogota_today
+
+    current_status = member.get("status")
+    current_end_date = member.get("end_date")
+    has_ongoing_access = bool(
+        is_future_activation and current_status == "active" and current_end_date and
+        date.fromisoformat(current_end_date) >= bogota_today
+    )
+
+    # 3.6 Guardia: no permitir un segundo pago programado mientras hay uno pendiente
+    if is_future_activation:
+        pending_res = supabase_client.table("payments")\
+            .select("id, plan_start_date")\
+            .eq("member_id", actual_member_id)\
+            .eq("activation_applied", False)\
+            .execute()
+        if pending_res.data:
+            pending = pending_res.data[0]
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Ya existe un pago con activación programada pendiente para este miembro "
+                    f"(inicia {pending['plan_start_date']}). Espera a que se aplique o corrígelo "
+                    f"manualmente antes de registrar uno nuevo."
+                )
+            )
+
     # Validar split payment si viene
     if data.splits:
         if len(data.splits) < 2:
@@ -1025,7 +1054,8 @@ async def register_payment(
         "status": "confirmed",
         "registered_by": admin_user_id,
         "plan_start_date": start_date,
-        "plan_end_date": end_date
+        "plan_end_date": end_date,
+        "activation_applied": not is_future_activation
     }).execute()
 
     if not payment_res.data:
@@ -1044,19 +1074,20 @@ async def register_payment(
             for s in data.splits
         ]).execute()
 
-    # 5. Actualizar member
-    supabase_client.table("members").update({
-        "status": "active",
-        "plan": plan_slug,
-        "start_date": start_date,
-        "end_date": end_date,
-        "updated_at": now.isoformat(),
-        "renewal_reminder_sent": False,
-        "expiration_day_notified": False
-    }).eq("id", actual_member_id).execute()
+    # 5. Actualizar member — SOLO si la activación NO es futura
+    if not is_future_activation:
+        supabase_client.table("members").update({
+            "status": "active",
+            "plan": plan_slug,
+            "start_date": start_date,
+            "end_date": end_date,
+            "updated_at": now.isoformat(),
+            "renewal_reminder_sent": False,
+            "expiration_day_notified": False
+        }).eq("id", actual_member_id).execute()
 
-    # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo
-    if plan_slug == "15_days":
+    # 6. Si plan 15_days: cerrar day_passes previos + crear nuevo — SOLO si not is_future_activation
+    if not is_future_activation and plan_slug == "15_days":
         valid_until = (now + timedelta(days=30)).date().isoformat()
         days_used = data.initial_days_used if data.initial_days_used is not None else 0
         if days_used < 0 or days_used > 15:
@@ -1078,31 +1109,100 @@ async def register_payment(
             "status": "active"
         }).execute()
 
-    # 7. Reactivar chip (no bloqueante)
-    try:
-        member_full = supabase_client.table("members")\
-            .select("card_no, zkteco_user_id, profile_id")\
-            .eq("id", actual_member_id)\
-            .execute()
-        
-        if member_full.data and member_full.data[0].get("card_no"):
-            m = member_full.data[0]
-            profile = supabase_client.table("profiles")\
-                .select("full_name")\
-                .eq("id", m["profile_id"])\
+    # 7. Reactivar chip (no bloqueante) — SOLO si la activación NO es futura
+    if not is_future_activation:
+        try:
+            member_full = supabase_client.table("members")\
+                .select("card_no, zkteco_user_id, profile_id")\
+                .eq("id", actual_member_id)\
                 .execute()
-            full_name = profile.data[0]["full_name"] if profile.data else "Miembro"
             
-            await activate_member(
-                member_id=member_id,
-                card_no=m["card_no"],
-                zkteco_user_id=m["zkteco_user_id"],
-                full_name=full_name
-            )
-    except Exception as e:
-        logger.warning(f"[PAYMENT] No se pudo reactivar chip: {e}")
+            if member_full.data and member_full.data[0].get("card_no"):
+                m = member_full.data[0]
+                profile = supabase_client.table("profiles")\
+                    .select("full_name")\
+                    .eq("id", m["profile_id"])\
+                    .execute()
+                full_name = profile.data[0]["full_name"] if profile.data else "Miembro"
+                
+                await activate_member(
+                    member_id=member_id,
+                    card_no=m["card_no"],
+                    zkteco_user_id=m["zkteco_user_id"],
+                    full_name=full_name
+                )
+        except Exception as e:
+            logger.warning(f"[PAYMENT] No se pudo reactivar chip: {e}")
     
-    return {"status": "ok", "payment_id": payment["id"]}
+    return {
+        "status": "ok",
+        "payment_id": payment["id"],
+        "plan_start_date": start_date,
+        "plan_end_date": end_date,
+        "is_future_activation": is_future_activation,
+        "current_access_active": has_ongoing_access,
+        "current_access_until": member.get("end_date") if has_ongoing_access else None
+    }
+
+
+class UpdateScheduledPaymentRequest(BaseModel):
+    start_date: str   # YYYY-MM-DD, obligatorio
+    end_date: str     # YYYY-MM-DD, obligatorio
+
+
+@router.put("/admin/payments/{payment_id}/schedule")
+async def update_scheduled_payment(
+    payment_id: str,
+    data: UpdateScheduledPaymentRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Permite corregir las fechas de un pago con activación programada
+    (activation_applied=false) ANTES de que el cron lo aplique. No se puede
+    editar un pago ya aplicado — para eso hay que corregir `members` directo.
+    """
+    role = get_current_user_role(authorization)
+    if role not in ["super_admin", "receptionist"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    payment_res = supabase_client.table("payments")\
+        .select("id, activation_applied")\
+        .eq("id", payment_id)\
+        .execute()
+
+    if not payment_res.data:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    if payment_res.data[0].get("activation_applied") is True:
+        raise HTTPException(
+            status_code=400,
+            detail="Este pago ya fue aplicado (la membresía ya está activa). No se puede editar su fecha programada."
+        )
+
+    try:
+        new_start = date.fromisoformat(data.start_date)
+        new_end = date.fromisoformat(data.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
+
+    if new_end <= new_start:
+        raise HTTPException(status_code=400, detail="La fecha de vencimiento debe ser posterior a la fecha de inicio")
+
+    bogota_tz = timezone(timedelta(hours=-5))
+    bogota_today = datetime.now(bogota_tz).date()
+    if new_start <= bogota_today:
+        raise HTTPException(
+            status_code=400,
+            detail="La nueva fecha de inicio debe seguir siendo futura. Si ya debe iniciar hoy, corrige el pago manualmente con el arquitecto."
+        )
+
+    supabase_client.table("payments").update({
+        "plan_start_date": new_start.isoformat(),
+        "plan_end_date": new_end.isoformat()
+    }).eq("id", payment_id).execute()
+
+    return {"status": "ok", "plan_start_date": new_start.isoformat(), "plan_end_date": new_end.isoformat()}
+
 
 @router.post("/admin/members/group-payment")
 async def register_group_payment(

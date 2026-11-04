@@ -258,6 +258,13 @@ export function AdminMembers() {
       },
     },
     {
+      title: 'Inicio',
+      dataIndex: 'start_date',
+      key: 'start_date',
+      responsive: ['md'] as any,
+      render: (value: string | null) => value ? formatDate(value) : '—',
+    },
+    {
       title: 'Vencimiento',
       dataIndex: 'end_date',
       key: 'endDate',
