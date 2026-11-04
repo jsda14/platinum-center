@@ -1,10 +1,16 @@
-import { adminRepository, type ManualPaymentData } from '../../infrastructure/supabase/admin.repository';
+import { adminRepository, type ManualPaymentData, type ManualPaymentResult } from '../../infrastructure/supabase/admin.repository';
 import { store } from '../../infrastructure/store/store';
-import type { Payment } from '../../domain/member/member.types';
 
-export async function registerManualPayment(data: ManualPaymentData): Promise<Payment> {
+export async function registerManualPayment(data: ManualPaymentData): Promise<ManualPaymentResult> {
   // 1. Registrar el pago y actualizar la membresía en Supabase
   const payment = await adminRepository.registerManualPayment(data);
+
+  // Si la activación es futura, el backend ya NO activó el chip — no disparar
+  // la reactivación aquí tampoco. El cron de activación programada se encarga
+  // el día que llegue plan_start_date.
+  if (payment.is_future_activation) {
+    return payment;
+  }
 
   try {
     // 2. Consultar el miembro para verificar si tiene chip asignado
