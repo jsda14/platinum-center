@@ -980,18 +980,19 @@ async def register_payment(
             end_date = date.fromisoformat(data.end_date).isoformat() if data.end_date else (date.fromisoformat(start_date) + timedelta(days=duration_days)).isoformat()
         except ValueError:
             raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
-    elif member.get("status") == "active" and member.get("end_date") and member.get("plan") == plan_slug:
-        # Renovación anticipada: empieza desde donde termina el plan actual —
-        # pero SOLO si ese plan actual todavía no venció Y es el MISMO plan
-        # (ej. renovar otro mes del mismo "1_month"). Si el plan nuevo es
-        # distinto al que tiene ahorita (ej. pasa de "15_days" a "semestral"),
-        # no tiene sentido encadenar fechas del plan viejo — eso dejaba la
-        # activación marcada como "futura" y se saltaba por completo la
-        # actualización de members.plan/end_date y el cierre del day_pass
-        # viejo, haciendo que el miembro siguiera corriendo bajo el plan
-        # anterior (y su contador de días consumibles) hasta que llegara esa
-        # fecha futura. Un cambio de plan se trata como activación inmediata,
-        # igual que alguien sin membresía activa.
+    elif member.get("status") == "active" and member.get("end_date"):
+        # Renovación anticipada / plan programado: empieza desde donde
+        # termina el plan actual — pase a ser el MISMO plan (renovar otro
+        # mes) o uno DISTINTO (ej. tiene 15_days activo y paga semestral de
+        # una vez para que entre en vigencia cuando se le acabe el actual).
+        # Esto queda marcado como activación futura (is_future_activation)
+        # y el plan nuevo no se aplica todavía — sigue corriendo con el plan
+        # viejo mientras tanto. El swap real pasa en uno de dos lugares:
+        # - por fecha: el cron activate_scheduled_memberships (cron.py)
+        # - por agotar días consumibles antes de esa fecha: el check de
+        #   pago programado dentro de /access-event (zkteco.py), que aplica
+        #   el pago pendiente apenas se agota el pase de 15_days en vez de
+        #   esperar a que llegue la fecha.
         #
         # Si el end_date guardado ya quedó en el pasado (ej. status="active"
         # desatrasado porque el cron de expiración no ha corrido todavía, o

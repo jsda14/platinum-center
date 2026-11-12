@@ -264,6 +264,16 @@ async def activate_scheduled_memberships(
                     "valid_until": p["plan_end_date"],
                     "status": "active"
                 }).execute()
+            else:
+                # Cambio DESDE 15_days hacia otro plan: cerrar cualquier
+                # day_pass que haya quedado activo, para que no quede
+                # flotando un pase "active" que pueda revivir el contador
+                # de días si el plan se revierte más adelante.
+                supabase_client.table("member_day_passes")\
+                    .update({"status": "exhausted"})\
+                    .eq("member_id", p["member_id"])\
+                    .eq("status", "active")\
+                    .execute()
 
             # Reactivar chip (mismo patrón que register_payment paso 7)
             member_full = supabase_client.table("members")\
