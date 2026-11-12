@@ -960,13 +960,13 @@ async def register_payment(
 
     # 2. Obtener estado actual del miembro
     member_res = supabase_client.table("members")\
-        .select("status, end_date")\
+        .select("status, end_date, plan")\
         .eq("id", actual_member_id)\
         .execute()
 
     if not member_res.data:
         raise HTTPException(status_code=404, detail="Miembro no encontrado")
-    
+
     member = member_res.data[0]
     
     # 3. Calcular fechas
@@ -980,14 +980,24 @@ async def register_payment(
             end_date = date.fromisoformat(data.end_date).isoformat() if data.end_date else (date.fromisoformat(start_date) + timedelta(days=duration_days)).isoformat()
         except ValueError:
             raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
-    elif member.get("status") == "active" and member.get("end_date"):
+    elif member.get("status") == "active" and member.get("end_date") and member.get("plan") == plan_slug:
         # Renovación anticipada: empieza desde donde termina el plan actual —
-        # pero SOLO si ese plan actual todavía no venció. Si el end_date
-        # guardado ya quedó en el pasado (ej. status="active" desatrasado
-        # porque el cron de expiración no ha corrido todavía, o se corrigió
-        # a mano), sumarle los días desde ahí produce un "mes nuevo" que ya
-        # casi está vencido de entrada. En ese caso se calcula igual que a
-        # alguien sin membresía activa: desde hoy.
+        # pero SOLO si ese plan actual todavía no venció Y es el MISMO plan
+        # (ej. renovar otro mes del mismo "1_month"). Si el plan nuevo es
+        # distinto al que tiene ahorita (ej. pasa de "15_days" a "semestral"),
+        # no tiene sentido encadenar fechas del plan viejo — eso dejaba la
+        # activación marcada como "futura" y se saltaba por completo la
+        # actualización de members.plan/end_date y el cierre del day_pass
+        # viejo, haciendo que el miembro siguiera corriendo bajo el plan
+        # anterior (y su contador de días consumibles) hasta que llegara esa
+        # fecha futura. Un cambio de plan se trata como activación inmediata,
+        # igual que alguien sin membresía activa.
+        #
+        # Si el end_date guardado ya quedó en el pasado (ej. status="active"
+        # desatrasado porque el cron de expiración no ha corrido todavía, o
+        # se corrigió a mano), sumarle los días desde ahí produce un "mes
+        # nuevo" que ya casi está vencido de entrada. En ese caso se calcula
+        # igual que a alguien sin membresía activa: desde hoy.
         try:
             current_end = datetime.fromisoformat(member["end_date"])
             if current_end.tzinfo is None:
@@ -1108,6 +1118,18 @@ async def register_payment(
             "valid_until": valid_until,
             "status": "active"
         }).execute()
+    elif not is_future_activation and plan_slug != "15_days":
+        # Cambio de plan DESDE 15_days hacia otro plan: cerrar cualquier
+        # day_pass que haya quedado activo, para que no quede flotando un
+        # pase "active" que pueda reactivarse solo si el plan se revierte
+        # más adelante. zkteco.py solo mira el day_pass cuando members.plan
+        # == "15_days", así que esto es un cierre defensivo, no estrictamente
+        # necesario para el bug de hoy, pero evita que quede un cabo suelto.
+        supabase_client.table("member_day_passes")\
+            .update({"status": "exhausted"})\
+            .eq("member_id", actual_member_id)\
+            .eq("status", "active")\
+            .execute()
 
     # 7. Reactivar chip (no bloqueante) — SOLO si la activación NO es futura
     if not is_future_activation:
@@ -1126,7 +1148,7 @@ async def register_payment(
                 full_name = profile.data[0]["full_name"] if profile.data else "Miembro"
                 
                 await activate_member(
-                    member_id=member_id,
+                    member_id=actual_member_id,
                     card_no=m["card_no"],
                     zkteco_user_id=m["zkteco_user_id"],
                     full_name=full_name
